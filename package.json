@@ -1,0 +1,19 @@
+{
+  "name": "walkme-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "mobile",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "mobile": "yarn workspace mobile start",
+    "backend": "yarn workspace backend start:dev",
+    "backend:build": "yarn workspace backend build",
+    "shared:build": "yarn workspace shared build"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
