@@ -366,6 +366,7 @@ const styles = StyleSheet.create({
   openBadgeClosed: { backgroundColor: `${Colors.error}20`, borderColor: `${Colors.error}50` },
   openText: { fontSize: 11, color: Colors.success, fontWeight: '600' },
   closedText: { color: Colors.error },
+  markerLabel: {
     backgroundColor: Colors.surfaceDark,
     color: Colors.textPrimary,
     fontSize: 10, fontWeight: '600',

@@ -90,13 +90,6 @@ export const leaveEvent = createAsyncThunk(
     }
   },
 );
-      // TODO: replace with eventsApi.leave(eventId)
-      return eventId;
-    } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? 'Failed to leave event');
-    }
-  },
-);
 
 const eventsSlice = createSlice({
   name: 'events',
