@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, SafeAreaView, Animated, PanResponder,
   Dimensions, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { fetchSwipeDeck, swipeRight, swipeLeft, clearLatestMatch, MatchUser, MatchDog } from '../../store/slices/matchesSlice';
@@ -39,12 +40,15 @@ const SwipeCard: React.FC<SwipeCardProps> = ({ user, isTop, position, panHandler
       ]}
       {...(isTop ? panHandlers : {})}
     >
-      {/* Dog emoji hero */}
+      {/* Dog icon hero */}
       <View style={styles.cardHero}>
-        <Text style={styles.dogEmoji}>{dog?.emoji ?? '🐕'}</Text>
+        <Ionicons name="paw" size={90} color={Colors.primary} />
         <View style={styles.heroOverlay}>
           <View style={styles.distancePill}>
-            <Text style={styles.distanceText}>📍 {(user as any).distance ?? '< 1 km'}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Ionicons name="location-outline" size={12} color="#fff" />
+              <Text style={styles.distanceText}>{(user as any).distance ?? '< 1 km'}</Text>
+            </View>
           </View>
         </View>
         {/* LIKE / NOPE overlays */}
@@ -147,7 +151,10 @@ export const DiscoverScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🐾 DogPals</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Ionicons name="paw" size={26} color={Colors.primary} />
+          <Text style={styles.headerTitle}>DogPals</Text>
+        </View>
         <Text style={styles.headerSub}>Discover nearby dogs</Text>
       </View>
 
@@ -160,7 +167,7 @@ export const DiscoverScreen: React.FC = () => {
           </View>
         ) : swipeDeck.length === 0 ? (
           <View style={styles.emptyBox}>
-            <Text style={styles.emptyEmoji}>🐾</Text>
+            <Ionicons name="paw-outline" size={64} color={Colors.textMuted} style={{ marginBottom: Spacing.md }} />
             <Text style={styles.emptyTitle}>You've seen everyone!</Text>
             <Text style={styles.emptySub}>Check back tomorrow for new dogs in your area.</Text>
           </View>
@@ -192,13 +199,13 @@ export const DiscoverScreen: React.FC = () => {
       {swipeDeck.length > 0 && !swipeLoading && (
         <View style={styles.actions}>
           <TouchableOpacity style={[styles.actionBtn, styles.nopeBtn]} onPress={handleSwipeLeft}>
-            <Text style={styles.actionEmoji}>✕</Text>
+            <Ionicons name="close" size={28} color={Colors.error} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, styles.superLikeBtn]}>
-            <Text style={styles.actionEmoji}>⭐</Text>
+            <Ionicons name="star" size={24} color={Colors.warning} />
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, styles.likeBtn]} onPress={handleSwipeRight}>
-            <Text style={styles.actionEmoji}>❤️</Text>
+            <Ionicons name="heart" size={28} color={Colors.success} />
           </TouchableOpacity>
         </View>
       )}
@@ -210,7 +217,7 @@ export const DiscoverScreen: React.FC = () => {
         title={undefined}
       >
         <View style={styles.matchModal}>
-          <Text style={styles.matchEmoji}>🎉</Text>
+          <Ionicons name="heart-circle" size={56} color={Colors.primary} style={{ marginBottom: Spacing.sm }} />
           <Text style={styles.matchTitle}>It's a Match!</Text>
           <Text style={styles.matchSub}>
             You and <Text style={{ color: Colors.primary }}>{latestMatch?.user?.displayName}</Text> both liked each other's dogs!
