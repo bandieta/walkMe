@@ -1,4 +1,5 @@
-// WalkMe Design Tokens — adapted from Figma (Revolut-inspired dark UI)
+// WalkMe Design System — brand identity, tokens, grid & elevation
+// T1 (E1-S2): style guide source of truth for all coded components
 
 export const Colors = {
   // Primary
@@ -68,6 +69,15 @@ export const Radius = {
 };
 
 export const Shadow = {
+  /** Elevation 1 — subtle, used for cards and inputs */
+  subtle: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  /** Elevation 2 — mid, used for floating cards */
   card: {
     shadowColor: '#6C5CE7',
     shadowOffset: { width: 0, height: 4 },
@@ -75,11 +85,43 @@ export const Shadow = {
     shadowRadius: 12,
     elevation: 6,
   },
-  subtle: {
+  /** Elevation 3 — high, used for bottom sheets and modals */
+  modal: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 16,
   },
+  /** Elevation 4 — max, used for floating action buttons */
+  fab: {
+    shadowColor: '#6C5CE7',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+};
+
+// ── Grid / Layout ─────────────────────────────────────────────────────────────
+
+export const Grid = {
+  /** Horizontal content padding on all screens */
+  screenPadding: 16,
+  /** Gutter between columns / cards */
+  gutter: 12,
+  /** Standard section gap */
+  sectionGap: 24,
+  /** Max card width in a 2-column layout */
+  cardWidth: '47%',
+};
+
+// ── Z-Index stack ─────────────────────────────────────────────────────────────
+
+export const ZIndex = {
+  base: 0,
+  card: 10,
+  header: 50,
+  modal: 100,
+  toast: 200,
 };

@@ -7,12 +7,13 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Typography, Spacing } from '../../utils/theme';
 
 const { width } = Dimensions.get('window');
 
 interface SplashScreenProps {
-  onFinish: () => void;
+  onFinish: (isAuthenticated: boolean) => void;
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
@@ -24,21 +25,28 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
   const glowOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.sequence([
-      // Step 1: Logo fade in + scale (700ms)
-      Animated.parallel([
-        Animated.timing(logoOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(logoScale, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(glowOpacity, { toValue: 0.6, duration: 700, useNativeDriver: true }),
-      ]),
-      // Step 2: Progress bar (1200ms)
-      Animated.parallel([
-        Animated.timing(barOpacity, { toValue: 1, duration: 300, useNativeDriver: false }),
-        Animated.timing(barWidth, { toValue: width * 0.6, duration: 1200, useNativeDriver: false }),
-      ]),
-      // Step 3: Fade out (500ms)
-      Animated.timing(screenOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
-    ]).start(() => onFinish());
+    let token: string | null = null;
+
+    const animationPromise = new Promise<void>(resolve => {
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(logoOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+          Animated.timing(logoScale, { toValue: 1, duration: 700, useNativeDriver: true }),
+          Animated.timing(glowOpacity, { toValue: 0.6, duration: 700, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(barOpacity, { toValue: 1, duration: 300, useNativeDriver: false }),
+          Animated.timing(barWidth, { toValue: width * 0.6, duration: 1200, useNativeDriver: false }),
+        ]),
+        Animated.timing(screenOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+      ]).start(() => resolve());
+    });
+
+    const tokenPromise = AsyncStorage.getItem('accessToken').then(t => { token = t; });
+
+    Promise.all([animationPromise, tokenPromise]).then(() => {
+      onFinish(!!token);
+    });
   }, []);
 
   return (
