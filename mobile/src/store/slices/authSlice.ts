@@ -20,7 +20,8 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }) => {
     const response = await authApi.login(email, password);
-    await AsyncStorage.setItem('accessToken', response.data.accessToken);
+    const token = response.data.token ?? response.data.accessToken;
+    await AsyncStorage.setItem('accessToken', token);
     return response.data;
   },
 );
@@ -29,7 +30,8 @@ export const register = createAsyncThunk(
   'auth/register',
   async ({ email, displayName, password }: { email: string; displayName: string; password: string }) => {
     const response = await authApi.register(email, displayName, password);
-    await AsyncStorage.setItem('accessToken', response.data.accessToken);
+    const token = response.data.token ?? response.data.accessToken;
+    await AsyncStorage.setItem('accessToken', token);
     return response.data;
   },
 );
@@ -38,7 +40,8 @@ export const firebaseLogin = createAsyncThunk(
   'auth/firebaseLogin',
   async (idToken: string) => {
     const response = await authApi.firebaseLogin(idToken);
-    await AsyncStorage.setItem('accessToken', response.data.accessToken);
+    const token = response.data.token ?? response.data.accessToken;
+    await AsyncStorage.setItem('accessToken', token);
     return response.data;
   },
 );
