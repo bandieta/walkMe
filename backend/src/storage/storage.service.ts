@@ -1,6 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as AWS from 'aws-sdk';
+import {
+  BlobServiceClient,
+  BlobSASPermissions,
+  SASProtocol,
+  generateBlobSASQueryParameters,
+  StorageSharedKeyCredential,
+} from '@azure/storage-blob';
 import { randomUUID } from 'crypto';
 
 export interface PresignedUpload {
@@ -11,23 +17,27 @@ export interface PresignedUpload {
 
 @Injectable()
 export class StorageService {
-  private readonly s3: AWS.S3;
-  private readonly bucket: string;
+  private readonly blobService: BlobServiceClient;
+  private readonly container: string;
+  private readonly accountName: string;
+  private readonly credential: StorageSharedKeyCredential;
   private readonly logger = new Logger(StorageService.name);
 
   constructor(private readonly config: ConfigService) {
-    this.bucket = config.getOrThrow<string>('AWS_S3_BUCKET');
+    this.accountName = config.getOrThrow<string>('AZURE_STORAGE_ACCOUNT_NAME');
+    const accountKey   = config.getOrThrow<string>('AZURE_STORAGE_ACCOUNT_KEY');
+    this.container     = config.getOrThrow<string>('AZURE_STORAGE_CONTAINER');
 
-    this.s3 = new AWS.S3({
-      accessKeyId: config.getOrThrow<string>('AWS_ACCESS_KEY_ID'),
-      secretAccessKey: config.getOrThrow<string>('AWS_SECRET_ACCESS_KEY'),
-      region: config.get<string>('AWS_REGION', 'us-east-1'),
-    });
+    this.credential  = new StorageSharedKeyCredential(this.accountName, accountKey);
+    this.blobService = new BlobServiceClient(
+      `https://${this.accountName}.blob.core.windows.net`,
+      this.credential,
+    );
   }
 
   /**
-   * Generate a pre-signed URL allowing a client to upload a file directly
-   * to S3, bypassing the backend (no large-payload bottleneck).
+   * Generate a SAS URL allowing a client to upload a blob directly
+   * to Azure Blob Storage, bypassing the backend.
    */
   async createPresignedUpload(
     folder: string,
@@ -37,36 +47,49 @@ export class StorageService {
     const ext = mimeType.split('/')[1] ?? 'bin';
     const key = `${folder}/${randomUUID()}.${ext}`;
 
-    const uploadUrl = this.s3.getSignedUrl('putObject', {
-      Bucket: this.bucket,
-      Key: key,
-      ContentType: mimeType,
-      Expires: expiresInSeconds,
-      // ACL removed — use bucket policy / CloudFront instead
-    });
+    const expiresOn = new Date(Date.now() + expiresInSeconds * 1000);
+    const sasToken  = generateBlobSASQueryParameters(
+      {
+        containerName: this.container,
+        blobName: key,
+        permissions: BlobSASPermissions.parse('cw'), // create + write
+        contentType: mimeType,
+        expiresOn,
+        protocol: SASProtocol.Https,
+      },
+      this.credential,
+    ).toString();
 
-    const publicUrl = `https://${this.bucket}.s3.amazonaws.com/${key}`;
+    const publicUrl = `https://${this.accountName}.blob.core.windows.net/${this.container}/${key}`;
+    const uploadUrl = `${publicUrl}?${sasToken}`;
     return { uploadUrl, key, publicUrl };
   }
 
   /**
-   * Generate a pre-signed URL to allow a client to download a private object.
+   * Generate a SAS URL to allow a client to download a private blob.
    */
   async createPresignedDownload(key: string, expiresInSeconds = 3600): Promise<string> {
-    return this.s3.getSignedUrl('getObject', {
-      Bucket: this.bucket,
-      Key: key,
-      Expires: expiresInSeconds,
-    });
+    const expiresOn = new Date(Date.now() + expiresInSeconds * 1000);
+    const sasToken  = generateBlobSASQueryParameters(
+      {
+        containerName: this.container,
+        blobName: key,
+        permissions: BlobSASPermissions.parse('r'),
+        expiresOn,
+        protocol: SASProtocol.Https,
+      },
+      this.credential,
+    ).toString();
+
+    return `https://${this.accountName}.blob.core.windows.net/${this.container}/${key}?${sasToken}`;
   }
 
   /**
-   * Delete an object from S3.
+   * Delete a blob from Azure Blob Storage.
    */
   async deleteObject(key: string): Promise<void> {
-    await this.s3
-      .deleteObject({ Bucket: this.bucket, Key: key })
-      .promise();
-    this.logger.log(`Deleted S3 object: ${key}`);
+    const containerClient = this.blobService.getContainerClient(this.container);
+    await containerClient.deleteBlob(key);
+    this.logger.log(`Deleted Azure blob: ${key}`);
   }
 }
