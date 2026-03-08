@@ -12,6 +12,7 @@ import {
   ScrollView,
   ActivityIndicator,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
@@ -23,6 +24,15 @@ const { width, height } = Dimensions.get('window');
 
 // Category chips
 const CATEGORIES = ['All', 'Walks', 'Parks', 'Cafes', 'Vets', 'Trails', 'Lakes'];
+
+const PLACE_CATEGORY_ICON: Record<string, string> = {
+  park: 'leaf',
+  cafe: 'cafe',
+  vet: 'medical',
+  trail: 'footsteps',
+  lake: 'water',
+  beach: 'water',
+};
 
 const PLACE_CATEGORY_MAP: Record<string, string[]> = {
   Parks: ['park'],
@@ -49,17 +59,26 @@ const WalkCard: React.FC<{
         <Text style={cardStyles.host}>{walk.host?.displayName}</Text>
       </View>
       <View style={cardStyles.distanceBadge}>
-        <Text style={cardStyles.distanceText}>📍 Near</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+          <Ionicons name="location-outline" size={11} color={Colors.textSecondary} />
+          <Text style={cardStyles.distanceText}>Near</Text>
+        </View>
       </View>
     </View>
 
     <View style={cardStyles.meta}>
-      <Text style={cardStyles.metaItem}>
-        🕐 {new Date(walk.scheduledAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-      </Text>
-      <Text style={cardStyles.metaItem}>
-        👥 {walk.participants?.length ?? 0}/{walk.maxParticipants}
-      </Text>
+      <View style={cardStyles.metaItem}>
+        <Ionicons name="time-outline" size={12} color={Colors.textSecondary} />
+        <Text style={cardStyles.metaText}>
+          {new Date(walk.scheduledAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+        </Text>
+      </View>
+      <View style={cardStyles.metaItem}>
+        <Ionicons name="people-outline" size={12} color={Colors.textSecondary} />
+        <Text style={cardStyles.metaText}>
+          {walk.participants?.length ?? 0}/{walk.maxParticipants}
+        </Text>
+      </View>
     </View>
 
     {walk.description && (
@@ -110,7 +129,8 @@ const cardStyles = StyleSheet.create({
   },
   distanceText: { ...Typography.caption, color: Colors.textSecondary },
   meta: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.xs },
-  metaItem: { ...Typography.caption, color: Colors.textSecondary },
+  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  metaText: { ...Typography.caption, color: Colors.textSecondary },
   description: { ...Typography.caption, color: Colors.textSecondary, marginBottom: Spacing.sm },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: Spacing.xs },
   statusBadge: { borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 3 },
@@ -161,7 +181,7 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           >
             <View style={styles.markerContainer}>
               <View style={styles.marker}>
-                <Text style={styles.markerEmoji}>🚶</Text>
+                <Ionicons name="walk" size={18} color="#fff" />
               </View>
               <Text style={styles.markerLabel} numberOfLines={1}>{walk.title}</Text>
             </View>
@@ -176,7 +196,7 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           >
             <View style={styles.markerContainer}>
               <View style={[styles.marker, styles.placeMarker]}>
-                <Text style={styles.markerEmoji}>{place.emoji}</Text>
+                <Ionicons name={PLACE_CATEGORY_ICON[place.category] ?? 'location'} size={18} color="#fff" />
               </View>
               <Text style={styles.markerLabel} numberOfLines={1}>{place.name}</Text>
             </View>
@@ -223,12 +243,13 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <TouchableOpacity style={styles.placeCardClose} onPress={() => dispatch(setSelectedPlace(null))}>
             <Text style={{ color: Colors.textMuted, fontSize: 16 }}>✕</Text>
           </TouchableOpacity>
-          <Text style={styles.placeEmoji}>{selectedPlace.emoji}</Text>
+          <Ionicons name={PLACE_CATEGORY_ICON[selectedPlace.category] ?? 'location'} size={32} color={Colors.primary} />
           <View style={styles.placeInfo}>
             <Text style={styles.placeName}>{selectedPlace.name}</Text>
             <Text style={styles.placeAddress}>{selectedPlace.address}</Text>
             <View style={styles.placeMetaRow}>
-              <Text style={styles.placeMeta}>⭐ {selectedPlace.rating}</Text>
+              <Ionicons name="star" size={12} color="#FFD700" />
+              <Text style={styles.placeMeta}>{selectedPlace.rating}</Text>
               <Text style={styles.placeMeta}>({selectedPlace.reviewCount})</Text>
               <View style={[styles.openBadge, !selectedPlace.isOpen && styles.openBadgeClosed]}>
                 <Text style={[styles.openText, !selectedPlace.isOpen && styles.closedText]}>
@@ -251,12 +272,12 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing.lg }} />
         ) : visibleWalks.length === 0 && activeCategory !== 'All' && activeCategory !== 'Walks' ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>📍</Text>
+            <Ionicons name="location-outline" size={40} color={Colors.textMuted} style={{ marginBottom: Spacing.sm }} />
             <Text style={styles.emptyTitle}>Tap a pin to explore</Text>
           </View>
         ) : walks.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>🗺️</Text>
+            <Ionicons name="map-outline" size={40} color={Colors.textMuted} style={{ marginBottom: Spacing.sm }} />
             <Text style={styles.emptyTitle}>No walks nearby</Text>
             <Text style={styles.emptySubtitle}>Be the first to create one!</Text>
           </View>
