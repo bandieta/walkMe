@@ -3,6 +3,7 @@ import {
   View, Text, FlatList, StyleSheet, SafeAreaView, TouchableOpacity,
   ScrollView, StatusBar, ActivityIndicator,
 } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { fetchEvents } from '../../store/slices/eventsSlice';
@@ -10,6 +11,15 @@ import { Colors, Spacing, Radius } from '../../utils/theme';
 import { Badge, EmptyState } from '../../components';
 
 const CATEGORIES = ['All', 'Meetup', 'Competition', 'Playdate', 'Walk', 'Wellness', 'Lake'];
+
+const CATEGORY_ICON: Record<string, string> = {
+  Meetup: 'people',
+  Competition: 'trophy',
+  Playdate: 'paw',
+  Walk: 'footsteps',
+  Wellness: 'leaf',
+  Lake: 'water',
+};
 
 const formatDate = (iso: string) => {
   const d = new Date(iso);
@@ -87,25 +97,33 @@ export const EventsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               activeOpacity={0.85}
             >
               <View style={styles.cardLeft}>
-                <Text style={styles.cardEmoji}>{item.emoji ?? '🐾'}</Text>
+                <Ionicons
+                  name={CATEGORY_ICON[item.category] ?? 'calendar'}
+                  size={26}
+                  color={Colors.primary}
+                />
               </View>
               <View style={styles.cardBody}>
                 <View style={styles.cardTop}>
                   <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
                   <Badge
-                    label={item.status === 'live' ? '🔴 LIVE' : formatDate(item.date)}
+                    label={item.status === 'live' ? 'LIVE' : formatDate(item.date)}
                     variant={item.status === 'live' ? 'success' : item.status === 'ended' ? 'neutral' : 'primary'}
                     size="sm"
                   />
                 </View>
-                <Text style={styles.cardLocation} numberOfLines={1}>📍 {item.location}</Text>
+                <View style={styles.cardRow}>
+                  <Ionicons name="location-outline" size={11} color={Colors.textMuted} />
+                  <Text style={styles.cardLocation} numberOfLines={1}>{item.location}</Text>
+                </View>
                 <View style={styles.cardMeta}>
-                  <Text style={styles.metaText}>👥 {item.participantCount}/{item.maxParticipants}</Text>
+                  <Ionicons name="people-outline" size={11} color={Colors.textSecondary} />
+                  <Text style={styles.metaText}>{item.participantCount}/{item.maxParticipants}</Text>
                   {item.isJoined && <Text style={styles.joinedText}>✓ Joined</Text>}
                   {item.category && <Text style={styles.metaText}>#{item.category}</Text>}
                 </View>
               </View>
-              <Text style={styles.arrow}>›</Text>
+              <Ionicons name="chevron-forward" size={18} color={Colors.textMuted} />
             </TouchableOpacity>
           )}
         />
@@ -136,15 +154,14 @@ const styles = StyleSheet.create({
   list: { padding: Spacing.xl, gap: Spacing.md, paddingBottom: 100 },
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: Colors.cardDark, borderRadius: Radius.lg, padding: Spacing.md, borderWidth: 1, borderColor: Colors.border, gap: Spacing.md },
   cardLeft: { width: 52, height: 52, borderRadius: Radius.md, backgroundColor: Colors.surfaceDark, alignItems: 'center', justifyContent: 'center' },
-  cardEmoji: { fontSize: 28 },
   cardBody: { flex: 1, gap: 5 },
   cardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.sm },
   cardTitle: { flex: 1, fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
+  cardRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   cardLocation: { fontSize: 12, color: Colors.textMuted },
   cardMeta: { flexDirection: 'row', gap: Spacing.md, alignItems: 'center' },
   metaText: { fontSize: 12, color: Colors.textSecondary },
   joinedText: { fontSize: 12, color: Colors.success, fontWeight: '700' },
-  arrow: { fontSize: 22, color: Colors.textMuted },
   fab: { position: 'absolute', bottom: 28, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.4, shadowRadius: 12, elevation: 8 },
   fabText: { color: '#fff', fontSize: 28, fontWeight: '300', marginTop: -2 },
 });
