@@ -94,7 +94,7 @@ export const EventsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   <Text style={styles.cardTitle} numberOfLines={1}>{item.title}</Text>
                   <Badge
                     label={item.status === 'live' ? '🔴 LIVE' : formatDate(item.date)}
-                    variant={item.status === 'live' ? 'success' : item.status === 'ended' ? 'muted' : 'primary'}
+                    variant={item.status === 'live' ? 'success' : item.status === 'ended' ? 'neutral' : 'primary'}
                     size="sm"
                   />
                 </View>

@@ -19,7 +19,7 @@ const VARIANT_COLORS: Record<BadgeVariant, { bg: string; text: string }> = {
 };
 
 export const Badge: React.FC<BadgeProps> = ({ label, variant = 'neutral', size = 'md' }) => {
-  const colors = VARIANT_COLORS[variant];
+  const colors = VARIANT_COLORS[variant] ?? VARIANT_COLORS.neutral;
 
   return (
     <View

@@ -289,6 +289,10 @@ export const mockMatches = {
   },
   getSwipeDeck: async () => {
     await delay();
+    // Replenish deck when empty so Discover always has cards
+    if (_swipeDeck.length === 0) {
+      _swipeDeck = [...SWIPE_CANDIDATES];
+    }
     const candidates = _users.filter(u => _swipeDeck.includes(u.id)).map(u => ({
       ...u,
       dogs: _dogs.filter(d => u.dogIds.includes(d.id)),

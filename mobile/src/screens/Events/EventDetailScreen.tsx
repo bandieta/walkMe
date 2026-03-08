@@ -81,10 +81,10 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
             <View style={styles.heroRow}>
               <Badge
                 label={event.status.charAt(0).toUpperCase() + event.status.slice(1)}
-                variant={event.status === 'live' ? 'success' : event.status === 'ended' ? 'muted' : 'primary'}
+                variant={event.status === 'live' ? 'success' : event.status === 'ended' ? 'neutral' : 'primary'}
               />
               {event.category && (
-                <Badge label={event.category} variant="secondary" />
+                <Badge label={event.category} variant="neutral" />
               )}
             </View>
           </View>

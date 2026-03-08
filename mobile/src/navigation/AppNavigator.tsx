@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Text } from 'react-native';
+import { View } from 'react-native';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector, useDispatch } from 'react-redux';
@@ -175,28 +176,11 @@ const ProfileStackScreen: React.FC = () => (
   </ProfileStack.Navigator>
 );
 
-// ─── Tab config ───────────────────────────────────────────────────────────────
-const TAB_ICONS: Record<string, string> = {
-  MapTab:      '🗺️',
-  DiscoverTab: '🐾',
-  EventsTab:   '📅',
-  ChatTab:     '💬',
-  ProfileTab:  '👤',
-};
-
-const TAB_LABELS: Record<string, string> = {
-  MapTab:      'Explore',
-  DiscoverTab: 'Discover',
-  EventsTab:   'Events',
-  ChatTab:     'Chat',
-  ProfileTab:  'Me',
-};
-
 // ─── Bottom tabs ─────────────────────────────────────────────────────────────
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const MainTabs: React.FC = () => (
   <Tab.Navigator
-    screenOptions={({ route }) => ({
+    screenOptions={{
       headerShown: false,
       tabBarStyle: {
         backgroundColor: Colors.surfaceDark,
@@ -207,17 +191,18 @@ const MainTabs: React.FC = () => (
       },
       tabBarActiveTintColor: Colors.primary,
       tabBarInactiveTintColor: Colors.textMuted,
-      tabBarLabel: TAB_LABELS[route.name] ?? route.name,
-      tabBarIcon: ({ size }) => (
-        <Text style={{ fontSize: size - 4 }}>{TAB_ICONS[route.name] ?? '•'}</Text>
-      ),
-    })}
+    }}
   >
-    <Tab.Screen name="MapTab" component={MapStackScreen} />
-    <Tab.Screen name="DiscoverTab" component={DiscoverStackScreen} />
-    <Tab.Screen name="EventsTab" component={EventsStackScreen} />
-    <Tab.Screen name="ChatTab" component={ChatStackScreen} />
-    <Tab.Screen name="ProfileTab" component={ProfileStackScreen} />
+    <Tab.Screen name="MapTab" component={MapStackScreen}
+      options={{ tabBarLabel: 'Explore', tabBarIcon: ({ color, size }) => <Ionicons name="compass-outline" size={size} color={color} /> }} />
+    <Tab.Screen name="DiscoverTab" component={DiscoverStackScreen}
+      options={{ tabBarLabel: 'Discover', tabBarIcon: ({ color, size }) => <Ionicons name="paw-outline" size={size} color={color} /> }} />
+    <Tab.Screen name="EventsTab" component={EventsStackScreen}
+      options={{ tabBarLabel: 'Events', tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} /> }} />
+    <Tab.Screen name="ChatTab" component={ChatStackScreen}
+      options={{ tabBarLabel: 'Chat', tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles-outline" size={size} color={color} /> }} />
+    <Tab.Screen name="ProfileTab" component={ProfileStackScreen}
+      options={{ tabBarLabel: 'Me', tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} /> }} />
   </Tab.Navigator>
 );
 
@@ -245,19 +230,22 @@ export const AppNavigator: React.FC = () => {
     setSplashDone(true);
   };
 
-  if (!splashDone) {
-    return <SplashScreen onFinish={handleSplashFinish} />;
-  }
-
   return (
-    <NavigationContainer linking={linking}>
-      <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
-          <RootStack.Screen name="Main" component={MainTabs} />
-        ) : (
-          <RootStack.Screen name="Auth" component={AuthStackScreen} />
-        )}
-      </RootStack.Navigator>
-    </NavigationContainer>
+    <View style={{ flex: 1, backgroundColor: Colors.backgroundDark }}>
+      <NavigationContainer linking={linking}>
+        <RootStack.Navigator screenOptions={{ headerShown: false }}>
+          {user ? (
+            <RootStack.Screen name="Main" component={MainTabs} />
+          ) : (
+            <RootStack.Screen name="Auth" component={AuthStackScreen} />
+          )}
+        </RootStack.Navigator>
+      </NavigationContainer>
+      {!splashDone && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <SplashScreen onFinish={handleSplashFinish} />
+        </View>
+      )}
+    </View>
   );
 };
