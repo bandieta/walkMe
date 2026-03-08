@@ -33,11 +33,17 @@ export class WalkEntity {
   @Column({ nullable: true })
   description?: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 7, name: 'meeting_lat' })
-  meetingLat: number;
+  @Column({ type: 'decimal', precision: 10, scale: 7, name: 'meeting_lat', nullable: true })
+  meetingLat?: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 7, name: 'meeting_lng' })
-  meetingLng: number;
+  @Column({ type: 'decimal', precision: 10, scale: 7, name: 'meeting_lng', nullable: true })
+  meetingLng?: number;
+
+  @Column({ name: 'meeting_address', nullable: true })
+  meetingPointAddress?: string;
+
+  @Column({ nullable: true })
+  category?: string;
 
   @Column({ type: 'jsonb', nullable: true })
   route?: { latitude: number; longitude: number }[];

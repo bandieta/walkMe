@@ -8,6 +8,9 @@ import { WalksModule } from './walks/walks.module';
 import { ChatModule } from './chat/chat.module';
 import { MapsModule } from './maps/maps.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { HealthModule } from './health/health.module';
+import { RedisModule } from './redis/redis.module';
+import { StorageModule } from './storage/storage.module';
 
 @Module({
   imports: [
@@ -32,6 +35,11 @@ import { NotificationsModule } from './notifications/notifications.module';
 
     // Rate limiting
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+
+    // Infrastructure
+    RedisModule,
+    StorageModule,
+    HealthModule,
 
     // Feature modules
     AuthModule,

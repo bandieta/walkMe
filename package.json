@@ -11,9 +11,34 @@
     "mobile": "yarn workspace mobile start",
     "backend": "yarn workspace backend start:dev",
     "backend:build": "yarn workspace backend build",
-    "shared:build": "yarn workspace shared build"
+    "shared:build": "yarn workspace shared build",
+    "lint": "yarn workspace backend lint && yarn workspace mobile lint",
+    "lint:fix": "yarn workspace backend lint --fix && yarn workspace mobile lint --fix",
+    "test": "yarn workspace backend test && yarn workspace mobile test",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.8.0",
+    "@typescript-eslint/parser": "^7.8.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
+    "prettier": "^3.2.5",
     "typescript": "^5.4.5"
+  },
+  "lint-staged": {
+    "backend/src/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "mobile/src/**/*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "shared/src/**/*.ts": [
+      "prettier --write"
+    ]
   }
 }

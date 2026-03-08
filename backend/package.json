@@ -10,8 +10,10 @@
     "lint": "eslint \"{src,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "migration:generate": "typeorm migration:generate",
-    "migration:run": "typeorm migration:run"
+    "migration:generate": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli migration:generate -d src/database/data-source.ts",
+    "migration:run": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli migration:run -d src/database/data-source.ts",
+    "migration:revert": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli migration:revert -d src/database/data-source.ts",
+    "db:seed": "ts-node -r tsconfig-paths/register src/database/seeds/seed.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.3.8",
@@ -49,6 +51,8 @@
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-google-oauth20": "^2.0.14",
     "@types/node": "^20.12.7",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.4.5"
   }
 }
