@@ -89,8 +89,8 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
   const [locationSharing, setLocationSharing] = useState(true);
   const [nearbyAlerts, setNearbyAlerts] = useState(false);
 
-  const initials = user?.name
-    ? user.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
+  const initials = user?.displayName
+    ? user.displayName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
     : '??';
 
   const handleSignOut = () => {
@@ -131,7 +131,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
               <Text style={{ fontSize: 12 }}>🐾</Text>
             </View>
           </View>
-          <Text style={styles.name}>{user?.name ?? 'Walker'}</Text>
+          <Text style={styles.name}>{user?.displayName ?? 'Walker'}</Text>
           <Text style={styles.email}>{user?.email ?? ''}</Text>
           <View style={styles.pill}>
             <Text style={styles.pillText}>🚶 Active Walker</Text>
@@ -172,12 +172,17 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Account</Text>
           {[
-            { emoji: '🐶', label: 'My Dogs' },
-            { emoji: '🏅', label: 'Achievements' },
-            { emoji: '🔒', label: 'Privacy & Safety' },
-            { emoji: '❓', label: 'Help & Support' },
+            { emoji: '🐶', label: 'My Dogs', route: 'MyDogs' },
+            { emoji: '🏅', label: 'Achievements', route: null },
+            { emoji: '🔒', label: 'Privacy & Safety', route: null },
+            { emoji: '❓', label: 'Help & Support', route: null },
           ].map((item) => (
-            <TouchableOpacity key={item.label} style={styles.menuRow} activeOpacity={0.7}>
+            <TouchableOpacity
+              key={item.label}
+              style={styles.menuRow}
+              activeOpacity={0.7}
+              onPress={() => item.route && navigation.navigate(item.route)}
+            >
               <Text style={styles.menuEmoji}>{item.emoji}</Text>
               <Text style={styles.menuLabel}>{item.label}</Text>
               <Text style={styles.menuChevron}>›</Text>

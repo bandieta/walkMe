@@ -16,12 +16,21 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchNearbyWalks } from '../../store/slices/walksSlice';
+import { fetchPlaces, setSelectedPlace } from '../../store/slices/placesSlice';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
 
 const { width, height } = Dimensions.get('window');
 
-// Category chips from Figma
-const CATEGORIES = ['All', 'Park', 'Trail', 'Lake', 'Beach', 'Cafe'];
+// Category chips
+const CATEGORIES = ['All', 'Walks', 'Parks', 'Cafes', 'Vets', 'Trails', 'Lakes'];
+
+const PLACE_CATEGORY_MAP: Record<string, string[]> = {
+  Parks: ['park'],
+  Cafes: ['cafe'],
+  Vets: ['vet'],
+  Trails: ['trail'],
+  Lakes: ['lake', 'beach'],
+};
 
 // Walk card in the bottom sheet list
 const WalkCard: React.FC<{
@@ -112,12 +121,18 @@ const cardStyles = StyleSheet.create({
 export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { walks, loading } = useSelector((s: RootState) => s.walks);
+  const { places, selectedPlace } = useSelector((s: RootState) => s.places);
   const [activeCategory, setActiveCategory] = useState('All');
-  const sheetAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     dispatch(fetchNearbyWalks({ lat: 52.2297, lng: 21.0122, radiusKm: 10 }));
+    dispatch(fetchPlaces());
   }, [dispatch]);
+
+  const visibleWalks = activeCategory === 'All' || activeCategory === 'Walks' ? walks : [];
+  const visiblePlaces = activeCategory === 'Walks' ? [] :
+    activeCategory === 'All' ? places :
+    places.filter(p => (PLACE_CATEGORY_MAP[activeCategory] ?? []).includes(p.category));
 
   return (
     <View style={styles.container}>
@@ -135,17 +150,35 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         showsMyLocationButton={false}
         customMapStyle={darkMapStyle}
       >
-        {walks.map((walk) => (
+        {visibleWalks.map((walk) => (
           <Marker
             key={walk.id}
             coordinate={{ latitude: walk.meetingLat, longitude: walk.meetingLng }}
-            onPress={() => navigation.navigate('WalkDetail', { walkId: walk.id })}
+            onPress={() => {
+              dispatch(setSelectedPlace(null));
+              navigation.navigate('WalkDetail', { walkId: walk.id });
+            }}
           >
             <View style={styles.markerContainer}>
               <View style={styles.marker}>
                 <Text style={styles.markerEmoji}>🚶</Text>
               </View>
               <Text style={styles.markerLabel} numberOfLines={1}>{walk.title}</Text>
+            </View>
+          </Marker>
+        ))}
+
+        {visiblePlaces.map((place) => (
+          <Marker
+            key={place.id}
+            coordinate={{ latitude: place.lat, longitude: place.lng }}
+            onPress={() => dispatch(setSelectedPlace(place))}
+          >
+            <View style={styles.markerContainer}>
+              <View style={[styles.marker, styles.placeMarker]}>
+                <Text style={styles.markerEmoji}>{place.emoji}</Text>
+              </View>
+              <Text style={styles.markerLabel} numberOfLines={1}>{place.name}</Text>
             </View>
           </Marker>
         ))}
@@ -156,8 +189,8 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.headerTitle}>Discover</Text>
-            <Text style={styles.headerSubtitle}>{walks.length} walks nearby</Text>
+            <Text style={styles.headerTitle}>Explore</Text>
+            <Text style={styles.headerSubtitle}>{walks.length} walks · {places.length} places</Text>
           </View>
           <TouchableOpacity style={styles.myLocationBtn}>
             <Text style={{ fontSize: 18 }}>◎</Text>
@@ -184,13 +217,43 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </ScrollView>
       </SafeAreaView>
 
+      {/* Selected place info card */}
+      {selectedPlace && (
+        <View style={styles.placeCard}>
+          <TouchableOpacity style={styles.placeCardClose} onPress={() => dispatch(setSelectedPlace(null))}>
+            <Text style={{ color: Colors.textMuted, fontSize: 16 }}>✕</Text>
+          </TouchableOpacity>
+          <Text style={styles.placeEmoji}>{selectedPlace.emoji}</Text>
+          <View style={styles.placeInfo}>
+            <Text style={styles.placeName}>{selectedPlace.name}</Text>
+            <Text style={styles.placeAddress}>{selectedPlace.address}</Text>
+            <View style={styles.placeMetaRow}>
+              <Text style={styles.placeMeta}>⭐ {selectedPlace.rating}</Text>
+              <Text style={styles.placeMeta}>({selectedPlace.reviewCount})</Text>
+              <View style={[styles.openBadge, !selectedPlace.isOpen && styles.openBadgeClosed]}>
+                <Text style={[styles.openText, !selectedPlace.isOpen && styles.closedText]}>
+                  {selectedPlace.isOpen ? 'Open' : 'Closed'}
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
+
       {/* Bottom sheet — peek (walk cards) */}
       <View style={styles.bottomSheet}>
         <View style={styles.sheetHandle} />
-        <Text style={styles.sheetTitle}>Walks near you</Text>
+        <Text style={styles.sheetTitle}>
+          {activeCategory === 'Walks' || activeCategory === 'All' ? 'Walks near you' : `${activeCategory} near you`}
+        </Text>
 
         {loading ? (
           <ActivityIndicator color={Colors.primary} style={{ marginTop: Spacing.lg }} />
+        ) : visibleWalks.length === 0 && activeCategory !== 'All' && activeCategory !== 'Walks' ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>📍</Text>
+            <Text style={styles.emptyTitle}>Tap a pin to explore</Text>
+          </View>
         ) : walks.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyEmoji}>🗺️</Text>
@@ -199,7 +262,7 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           </View>
         ) : (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cardList}>
-            {walks.map((walk) => (
+            {(activeCategory === 'All' || activeCategory === 'Walks' ? walks : walks).map((walk) => (
               <WalkCard
                 key={walk.id}
                 walk={walk}
@@ -276,7 +339,33 @@ const styles = StyleSheet.create({
     ...Shadow.card,
   },
   markerEmoji: { fontSize: 18 },
-  markerLabel: {
+  placeMarker: { backgroundColor: Colors.secondary },
+  placeCard: {
+    position: 'absolute',
+    bottom: height * 0.28 + 72,
+    left: Spacing.lg,
+    right: Spacing.lg,
+    backgroundColor: Colors.surfaceDark,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    ...Shadow.modal,
+  },
+  placeCardClose: { position: 'absolute', top: 8, right: 12, padding: 4 },
+  placeEmoji: { fontSize: 32 },
+  placeInfo: { flex: 1, paddingRight: 20 },
+  placeName: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 2 },
+  placeAddress: { fontSize: 12, color: Colors.textMuted, marginBottom: 4 },
+  placeMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  placeMeta: { fontSize: 12, color: Colors.textSecondary },
+  openBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: Radius.full, backgroundColor: `${Colors.success}20`, borderWidth: 1, borderColor: `${Colors.success}50` },
+  openBadgeClosed: { backgroundColor: `${Colors.error}20`, borderColor: `${Colors.error}50` },
+  openText: { fontSize: 11, color: Colors.success, fontWeight: '600' },
+  closedText: { color: Colors.error },
     backgroundColor: Colors.surfaceDark,
     color: Colors.textPrimary,
     fontSize: 10, fontWeight: '600',

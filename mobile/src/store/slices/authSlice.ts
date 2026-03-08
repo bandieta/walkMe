@@ -64,7 +64,7 @@ const authSlice = createSlice({
     const handleFulfilled = (state: AuthState, action: PayloadAction<any>) => {
       state.loading = false;
       state.user = action.payload.user;
-      state.token = action.payload.accessToken;
+      state.token = action.payload.token ?? action.payload.accessToken ?? null;
     };
     const handleRejected = (state: AuthState, action: any) => {
       state.loading = false;

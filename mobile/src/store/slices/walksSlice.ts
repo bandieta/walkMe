@@ -30,8 +30,8 @@ const initialState: WalksState = {
 
 export const fetchNearbyWalks = createAsyncThunk(
   'walks/fetchNearby',
-  async ({ lat, lng, radiusKm }: { lat: number; lng: number; radiusKm?: number }) => {
-    const response = await walksApi.list(lat, lng, radiusKm);
+  async (_args?: { lat?: number; lng?: number; radiusKm?: number }) => {
+    const response = await walksApi.list();
     return response.data;
   },
 );

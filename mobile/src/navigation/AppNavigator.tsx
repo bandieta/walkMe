@@ -11,12 +11,20 @@ import { Colors } from '../utils/theme';
 import { SplashScreen } from '../screens/Splash/SplashScreen';
 import { LoginScreen } from '../screens/Auth/LoginScreen';
 import { MapScreen } from '../screens/Map/MapScreen';
-import { ChatScreen } from '../screens/Chat/ChatScreen';
 import { WalkDetailScreen } from '../screens/Walk/WalkDetailScreen';
 import { MyWalksScreen } from '../screens/Walk/MyWalksScreen';
 import { CreateWalkScreen } from '../screens/Walk/CreateWalkScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
 import { EventsScreen } from '../screens/Events/EventsScreen';
+import { EventDetailScreen } from '../screens/Events/EventDetailScreen';
+import { CreateEventScreen } from '../screens/Events/CreateEventScreen';
+import { DiscoverScreen } from '../screens/Discover/DiscoverScreen';
+import { ChatListScreen } from '../screens/Matches/ChatListScreen';
+import { DirectMessageScreen } from '../screens/Chat/DirectMessageScreen';
+import { WalkChatScreen } from '../screens/Chat/WalkChatScreen';
+import { EditProfileScreen } from '../screens/Profile/EditProfileScreen';
+import { MyDogsScreen } from '../screens/Profile/MyDogsScreen';
+import { AddDogScreen } from '../screens/Profile/AddDogScreen';
 
 // ─── Param lists ─────────────────────────────────────────────────────────────
 export type RootStackParamList = {
@@ -31,29 +39,42 @@ export type AuthStackParamList = {
 export type MapStackParamList = {
   MapHome: undefined;
   WalkDetail: { walkId: string };
-  Chat: { walkId: string; walkTitle?: string };
+  WalkChat: { walkId: string; walkTitle?: string };
   CreateWalk: undefined;
 };
 
-export type WalksStackParamList = {
-  MyWalks: undefined;
-  WalkDetail: { walkId: string };
-  Chat: { walkId: string; walkTitle?: string };
-  CreateWalk: undefined;
+export type DiscoverStackParamList = {
+  DiscoverHome: undefined;
 };
 
 export type EventsStackParamList = {
   EventsList: undefined;
+  EventDetail: { eventId: string };
+  CreateEvent: undefined;
+  MyWalks: undefined;
+  WalkDetail: { walkId: string };
+  WalkChat: { walkId: string; walkTitle?: string };
+  CreateWalk: undefined;
+};
+
+export type ChatStackParamList = {
+  ChatList: undefined;
+  DirectMessage: { matchId: string; userName: string };
+  WalkChat: { walkId: string; walkTitle?: string };
 };
 
 export type ProfileStackParamList = {
   ProfileHome: undefined;
+  EditProfile: undefined;
+  MyDogs: undefined;
+  AddDog: undefined;
 };
 
 export type MainTabParamList = {
   MapTab: undefined;
-  WalksTab: undefined;
+  DiscoverTab: undefined;
   EventsTab: undefined;
+  ChatTab: undefined;
   ProfileTab: undefined;
 };
 
@@ -68,24 +89,31 @@ const linking: LinkingOptions<RootStackParamList> = {
             screens: {
               MapHome: 'explore',
               WalkDetail: 'walk/:walkId',
-              Chat: 'chat/:walkId',
-              CreateWalk: 'create-walk',
+              WalkChat: 'walk-chat/:walkId',
             },
           },
-          WalksTab: {
-            screens: {
-              MyWalks: 'my-walks',
-              WalkDetail: 'walk/:walkId',
-            },
+          DiscoverTab: {
+            screens: { DiscoverHome: 'discover' },
           },
           EventsTab: {
             screens: {
               EventsList: 'events',
+              EventDetail: 'event/:eventId',
+              CreateEvent: 'create-event',
+              MyWalks: 'my-walks',
+            },
+          },
+          ChatTab: {
+            screens: {
+              ChatList: 'messages',
+              DirectMessage: 'dm/:matchId',
             },
           },
           ProfileTab: {
             screens: {
               ProfileHome: 'profile',
+              EditProfile: 'edit-profile',
+              MyDogs: 'my-dogs',
             },
           },
         },
@@ -103,48 +131,65 @@ const MapStackScreen: React.FC = () => (
   <MapStack.Navigator screenOptions={{ headerShown: false }}>
     <MapStack.Screen name="MapHome" component={MapScreen} />
     <MapStack.Screen name="WalkDetail" component={WalkDetailScreen} />
-    <MapStack.Screen name="Chat" component={ChatScreen} />
+    <MapStack.Screen name="WalkChat" component={WalkChatScreen} />
     <MapStack.Screen name="CreateWalk" component={CreateWalkScreen} />
   </MapStack.Navigator>
 );
 
-const WalksStack = createStackNavigator<WalksStackParamList>();
-const WalksStackScreen: React.FC = () => (
-  <WalksStack.Navigator screenOptions={{ headerShown: false }}>
-    <WalksStack.Screen name="MyWalks" component={MyWalksScreen} />
-    <WalksStack.Screen name="WalkDetail" component={WalkDetailScreen} />
-    <WalksStack.Screen name="Chat" component={ChatScreen} />
-    <WalksStack.Screen name="CreateWalk" component={CreateWalkScreen} />
-  </WalksStack.Navigator>
+const DiscoverStack = createStackNavigator<DiscoverStackParamList>();
+const DiscoverStackScreen: React.FC = () => (
+  <DiscoverStack.Navigator screenOptions={{ headerShown: false }}>
+    <DiscoverStack.Screen name="DiscoverHome" component={DiscoverScreen} />
+  </DiscoverStack.Navigator>
 );
 
 const EventsStack = createStackNavigator<EventsStackParamList>();
 const EventsStackScreen: React.FC = () => (
   <EventsStack.Navigator screenOptions={{ headerShown: false }}>
     <EventsStack.Screen name="EventsList" component={EventsScreen} />
+    <EventsStack.Screen name="EventDetail" component={EventDetailScreen} />
+    <EventsStack.Screen name="CreateEvent" component={CreateEventScreen} />
+    <EventsStack.Screen name="MyWalks" component={MyWalksScreen} />
+    <EventsStack.Screen name="WalkDetail" component={WalkDetailScreen} />
+    <EventsStack.Screen name="WalkChat" component={WalkChatScreen} />
+    <EventsStack.Screen name="CreateWalk" component={CreateWalkScreen} />
   </EventsStack.Navigator>
+);
+
+const ChatStack = createStackNavigator<ChatStackParamList>();
+const ChatStackScreen: React.FC = () => (
+  <ChatStack.Navigator screenOptions={{ headerShown: false }}>
+    <ChatStack.Screen name="ChatList" component={ChatListScreen} />
+    <ChatStack.Screen name="DirectMessage" component={DirectMessageScreen} />
+    <ChatStack.Screen name="WalkChat" component={WalkChatScreen} />
+  </ChatStack.Navigator>
 );
 
 const ProfileStack = createStackNavigator<ProfileStackParamList>();
 const ProfileStackScreen: React.FC = () => (
   <ProfileStack.Navigator screenOptions={{ headerShown: false }}>
     <ProfileStack.Screen name="ProfileHome" component={ProfileScreen} />
+    <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
+    <ProfileStack.Screen name="MyDogs" component={MyDogsScreen} />
+    <ProfileStack.Screen name="AddDog" component={AddDogScreen} />
   </ProfileStack.Navigator>
 );
 
-// ─── Tab icons ───────────────────────────────────────────────────────────────
-const TAB_ICONS: Record<string, { active: string; inactive: string }> = {
-  MapTab:     { active: '🗺️', inactive: '🗺️' },
-  WalksTab:   { active: '🐾', inactive: '🐾' },
-  EventsTab:  { active: '📅', inactive: '📅' },
-  ProfileTab: { active: '👤', inactive: '👤' },
+// ─── Tab config ───────────────────────────────────────────────────────────────
+const TAB_ICONS: Record<string, string> = {
+  MapTab:      '🗺️',
+  DiscoverTab: '🐾',
+  EventsTab:   '📅',
+  ChatTab:     '💬',
+  ProfileTab:  '👤',
 };
 
 const TAB_LABELS: Record<string, string> = {
-  MapTab:     'Explore',
-  WalksTab:   'My Walks',
-  EventsTab:  'Events',
-  ProfileTab: 'Profile',
+  MapTab:      'Explore',
+  DiscoverTab: 'Discover',
+  EventsTab:   'Events',
+  ChatTab:     'Chat',
+  ProfileTab:  'Me',
 };
 
 // ─── Bottom tabs ─────────────────────────────────────────────────────────────
@@ -163,15 +208,15 @@ const MainTabs: React.FC = () => (
       tabBarActiveTintColor: Colors.primary,
       tabBarInactiveTintColor: Colors.textMuted,
       tabBarLabel: TAB_LABELS[route.name] ?? route.name,
-      tabBarIcon: ({ focused, size }) => {
-        const cfg = TAB_ICONS[route.name] ?? { active: '•', inactive: '•' };
-        return <Text style={{ fontSize: size - 4 }}>{focused ? cfg.active : cfg.inactive}</Text>;
-      },
+      tabBarIcon: ({ size }) => (
+        <Text style={{ fontSize: size - 4 }}>{TAB_ICONS[route.name] ?? '•'}</Text>
+      ),
     })}
   >
     <Tab.Screen name="MapTab" component={MapStackScreen} />
-    <Tab.Screen name="WalksTab" component={WalksStackScreen} />
+    <Tab.Screen name="DiscoverTab" component={DiscoverStackScreen} />
     <Tab.Screen name="EventsTab" component={EventsStackScreen} />
+    <Tab.Screen name="ChatTab" component={ChatStackScreen} />
     <Tab.Screen name="ProfileTab" component={ProfileStackScreen} />
   </Tab.Navigator>
 );

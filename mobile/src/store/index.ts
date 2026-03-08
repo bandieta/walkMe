@@ -6,6 +6,8 @@ import dogsReducer from './slices/dogsSlice';
 import chatReducer from './slices/chatSlice';
 import eventsReducer from './slices/eventsSlice';
 import mapReducer from './slices/mapSlice';
+import matchesReducer from './slices/matchesSlice';
+import placesReducer from './slices/placesSlice';
 
 export const store = configureStore({
   reducer: {
@@ -16,6 +18,8 @@ export const store = configureStore({
     chat: chatReducer,
     events: eventsReducer,
     map: mapReducer,
+    matches: matchesReducer,
+    places: placesReducer,
   },
 });
 
