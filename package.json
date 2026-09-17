@@ -40,5 +40,8 @@
     "shared/src/**/*.ts": [
       "prettier --write"
     ]
+  },
+  "allowScripts": {
+    "sqlite3@6.0.1": true
   }
 }

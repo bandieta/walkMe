@@ -45,10 +45,10 @@ export class WalkEntity {
   @Column({ nullable: true })
   category?: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   route?: { latitude: number; longitude: number }[];
 
-  @Column({ type: 'enum', enum: WalkStatus, default: WalkStatus.PENDING })
+  @Column({ type: 'simple-enum', enum: WalkStatus, default: WalkStatus.PENDING })
   status: WalkStatus;
 
   @Column({ name: 'max_participants', default: 10 })
@@ -58,7 +58,7 @@ export class WalkEntity {
   @JoinTable({ name: 'walk_participants' })
   participants: UserEntity[];
 
-  @Column({ name: 'scheduled_at', type: 'timestamptz' })
+  @Column({ name: 'scheduled_at', type: 'datetime' })
   scheduledAt: Date;
 
   @CreateDateColumn()

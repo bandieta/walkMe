@@ -31,7 +31,7 @@ export class UserEntity {
   @Column({ nullable: true })
   photoUrl?: string;
 
-  @Column({ type: 'enum', enum: AuthProvider, default: AuthProvider.LOCAL })
+  @Column({ type: 'simple-enum', enum: AuthProvider, default: AuthProvider.LOCAL })
   provider: AuthProvider;
 
   @Column({ nullable: true })

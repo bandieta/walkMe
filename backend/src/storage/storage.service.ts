@@ -17,22 +17,26 @@ export interface PresignedUpload {
 
 @Injectable()
 export class StorageService {
-  private readonly blobService: BlobServiceClient;
-  private readonly container: string;
-  private readonly accountName: string;
-  private readonly credential: StorageSharedKeyCredential;
+  private readonly blobService!: BlobServiceClient;
+  private readonly container!: string;
+  private readonly accountName!: string;
+  private readonly credential!: StorageSharedKeyCredential;
   private readonly logger = new Logger(StorageService.name);
 
   constructor(private readonly config: ConfigService) {
-    this.accountName = config.getOrThrow<string>('AZURE_STORAGE_ACCOUNT_NAME');
-    const accountKey   = config.getOrThrow<string>('AZURE_STORAGE_ACCOUNT_KEY');
-    this.container     = config.getOrThrow<string>('AZURE_STORAGE_CONTAINER');
+    this.accountName = config.get<string>('AZURE_STORAGE_ACCOUNT_NAME', '');
+    const accountKey = config.get<string>('AZURE_STORAGE_ACCOUNT_KEY', '');
+    this.container   = config.get<string>('AZURE_STORAGE_CONTAINER', 'walkme-media');
 
-    this.credential  = new StorageSharedKeyCredential(this.accountName, accountKey);
-    this.blobService = new BlobServiceClient(
-      `https://${this.accountName}.blob.core.windows.net`,
-      this.credential,
-    );
+    if (this.accountName && accountKey) {
+      this.credential  = new StorageSharedKeyCredential(this.accountName, accountKey);
+      this.blobService = new BlobServiceClient(
+        `https://${this.accountName}.blob.core.windows.net`,
+        this.credential,
+      );
+    } else {
+      this.logger.warn('Azure Storage not configured — file uploads disabled (dev mode)');
+    }
   }
 
   /**

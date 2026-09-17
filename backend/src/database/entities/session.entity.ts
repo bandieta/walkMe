@@ -22,7 +22,7 @@ export class SessionEntity {
   @Column({ name: 'token_hash', length: 64 })
   tokenHash: string;
 
-  @Column({ name: 'expires_at', type: 'timestamptz' })
+  @Column({ name: 'expires_at', type: 'datetime' })
   expiresAt: Date;
 
   @Column({ name: 'ip_address', nullable: true, length: 45 })

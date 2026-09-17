@@ -10,6 +10,10 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "moduleResolution": "node",
+    "paths": {
+      "@walkme/shared": ["../shared/dist/index"]
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,

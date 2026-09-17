@@ -11,5 +11,11 @@ ios/Pods/
 ios/build/
 android/build/
 android/.gradle/
+mobile/ios/Pods/
+mobile/ios/WalkMe.xcworkspace/
+mobile/ios/.xcode.env.local
+mobile/android/.gradle/
+mobile/android/build/
+*.db
 *.keystore
 !debug.keystore

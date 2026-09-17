@@ -17,20 +17,31 @@ import { StorageModule } from './storage/storage.module';
     // Config
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // Database
+    // Database — SQLite for local dev, PostgreSQL for production
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        host: config.get<string>('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 5432),
-        username: config.get<string>('DB_USERNAME', 'walkme'),
-        password: config.get<string>('DB_PASSWORD', ''),
-        database: config.get<string>('DB_NAME', 'walkme_db'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: config.get<string>('NODE_ENV') !== 'production',
-        logging: config.get<string>('NODE_ENV') === 'development',
-      }),
+      useFactory: (config: ConfigService) => {
+        const dbType = config.get<string>('DB_TYPE', 'postgres');
+        if (dbType === 'sqlite') {
+          return {
+            type: 'sqlite' as const,
+            database: config.get<string>('DB_SQLITE_PATH', './walkme-local.db'),
+            entities: [__dirname + '/**/*.entity{.ts,.js}'],
+            synchronize: true,
+          };
+        }
+        return {
+          type: 'postgres' as const,
+          host: config.get<string>('DB_HOST', 'localhost'),
+          port: config.get<number>('DB_PORT', 5432),
+          username: config.get<string>('DB_USERNAME', 'walkme'),
+          password: config.get<string>('DB_PASSWORD', ''),
+          database: config.get<string>('DB_NAME', 'walkme_db'),
+          entities: [__dirname + '/**/*.entity{.ts,.js}'],
+          synchronize: config.get<string>('NODE_ENV') !== 'production',
+          logging: config.get<string>('NODE_ENV') === 'development',
+        };
+      },
     }),
 
     // Rate limiting

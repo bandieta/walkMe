@@ -33,7 +33,7 @@ export class MessageEntity {
   @Column({ nullable: true, name: 'image_url' })
   imageUrl?: string;
 
-  @Column({ type: 'jsonb', nullable: true })
+  @Column({ type: 'simple-json', nullable: true })
   location?: { latitude: number; longitude: number };
 
   @CreateDateColumn({ name: 'sent_at' })
