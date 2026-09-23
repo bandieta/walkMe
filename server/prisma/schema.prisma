@@ -1,0 +1,174 @@
+// walkMe server data model.
+// SQLite for now — swap `provider` below to "postgresql" and point
+// DATABASE_URL at a real database to scale up. No application code
+// depends on which database this is.
+//
+// SQLite has no native enum type, so fields that are conceptually enums
+// (provider, status, type, direction) are plain Strings validated by zod
+// in the application layer — see src/modules/*/schema.ts.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id @default(uuid())
+  provider        String // "google" | "facebook" | "apple" | "dev"
+  providerId      String
+  email           String?
+  displayName     String
+  photoUrl        String?
+  bio             String?
+  age             Int?
+  location        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  dogs            Dog[]
+  hostedWalks     Walk[]             @relation("WalkHost")
+  walkEntries     WalkParticipant[]
+  organizedEvents Event[]            @relation("EventOrganizer")
+  eventEntries    EventParticipant[]
+  sentMessages    Message[]
+  refreshTokens   RefreshToken[]
+
+  @@unique([provider, providerId])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Dog {
+  id          String   @id @default(uuid())
+  ownerId     String
+  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name        String
+  breed       String
+  age         Int
+  weight      Float?
+  bio         String?
+  emoji       String?
+  personality String // JSON-encoded string[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Walk {
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  category        String   @default("Park")
+  hostId          String
+  host            User     @relation("WalkHost", fields: [hostId], references: [id], onDelete: Cascade)
+  meetingLat      Float
+  meetingLng      Float
+  meetingPoint    String
+  scheduledAt     DateTime
+  maxParticipants Int      @default(8)
+  status          String   @default("upcoming") // "upcoming" | "live" | "ended"
+  duration        String   @default("1h")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  participants    WalkParticipant[]
+  messages        Message[]
+}
+
+model WalkParticipant {
+  walkId String
+  walk   Walk   @relation(fields: [walkId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([walkId, userId])
+}
+
+model Event {
+  id              String   @id @default(uuid())
+  title           String
+  description     String?
+  date            DateTime
+  location        String
+  lat             Float
+  lng             Float
+  organizerId     String
+  organizer       User     @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  maxParticipants Int      @default(30)
+  status          String   @default("upcoming") // "upcoming" | "live" | "ended"
+  category        String   @default("Meetup")
+  emoji           String?  @default("🎉")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  participants    EventParticipant[]
+}
+
+model EventParticipant {
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([eventId, userId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  roomId    String // walkId or matchId — kept as a plain string room key
+  walkId    String?
+  walk      Walk?    @relation(fields: [walkId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content   String
+  type      String   @default("text") // "text" | "image" | "system"
+  createdAt DateTime @default(now())
+}
+
+model Match {
+  id            String   @id @default(uuid())
+  userAId       String
+  userBId       String
+  matchedAt     DateTime @default(now())
+  lastMessage   String?
+  lastMessageAt DateTime @default(now())
+  unreadForA    Int      @default(0)
+  unreadForB    Int      @default(0)
+
+  @@unique([userAId, userBId])
+}
+
+model Swipe {
+  id         String   @id @default(uuid())
+  fromUserId String
+  toUserId   String
+  direction  String // "left" | "right"
+  createdAt  DateTime @default(now())
+
+  @@unique([fromUserId, toUserId])
+}
+
+model Place {
+  id          String  @id @default(uuid())
+  name        String
+  category    String
+  address     String
+  lat         Float
+  lng         Float
+  rating      Float
+  reviewCount Int
+  tags        String // JSON-encoded string[]
+  isOpen      Boolean @default(true)
+  description String?
+  emoji       String?
+}

@@ -1,0 +1,29 @@
+import 'dotenv/config';
+
+function required(name: string, fallback?: string): string {
+  const value = process.env[name] ?? fallback;
+  if (value === undefined) {
+    throw new Error(`Missing required env var: ${name}`);
+  }
+  return value;
+}
+
+export const env = {
+  nodeEnv: process.env.NODE_ENV ?? 'development',
+  isProduction: process.env.NODE_ENV === 'production',
+  isTest: process.env.NODE_ENV === 'test',
+  port: Number(process.env.PORT ?? 4000),
+  publicBaseUrl: process.env.PUBLIC_BASE_URL ?? 'http://localhost:4000',
+
+  jwtAccessSecret: required('JWT_ACCESS_SECRET', 'dev-insecure-access-secret'),
+  jwtRefreshSecret: required('JWT_REFRESH_SECRET', 'dev-insecure-refresh-secret'),
+  jwtAccessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '2h',
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
+
+  allowDevLogin: process.env.ALLOW_DEV_LOGIN === 'true',
+
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
+  appleBundleId: process.env.APPLE_BUNDLE_ID ?? 'com.walkme',
+
+  uploadDir: process.env.UPLOAD_DIR ?? './uploads',
+};

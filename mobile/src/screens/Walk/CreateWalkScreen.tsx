@@ -113,8 +113,13 @@ export const CreateWalkScreen: React.FC<{ navigation: any }> = ({ navigation }) 
         description: description.trim(),
         maxParticipants: parseInt(maxParticipants),
         scheduledAt: scheduledAt.toISOString(),
-        meetingPoint: { address, lat: 0, lng: 0 },
+        // TODO: geocode `address` once a place picker exists; Warsaw center
+        // is a placeholder so walk creation works end-to-end today.
+        meetingPoint: address,
+        meetingLat: 52.2297,
+        meetingLng: 21.0122,
         category: category.split(' ')[0],
+        duration,
       });
       navigation.goBack();
     } catch (err: any) {

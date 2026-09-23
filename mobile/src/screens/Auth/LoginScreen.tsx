@@ -1,128 +1,78 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
   Alert,
   ScrollView,
-  Animated,
+  Platform,
   StatusBar,
-  Dimensions,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { login, register } from '../../store/slices/authSlice';
+import { socialLogin, devLogin } from '../../store/slices/authSlice';
+import { signInWithGoogle } from '../../services/auth/google';
+import { signInWithFacebook } from '../../services/auth/facebook';
+import { signInWithApple } from '../../services/auth/apple';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
 
-const { height } = Dimensions.get('window');
-
-interface InputFieldProps {
-  placeholder: string;
-  value: string;
-  onChangeText: (v: string) => void;
-  secureTextEntry?: boolean;
-  keyboardType?: any;
-  autoCapitalize?: any;
-  error?: string;
-}
-
-const InputField: React.FC<InputFieldProps> = ({
-  placeholder, value, onChangeText, secureTextEntry, keyboardType, autoCapitalize, error,
-}) => {
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={inputStyles.wrapper}>
-      <View style={[inputStyles.container, focused && inputStyles.focused, !!error && inputStyles.errorBorder]}>
-        <TextInput
-          style={inputStyles.input}
-          placeholder={placeholder}
-          placeholderTextColor={Colors.textMuted}
-          value={value}
-          onChangeText={onChangeText}
-          secureTextEntry={secureTextEntry}
-          keyboardType={keyboardType}
-          autoCapitalize={autoCapitalize ?? 'sentences'}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-        />
-      </View>
-      {!!error && <Text style={inputStyles.errorText}>{error}</Text>}
-    </View>
-  );
-};
-
-const inputStyles = StyleSheet.create({
-  wrapper: { marginBottom: Spacing.md },
-  container: {
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.cardDark,
-    paddingHorizontal: Spacing.md,
-  },
-  focused: { borderColor: Colors.primary },
-  errorBorder: { borderColor: Colors.error },
-  input: {
-    ...Typography.bodyLarge,
-    color: Colors.textPrimary,
-    paddingVertical: 14,
-  },
-  errorText: { ...Typography.caption, color: Colors.error, marginTop: 4, marginLeft: 4 },
-});
+type Provider = 'google' | 'facebook' | 'apple';
 
 export const LoginScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { loading, error } = useSelector((s: RootState) => s.auth);
+  const [pending, setPending] = useState<Provider | 'dev' | null>(null);
 
-  const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [displayName, setDisplayName] = useState('');
+  const handleSocialSignIn = async (provider: Provider) => {
+    setPending(provider);
+    try {
+      let token: string | null = null;
+      let displayName: string | undefined;
 
-  const tabAnim = useRef(new Animated.Value(0)).current;
+      if (provider === 'google') {
+        token = await signInWithGoogle();
+      } else if (provider === 'facebook') {
+        token = await signInWithFacebook();
+      } else {
+        const result = await signInWithApple();
+        token = result?.token ?? null;
+        displayName = result?.displayName;
+      }
 
-  const switchMode = (toRegister: boolean) => {
-    setIsRegister(toRegister);
-    Animated.timing(tabAnim, {
-      toValue: toRegister ? 1 : 0,
-      duration: 200,
-      useNativeDriver: false,
-    }).start();
+      if (!token) return; // user cancelled
+
+      const result = await dispatch(socialLogin({ provider, token, displayName }));
+      if (socialLogin.rejected.match(result)) {
+        Alert.alert('Sign-in failed', String(result.payload ?? 'Please try again.'));
+      }
+    } catch (err: any) {
+      Alert.alert(
+        'Sign-in failed',
+        err?.message ??
+          `Could not sign in with ${provider}. Make sure the app has real ${provider} developer credentials configured (see mobile/README.md).`,
+      );
+    } finally {
+      setPending(null);
+    }
   };
 
-  const handleSubmit = async () => {
-    if (!email || !password) {
-      Alert.alert('Missing fields', 'Please fill all required fields');
-      return;
-    }
-    if (isRegister) {
-      await dispatch(register({ email, displayName, password }));
-    } else {
-      await dispatch(login({ email, password }));
+  const handleDevLogin = async () => {
+    setPending('dev');
+    try {
+      await dispatch(devLogin('Test User'));
+    } finally {
+      setPending(null);
     }
   };
-
-  const tabIndicatorLeft = tabAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['2%', '50%'],
-  });
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.backgroundDark} />
-
-      {/* Background glow */}
       <View style={styles.bgGlow} />
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Logo */}
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.logoRow}>
           <View style={styles.iconBox}>
             <Text style={styles.iconEmoji}>🚶</Text>
@@ -132,92 +82,88 @@ export const LoginScreen: React.FC = () => {
 
         <Text style={styles.tagline}>Find your walking community</Text>
 
-        {/* Tab switcher */}
-        <View style={styles.tabBar}>
-          <Animated.View style={[styles.tabIndicator, { left: tabIndicatorLeft }]} />
-          <TouchableOpacity style={styles.tab} onPress={() => switchMode(false)}>
-            <Text style={[styles.tabText, !isRegister && styles.tabTextActive]}>Sign In</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.tab} onPress={() => switchMode(true)}>
-            <Text style={[styles.tabText, isRegister && styles.tabTextActive]}>Sign Up</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Form card */}
         <View style={styles.card}>
-          {isRegister && (
-            <InputField
-              placeholder="Display Name"
-              value={displayName}
-              onChangeText={setDisplayName}
-              autoCapitalize="words"
-            />
-          )}
-          <InputField
-            placeholder="Email Address"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <InputField
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-
-          {/* API error toast */}
           {!!error && (
             <View style={styles.errorToast}>
               <Text style={styles.errorToastText}>⚠ {error}</Text>
             </View>
           )}
 
-          {/* Primary button */}
-          <TouchableOpacity
-            style={[styles.primaryButton, loading && styles.primaryButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color={Colors.textPrimary} />
-            ) : (
-              <Text style={styles.primaryButtonText}>
-                {isRegister ? 'Create Account' : 'Sign In'}
-              </Text>
-            )}
-          </TouchableOpacity>
+          <SocialButton
+            label="Continue with Google"
+            emoji="🔵"
+            loading={pending === 'google'}
+            disabled={loading || pending !== null}
+            onPress={() => handleSocialSignIn('google')}
+          />
+          <SocialButton
+            label="Continue with Facebook"
+            emoji="📘"
+            loading={pending === 'facebook'}
+            disabled={loading || pending !== null}
+            onPress={() => handleSocialSignIn('facebook')}
+          />
+          {Platform.OS === 'ios' && (
+            <SocialButton
+              label="Continue with Apple"
+              emoji="🍎"
+              loading={pending === 'apple'}
+              disabled={loading || pending !== null}
+              onPress={() => handleSocialSignIn('apple')}
+            />
+          )}
 
-          {/* Divider */}
-          <View style={styles.dividerRow}>
-            <View style={styles.divider} />
-            <Text style={styles.dividerText}>or</Text>
-            <View style={styles.divider} />
-          </View>
-
-          {/* Google sign in (placeholder) */}
-          <TouchableOpacity style={styles.ghostButton} activeOpacity={0.8}>
-            <Text style={styles.ghostButtonText}>🔵  Continue with Google</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.ghostButton} activeOpacity={0.8}>
-            <Text style={styles.ghostButtonText}>🍎  Continue with Apple</Text>
-          </TouchableOpacity>
+          {__DEV__ && (
+            <>
+              <View style={styles.dividerRow}>
+                <View style={styles.divider} />
+                <Text style={styles.dividerText}>dev only</Text>
+                <View style={styles.divider} />
+              </View>
+              <SocialButton
+                label="Continue as test user"
+                emoji="🧪"
+                loading={pending === 'dev'}
+                disabled={loading || pending !== null}
+                onPress={handleDevLogin}
+              />
+            </>
+          )}
         </View>
 
-        <TouchableOpacity onPress={() => switchMode(!isRegister)}>
-          <Text style={styles.switchText}>
-            {isRegister
-              ? 'Already have an account? Sign In'
-              : "Don't have an account? Sign Up"}
-          </Text>
-        </TouchableOpacity>
+        <Text style={styles.footnote}>
+          Social sign-in requires real Google/Facebook/Apple developer credentials to be configured on the
+          server and in mobile/src/utils/authConfig.ts.
+        </Text>
       </ScrollView>
     </View>
   );
 };
+
+interface SocialButtonProps {
+  label: string;
+  emoji: string;
+  loading: boolean;
+  disabled: boolean;
+  onPress: () => void;
+}
+
+const SocialButton: React.FC<SocialButtonProps> = ({ label, emoji, loading, disabled, onPress }) => (
+  <TouchableOpacity
+    style={[styles.ghostButton, disabled && styles.ghostButtonDisabled]}
+    activeOpacity={0.8}
+    disabled={disabled}
+    onPress={onPress}
+  >
+    {loading ? (
+      <ActivityIndicator color={Colors.textPrimary} />
+    ) : (
+      <Text style={styles.ghostButtonText}>
+        {emoji}  {label}
+      </Text>
+    )}
+  </TouchableOpacity>
+);
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.backgroundDark },
@@ -266,26 +212,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Spacing.xl,
   },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: Colors.cardDark,
-    borderRadius: Radius.full,
-    padding: 3,
-    marginBottom: Spacing.lg,
-    position: 'relative',
-    height: 44,
-  },
-  tabIndicator: {
-    position: 'absolute',
-    top: 3,
-    width: '48%',
-    height: 38,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.primary,
-  },
-  tab: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  tabText: { ...Typography.body, color: Colors.textSecondary, fontWeight: '600' },
-  tabTextActive: { color: Colors.textPrimary },
   card: {
     backgroundColor: Colors.surfaceDark,
     borderRadius: Radius.xl,
@@ -304,16 +230,6 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   errorToastText: { ...Typography.body, color: Colors.error, textAlign: 'center' },
-  primaryButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.md,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: Spacing.xs,
-    ...Shadow.card,
-  },
-  primaryButtonDisabled: { opacity: 0.6 },
-  primaryButtonText: { ...Typography.bodyLarge, color: Colors.textPrimary, fontWeight: '700' },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -330,10 +246,12 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
     backgroundColor: Colors.cardDark,
   },
+  ghostButtonDisabled: { opacity: 0.5 },
   ghostButtonText: { ...Typography.body, color: Colors.textPrimary, fontWeight: '500' },
-  switchText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
+  footnote: {
+    ...Typography.caption,
+    color: Colors.textMuted,
     textAlign: 'center',
+    paddingHorizontal: Spacing.md,
   },
 });

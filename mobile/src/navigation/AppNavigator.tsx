@@ -5,9 +5,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector, useDispatch } from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RootState, AppDispatch } from '../store';
-import { setToken } from '../store/slices/authSlice';
+import { restoreSession } from '../store/slices/authSlice';
 import { Colors } from '../utils/theme';
 import { SplashScreen } from '../screens/Splash/SplashScreen';
 import { LoginScreen } from '../screens/Auth/LoginScreen';
@@ -224,8 +223,7 @@ export const AppNavigator: React.FC = () => {
 
   const handleSplashFinish = async (isAuthenticated: boolean) => {
     if (isAuthenticated) {
-      const token = await AsyncStorage.getItem('accessToken');
-      if (token) dispatch(setToken(token));
+      await dispatch(restoreSession());
     }
     setSplashDone(true);
   };

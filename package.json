@@ -5,16 +5,20 @@
   "workspaces": [
     "mobile",
     "backend",
+    "server",
     "shared"
   ],
   "scripts": {
     "mobile": "yarn workspace mobile start",
     "backend": "yarn workspace backend start:dev",
     "backend:build": "yarn workspace backend build",
+    "server": "yarn workspace server dev",
+    "server:build": "yarn workspace server build",
+    "server:test": "yarn workspace server test",
     "shared:build": "yarn workspace shared build",
     "lint": "yarn workspace backend lint && yarn workspace mobile lint",
     "lint:fix": "yarn workspace backend lint --fix && yarn workspace mobile lint --fix",
-    "test": "yarn workspace backend test && yarn workspace mobile test",
+    "test": "yarn workspace backend test && yarn workspace server test && yarn workspace mobile test",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\" --ignore-path .gitignore",
     "prepare": "husky"
   },

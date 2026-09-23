@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { logout } from '../../store/slices/authSlice';
+import { logoutAndInvalidate } from '../../store/slices/authSlice';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
 
 interface StatCardProps {
@@ -102,7 +102,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         {
           text: 'Sign Out',
           style: 'destructive',
-          onPress: () => dispatch(logout()),
+          onPress: () => dispatch(logoutAndInvalidate()),
         },
       ],
     );
