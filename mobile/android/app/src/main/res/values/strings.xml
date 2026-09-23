@@ -3,7 +3,7 @@
 
     <!-- Facebook Login — replace with the App ID / Client Token from
          developers.facebook.com (must match mobile/src/utils/authConfig.ts). -->
-    <string name="facebook_app_id">YOUR_FACEBOOK_APP_ID</string>
-    <string name="facebook_client_token">YOUR_FACEBOOK_CLIENT_TOKEN</string>
-    <string name="fb_login_protocol_scheme">fbYOUR_FACEBOOK_APP_ID</string>
+    <string name="facebook_app_id">943705752145111</string>
+    <string name="facebook_client_token">3649a51b6009267dd091ea83befc91c1</string>
+    <string name="fb_login_protocol_scheme">fb943705752145111</string>
 </resources>

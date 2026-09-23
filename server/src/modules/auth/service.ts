@@ -5,6 +5,7 @@ import { toPublicUser } from '../users/serialize';
 import { verifyGoogleToken } from './verifiers/google';
 import { verifyFacebookToken } from './verifiers/facebook';
 import { verifyAppleToken } from './verifiers/apple';
+import { saveRemoteImage } from '../../lib/remoteImage';
 import type { VerifiedProfile } from './verifiers/google';
 
 async function issueTokenPair(userId: string) {
@@ -21,6 +22,10 @@ async function issueTokenPair(userId: string) {
 }
 
 async function upsertUserFromProfile(provider: string, profile: VerifiedProfile) {
+  if (provider === 'facebook' && profile.photoUrl) {
+    const stored = await saveRemoteImage(profile.photoUrl, `fb-${profile.providerId}`);
+    if (stored) profile = { ...profile, photoUrl: stored };
+  }
   const user = await prisma.user.upsert({
     where: { provider_providerId: { provider, providerId: profile.providerId } },
     update: {

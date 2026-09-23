@@ -35,9 +35,9 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>WalkMe uses your location to show nearby walks, events, and dog-friendly places on the map.</string>
 	<key>FacebookAppID</key>
-	<string>YOUR_FACEBOOK_APP_ID</string>
+	<string>943705752145111</string>
 	<key>FacebookClientToken</key>
-	<string>YOUR_FACEBOOK_CLIENT_TOKEN</string>
+	<string>3649a51b6009267dd091ea83befc91c1</string>
 	<key>FacebookDisplayName</key>
 	<string>WalkMe</string>
 	<key>CFBundleURLTypes</key>
@@ -46,7 +46,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<!-- Facebook Login redirect — scheme is "fb" + your Facebook App ID. -->
-				<string>fbYOUR_FACEBOOK_APP_ID</string>
+				<string>fb943705752145111</string>
 			</array>
 		</dict>
 		<dict>
