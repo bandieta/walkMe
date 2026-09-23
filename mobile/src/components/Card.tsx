@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Radius, Spacing, Shadow } from '../utils/theme';
+import { View, Pressable, StyleSheet, ViewStyle } from 'react-native';
+import { Colors, Radius, Spacing, Shadow, Ramp } from '../utils/theme';
 
 export type CardVariant = 'default' | 'flat' | 'elevated';
 
@@ -19,39 +19,28 @@ export const Card: React.FC<CardProps> = ({
   style,
   padding = Spacing.md,
 }) => {
-  const cardStyle = [
+  const base = [
     styles.base,
+    variant === 'default' && styles.edge,
     variant === 'elevated' && styles.elevated,
-    variant === 'flat' && styles.flat,
     { padding },
     style,
   ];
 
   if (onPress) {
     return (
-      <TouchableOpacity style={cardStyle} onPress={onPress} activeOpacity={0.85}>
+      <Pressable style={({ pressed }) => [...base, pressed && styles.pressed]} onPress={onPress}>
         {children}
-      </TouchableOpacity>
+      </Pressable>
     );
   }
-
-  return <View style={cardStyle}>{children}</View>;
+  return <View style={base}>{children}</View>;
 };
 
+// Surface-filled; elevation is a hairline edge plus ambient darkness.
 const styles = StyleSheet.create({
-  base: {
-    backgroundColor: Colors.card,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadow.card,
-  },
-  elevated: {
-    ...Shadow.modal,
-  },
-  flat: {
-    shadowOpacity: 0,
-    elevation: 0,
-    borderColor: 'transparent',
-  },
+  base: { backgroundColor: Colors.surfaceDark, borderRadius: Radius.md },
+  edge: { borderWidth: 1, borderColor: Ramp.neutral[800] },
+  elevated: { borderWidth: 1, borderColor: Ramp.neutral[700], ...Shadow.card },
+  pressed: { backgroundColor: '#2a2c3b' },
 });

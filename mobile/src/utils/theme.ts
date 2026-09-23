@@ -1,105 +1,126 @@
 // WalkMe Design System — brand identity, tokens, grid & elevation
 // T1 (E1-S2): style guide source of truth for all coded components
 
+// Nocturne tokens (from the "Nocturne" design system): a quiet dark ground,
+// one blurple accent used as a line/glow rather than a flood, medium-weight
+// Inter, soft 8px radii and a compact (0.7x) spacing scale.
+// Key names are unchanged from the previous theme so screens keep working.
+
+/** Tonal ramps generated in OKLCH — same step = same visual weight. */
+export const Ramp = {
+  neutral: {
+    100: '#f3f5fe', 200: '#e4e7f5', 300: '#cfd3e5', 400: '#b2b6ca', 500: '#9397ab',
+    600: '#75798c', 700: '#595d6c', 800: '#3f424d', 900: '#292b31',
+  },
+  accent: {
+    100: '#f5f4ff', 200: '#e7e5fe', 300: '#d2cefd', 400: '#b5abfc', 500: '#968ae0',
+    600: '#796cbf', 700: '#5d5294', 800: '#423a6a', 900: '#2b2741',
+  },
+};
+
 export const Colors = {
-  // Primary
-  primary: '#6C5CE7',
-  primaryDark: '#5B4CC4',
-  secondary: '#00D2D3',
-  accent: '#FD7272',
+  // Accent (mono scheme: one accent voice)
+  primary: '#9184d9',
+  primaryDark: Ramp.accent[600],
+  secondary: '#a7a1db',
+  accent: '#9184d9',
 
-  // Semantic
-  success: '#1DD1A1',
-  warning: '#FECA57',
-  error: '#FD7272',
-  info: '#00D2D3',
+  // Semantic — kept low-chroma so they sit quietly on the ground
+  success: '#7fc8a9',
+  warning: '#d9b877',
+  error: '#e0837f',
+  info: '#a7a1db',
 
-  // Dark mode layers
-  backgroundDark: '#0D0D0D',
-  surfaceDark: '#1A1A2E',
-  cardDark: '#16213E',
+  // Dark ground + surfaces
+  backgroundDark: '#161826',
+  surfaceDark: '#232532',
+  cardDark: '#232532',
 
-  // Light mode layers
-  backgroundLight: '#F8F9FD',
-  surfaceLight: '#FFFFFF',
-  cardLight: '#FFFFFF',
+  // Light layers (unused — Nocturne is dark-only)
+  backgroundLight: Ramp.neutral[100],
+  surfaceLight: '#ffffff',
+  cardLight: '#ffffff',
 
-  // Text
-  textPrimary: '#FFFFFF',
-  textSecondary: 'rgba(255,255,255,0.6)',
-  textMuted: 'rgba(255,255,255,0.35)',
-  textDark: '#0D0D0D',
+  // Text — never pure white
+  textPrimary: '#e9e9ed',
+  textSecondary: 'rgba(233,233,237,0.70)',
+  textMuted: 'rgba(233,233,237,0.50)',
+  textDark: '#161826',
 
-  // Borders
-  border: 'rgba(255,255,255,0.08)',
-  borderLight: 'rgba(255,255,255,0.15)',
+  // Borders — the system's divider is text @ 16%
+  border: 'rgba(233,233,237,0.10)',
+  borderLight: 'rgba(233,233,237,0.16)',
 
-  // Gradients (use as [start, end] with LinearGradient)
-  gradientPrimary: ['#6C5CE7', '#5B4CC4'] as [string, string],
-  gradientProgress: ['#6C5CE7', '#00D2D3'] as [string, string],
-  gradientHero: ['transparent', 'rgba(13,13,13,0.95)'] as [string, string],
+  // Gradients (accent used as a soft glow, never a flood)
+  gradientPrimary: [Ramp.accent[700], Ramp.accent[800]] as [string, string],
+  gradientProgress: [Ramp.accent[600], Ramp.accent[400]] as [string, string],
+  gradientHero: ['transparent', 'rgba(22,24,38,0.95)'] as [string, string],
+};
+
+/** Fonts. Weights above 500 are capped at Medium — hierarchy is size and space. */
+export const Fonts = {
+  regular: 'Inter-Regular',
+  medium: 'Inter-Medium',
 };
 
 export const Typography = {
-  display: { fontSize: 40, fontWeight: '700' as const, letterSpacing: -0.8 },
-  h1: { fontSize: 32, fontWeight: '700' as const, letterSpacing: -0.5 },
-  h2: { fontSize: 24, fontWeight: '600' as const },
-  h3: { fontSize: 20, fontWeight: '500' as const },
-  bodyLarge: { fontSize: 17, fontWeight: '400' as const },
-  body: { fontSize: 15, fontWeight: '400' as const },
-  caption: { fontSize: 13, fontWeight: '400' as const },
-  overline: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 1.5, textTransform: 'uppercase' as const },
+  display: { fontSize: 34, fontWeight: '500' as const, letterSpacing: -0.5 },
+  h1: { fontSize: 28, fontWeight: '500' as const, letterSpacing: -0.4 },
+  h2: { fontSize: 22, fontWeight: '500' as const, letterSpacing: -0.3 },
+  h3: { fontSize: 18, fontWeight: '500' as const, letterSpacing: -0.2 },
+  bodyLarge: { fontSize: 16, fontWeight: '400' as const },
+  body: { fontSize: 14, fontWeight: '400' as const },
+  caption: { fontSize: 12, fontWeight: '400' as const },
+  overline: { fontSize: 10, fontWeight: '500' as const, letterSpacing: 1.2, textTransform: 'uppercase' as const },
 };
 
+/** Compact scale (~0.7x density). */
 export const Spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
+  xs: 3,
+  sm: 6,
+  md: 12,
+  lg: 18,
+  xl: 24,
+  xxl: 36,
 };
 
 export const Radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
+  sm: 4,
+  md: 8,
+  lg: 14,
+  xl: 14,
   full: 999,
 };
 
+/** Elevation = a hairline edge plus ambient darkness, never a coloured glow. */
 export const Shadow = {
-  /** Elevation 1 — subtle, used for cards and inputs */
   subtle: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  /** Elevation 2 — mid, used for floating cards */
   card: {
-    shadowColor: '#6C5CE7',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 4,
   },
-  /** Elevation 3 — high, used for bottom sheets and modals */
   modal: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
     elevation: 16,
   },
-  /** Elevation 4 — max, used for floating action buttons */
   fab: {
-    shadowColor: '#6C5CE7',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.55,
+    shadowRadius: 18,
+    elevation: 10,
   },
 };
 

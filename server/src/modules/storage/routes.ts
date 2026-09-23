@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -41,7 +41,7 @@ storageRouter.use(requireAuth);
  */
 storageRouter.post(
   '/upload',
-  upload.single('file'),
+  upload.single('file') as unknown as RequestHandler,
   asyncHandler(async (req, res) => {
     if (!req.file) throw new HttpError(400, 'NO_FILE', 'No file uploaded (expected field "file")');
     res.status(201).json({ url: `${env.publicBaseUrl}/uploads/${req.file.filename}` });

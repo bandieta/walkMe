@@ -13,18 +13,21 @@ import {
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { logoutAndInvalidate } from '../../store/slices/authSlice';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
+import { Colors, Typography, Spacing, Radius, Shadow, Ramp } from '../../utils/theme';
 import { Avatar } from '../../components/Avatar';
+import { Icon, IconName } from '../../components/Icon';
 
 interface StatCardProps {
   value: string;
   label: string;
-  emoji: string;
+  icon: IconName;
 }
 
-const StatCard: React.FC<StatCardProps> = ({ value, label, emoji }) => (
+const StatCard: React.FC<StatCardProps> = ({ value, label, icon }) => (
   <View style={statStyles.card}>
-    <Text style={statStyles.emoji}>{emoji}</Text>
+    <View style={statStyles.icon}>
+      <Icon name={icon} size={20} color={Colors.primary} />
+    </View>
     <Text style={statStyles.value}>{value}</Text>
     <Text style={statStyles.label}>{label}</Text>
   </View>
@@ -41,7 +44,7 @@ const statStyles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-  emoji: { fontSize: 24, marginBottom: 4 },
+  icon: { marginBottom: 6 },
   value: { ...Typography.h3, color: Colors.textPrimary, marginBottom: 2 },
   label: { ...Typography.caption, color: Colors.textSecondary, textAlign: 'center' },
 });
@@ -129,21 +132,22 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
               <Avatar name={user?.displayName ?? initials} uri={user?.photoUrl} size="xl" />
             </View>
             <View style={styles.avatarBadge}>
-              <Text style={{ fontSize: 12 }}>🐾</Text>
+              <Icon name="paw" size={12} color={Colors.primary} weight="fill" />
             </View>
           </View>
           <Text style={styles.name}>{user?.displayName ?? 'Walker'}</Text>
           <Text style={styles.email}>{user?.email ?? ''}</Text>
           <View style={styles.pill}>
-            <Text style={styles.pillText}>🚶 Active Walker</Text>
+            <Icon name="walk" size={13} color={Colors.primary} />
+            <Text style={styles.pillText}>Active walker</Text>
           </View>
         </View>
 
         {/* Stats */}
         <View style={styles.statsRow}>
-          <StatCard value="12" label="Walks Done" emoji="✅" />
-          <StatCard value="34 km" label="Total Distance" emoji="📍" />
-          <StatCard value="8" label="Friends" emoji="👥" />
+          <StatCard value="12" label="Walks done" icon="checkCircle" />
+          <StatCard value="34 km" label="Distance" icon="pin" />
+          <StatCard value="8" label="Friends" icon="users" />
         </View>
 
         {/* Settings card */}
@@ -173,10 +177,11 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Account</Text>
           {[
-            { emoji: '🐶', label: 'My Dogs', route: 'MyDogs' },
-            { emoji: '🏅', label: 'Achievements', route: null },
-            { emoji: '🔒', label: 'Privacy & Safety', route: null },
-            { emoji: '❓', label: 'Help & Support', route: null },
+            { icon: 'dog', label: 'My dogs', route: 'MyDogs' },
+            { icon: 'walk', label: 'Walks & events', route: 'MyWalks' },
+            { icon: 'medal', label: 'Achievements', route: null },
+            { icon: 'lock', label: 'Privacy & safety', route: null },
+            { icon: 'question', label: 'Help & support', route: null },
           ].map((item) => (
             <TouchableOpacity
               key={item.label}
@@ -184,9 +189,9 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
               activeOpacity={0.7}
               onPress={() => item.route && navigation.navigate(item.route)}
             >
-              <Text style={styles.menuEmoji}>{item.emoji}</Text>
+              <Icon name={item.icon as IconName} size={20} color={Colors.textSecondary} style={{ marginRight: Spacing.md }} />
               <Text style={styles.menuLabel}>{item.label}</Text>
-              <Text style={styles.menuChevron}>›</Text>
+              <Icon name="chevronRight" size={16} color={Colors.textMuted} />
             </TouchableOpacity>
           ))}
         </View>
@@ -238,9 +243,10 @@ const styles = StyleSheet.create({
   name: { ...Typography.h2, color: Colors.textPrimary, marginBottom: 2 },
   email: { ...Typography.body, color: Colors.textSecondary, marginBottom: Spacing.sm },
   pill: {
-    paddingHorizontal: Spacing.md, paddingVertical: 4,
-    backgroundColor: `${Colors.secondary}20`,
-    borderRadius: Radius.full, borderWidth: 1, borderColor: `${Colors.secondary}50`,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: Ramp.accent[900],
+    borderRadius: 6, borderWidth: 1, borderColor: Ramp.accent[700],
   },
   pillText: { ...Typography.caption, color: Colors.secondary, fontWeight: '600' },
   statsRow: {
@@ -267,7 +273,6 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     borderBottomWidth: 1, borderColor: Colors.border,
   },
-  menuEmoji: { fontSize: 20, marginRight: Spacing.md },
   menuLabel: { ...Typography.body, color: Colors.textPrimary, flex: 1 },
   menuChevron: { fontSize: 22, color: Colors.textMuted },
   signOutBtn: {

@@ -16,6 +16,7 @@ import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../../store';
 import { walksApi } from '../../services/api';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
+import { Icon, IconName, categoryIcon } from '../../components/Icon';
 
 interface InputFieldProps {
   label: string;
@@ -77,14 +78,14 @@ const fieldStyles = StyleSheet.create({
   error: { ...Typography.caption, color: Colors.error, marginTop: 4 },
 });
 
-const CATEGORIES = ['Park 🌳', 'Trail 🥾', 'Lake 🏞', 'Beach 🏖', 'Cafe ☕', 'City 🏙'];
+const CATEGORIES = ['Park', 'Trail', 'Lake', 'Beach', 'Cafe', 'City'];
 const DURATIONS = ['30 min', '1 hour', '1.5 hrs', '2 hours', '2+ hours'];
 
 export const CreateWalkScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [maxParticipants, setMaxParticipants] = useState('8');
-  const [category, setCategory] = useState('Park 🌳');
+  const [category, setCategory] = useState('Park');
   const [duration, setDuration] = useState('1 hour');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -159,7 +160,8 @@ export const CreateWalkScreen: React.FC<{ navigation: any }> = ({ navigation }) 
               onPress={() => setCategory(cat)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.chipText, category === cat && styles.chipTextActive]}>{cat}</Text>
+              <Icon name={categoryIcon(cat)} size={15} color={category === cat ? Colors.primary : Colors.textSecondary} />
+              <Text style={[styles.chipText, category === cat && styles.chipTextActive, { marginLeft: 6 }]}>{cat}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -210,7 +212,7 @@ export const CreateWalkScreen: React.FC<{ navigation: any }> = ({ navigation }) 
         >
           {loading
             ? <ActivityIndicator color="#fff" />
-            : <Text style={styles.submitText}>Create Walk 🚶</Text>
+            : <Text style={styles.submitText}>Create walk</Text>
           }
         </TouchableOpacity>
       </View>

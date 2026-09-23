@@ -8,6 +8,7 @@ import { RootState, AppDispatch } from '../../store';
 import { fetchEventById, joinEvent, leaveEvent } from '../../store/slices/eventsSlice';
 import { Colors, Spacing, Radius } from '../../utils/theme';
 import { Button, Badge } from '../../components';
+import { Icon, categoryIcon } from '../../components/Icon';
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -66,7 +67,7 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.navBar}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>←</Text>
+          <Icon name="chevronLeft" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.navTitle} numberOfLines={1}>{event.title}</Text>
         <View style={{ width: 40 }} />
@@ -75,7 +76,7 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero */}
         <View style={styles.hero}>
-          <Text style={styles.heroEmoji}>{event.emoji ?? '🐾'}</Text>
+          <Icon name={categoryIcon(event.category)} size={44} color={Colors.primary} />
           <View style={styles.heroContent}>
             <Text style={styles.heroTitle}>{event.title}</Text>
             <View style={styles.heroRow}>
@@ -93,12 +94,12 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
         {/* Info cards row */}
         <View style={styles.infoRow}>
           <View style={styles.infoCard}>
-            <Text style={styles.infoEmoji}>📅</Text>
+            <Icon name="calendar" size={18} color={Colors.primary} />
             <Text style={styles.infoLabel}>Date</Text>
             <Text style={styles.infoValue}>{formatDate(event.date)}</Text>
           </View>
           <View style={styles.infoCard}>
-            <Text style={styles.infoEmoji}>🕒</Text>
+            <Icon name="clock" size={18} color={Colors.primary} />
             <Text style={styles.infoLabel}>Time</Text>
             <Text style={styles.infoValue}>{formatTime(event.date)}</Text>
           </View>
@@ -106,13 +107,13 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
 
         {/* Location */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📍 Location</Text>
+          <Text style={styles.sectionTitle}>Location</Text>
           <Text style={styles.locationText}>{event.location}</Text>
         </View>
 
         {/* Participants */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👥 Participants</Text>
+          <Text style={styles.sectionTitle}>Participants</Text>
           <View style={styles.participantsRow}>
             <View style={styles.progressBarBg}>
               <View style={[styles.progressBarFill, { width: `${Math.min(100, (event.participantCount / event.maxParticipants) * 100)}%` as any }]} />
@@ -138,9 +139,9 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
         {event.status !== 'ended' && (
           <View style={styles.actionSection}>
             <Button
-              label={event.isJoined ? '✓ Joined — Leave Event' : spotsLeft === 0 ? 'Event Full' : `Join Event (${spotsLeft} spots left)`}
+              label={event.isJoined ? 'Joined — leave event' : spotsLeft === 0 ? 'Event Full' : `Join Event (${spotsLeft} spots left)`}
               onPress={handleJoinToggle}
-              variant={event.isJoined ? 'outline' : 'primary'}
+              variant={event.isJoined ? 'secondary' : 'primary'}
               disabled={!event.isJoined && spotsLeft === 0}
               fullWidth
             />

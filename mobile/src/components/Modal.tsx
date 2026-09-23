@@ -59,7 +59,7 @@ export const Modal: React.FC<ModalProps> = ({ visible, onClose, title, children 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(22,24,38,0.72)',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: Spacing.xl,
@@ -67,8 +67,8 @@ const styles = StyleSheet.create({
   },
   content: {
     width: '100%',
-    backgroundColor: Colors.card,
-    borderRadius: Radius['2xl'],
+    backgroundColor: Colors.surfaceDark,
+    borderRadius: Radius.lg, borderWidth: 1, borderColor: Colors.border,
     padding: Spacing.xl,
     ...Shadow.modal,
   },
@@ -80,13 +80,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '500',
     color: Colors.textPrimary,
     flex: 1,
   },
   closeIcon: {
     fontSize: 16,
     color: Colors.textMuted,
-    fontWeight: '600',
+    fontWeight: '500',
   },
 });

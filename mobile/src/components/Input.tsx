@@ -9,7 +9,8 @@ import {
   ViewStyle,
   Animated,
 } from 'react-native';
-import { Colors, Typography, Spacing, Radius } from '../utils/theme';
+import { Colors, Spacing, Radius } from '../utils/theme';
+import { Icon } from './Icon';
 
 export type InputVariant = 'text' | 'search' | 'password';
 
@@ -30,23 +31,15 @@ export const Input: React.FC<InputProps> = ({
   secureTextEntry,
   ...textInputProps
 }) => {
-  const [isFocused, setIsFocused] = useState(false);
   const [isSecure, setIsSecure] = useState(variant === 'password');
   const borderAnim = useRef(new Animated.Value(0)).current;
 
-  const handleFocus = () => {
-    setIsFocused(true);
-    Animated.timing(borderAnim, { toValue: 1, duration: 150, useNativeDriver: false }).start();
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-    Animated.timing(borderAnim, { toValue: 0, duration: 150, useNativeDriver: false }).start();
-  };
+  const animate = (to: number) =>
+    Animated.timing(borderAnim, { toValue: to, duration: 150, useNativeDriver: false }).start();
 
   const borderColor = borderAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [error ? Colors.error : Colors.border, error ? Colors.error : Colors.primary],
+    outputRange: [error ? Colors.error : Colors.borderLight, error ? Colors.error : Colors.primary],
   });
 
   return (
@@ -55,20 +48,22 @@ export const Input: React.FC<InputProps> = ({
       <Animated.View style={[styles.inputWrapper, { borderColor }]}>
         {!!icon && <View style={styles.iconLeft}>{icon}</View>}
         <TextInput
-          style={[styles.input, !!icon && styles.inputWithIcon]}
+          style={styles.input}
           placeholderTextColor={Colors.textMuted}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
+          selectionColor={Colors.primary}
+          cursorColor={Colors.primary}
+          onFocus={() => animate(1)}
+          onBlur={() => animate(0)}
           secureTextEntry={isSecure}
           {...textInputProps}
         />
         {variant === 'password' && (
           <TouchableOpacity
             style={styles.eyeButton}
-            onPress={() => setIsSecure(s => !s)}
+            onPress={() => setIsSecure((s) => !s)}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.eyeText}>{isSecure ? '👁' : '🙈'}</Text>
+            <Icon name={isSecure ? 'eye' : 'eyeOff'} size={18} color={Colors.textMuted} />
           </TouchableOpacity>
         )}
       </Animated.View>
@@ -79,37 +74,18 @@ export const Input: React.FC<InputProps> = ({
 
 const styles = StyleSheet.create({
   container: { marginBottom: Spacing.md },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.textSecondary,
-    marginBottom: Spacing.xs,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
+  label: { fontSize: 12, color: Colors.textSecondary, marginBottom: 5 },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.surfaceDark,
-    borderRadius: Radius.lg,
-    borderWidth: 1.5,
-    paddingHorizontal: Spacing.md,
-    minHeight: 52,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    minHeight: 40,
   },
-  input: {
-    flex: 1,
-    color: Colors.textPrimary,
-    fontSize: 15,
-    paddingVertical: Spacing.sm,
-  },
-  inputWithIcon: { marginLeft: Spacing.sm },
-  iconLeft: { marginRight: Spacing.xs },
+  input: { flex: 1, color: Colors.textPrimary, fontSize: 14, paddingVertical: 6 },
+  iconLeft: { marginRight: Spacing.sm },
   eyeButton: { padding: Spacing.xs },
-  eyeText: { fontSize: 16 },
-  errorText: {
-    fontSize: 12,
-    color: Colors.error,
-    marginTop: Spacing.xs,
-    marginLeft: Spacing.xs,
-  },
+  errorText: { fontSize: 12, color: Colors.error, marginTop: Spacing.xs },
 });

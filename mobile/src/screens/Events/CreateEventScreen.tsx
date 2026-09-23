@@ -8,6 +8,7 @@ import { AppDispatch } from '../../store';
 import { createEvent } from '../../store/slices/eventsSlice';
 import { Input, Button } from '../../components';
 import { Colors, Spacing, Radius } from '../../utils/theme';
+import { Icon } from '../../components/Icon';
 
 const CATEGORIES = ['Meetup', 'Competition', 'Playdate', 'Walk', 'Training', 'Wellness', 'Lake', 'Beach', 'Other'];
 const EMOJIS = ['🎉', '🐾', '🐕', '🥏', '🏊', '🌲', '🏃', '🌙', '🧘', '🏆', '🎈', '🎯'];
@@ -54,7 +55,7 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
         category,
         emoji,
       }));
-      Alert.alert('Event Created! 🎉', 'Your event is now live.', [
+      Alert.alert('Event created', 'Your event is now live.', [
         { text: 'View Events', onPress: () => navigation.goBack() },
       ]);
     } finally {
@@ -67,7 +68,7 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>✕</Text>
+          <Icon name="close" size={20} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Create Event</Text>
         <View style={{ width: 40 }} />
@@ -128,7 +129,7 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
         </View>
 
         <Button
-          label={saving ? 'Creating…' : '🎉 Create Event'}
+          label={saving ? 'Creating…' : 'Create event'}
           onPress={handleCreate}
           disabled={saving}
           fullWidth

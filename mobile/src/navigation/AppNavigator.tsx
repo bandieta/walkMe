@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { View } from 'react-native';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState, AppDispatch } from '../store';
 import { restoreSession } from '../store/slices/authSlice';
-import { Colors } from '../utils/theme';
+import { Colors, Ramp } from '../utils/theme';
+import { Icon, IconName } from '../components/Icon';
 import { SplashScreen } from '../screens/Splash/SplashScreen';
 import { LoginScreen } from '../screens/Auth/LoginScreen';
 import { MapScreen } from '../screens/Map/MapScreen';
@@ -15,7 +15,6 @@ import { WalkDetailScreen } from '../screens/Walk/WalkDetailScreen';
 import { MyWalksScreen } from '../screens/Walk/MyWalksScreen';
 import { CreateWalkScreen } from '../screens/Walk/CreateWalkScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
-import { EventsScreen } from '../screens/Events/EventsScreen';
 import { EventDetailScreen } from '../screens/Events/EventDetailScreen';
 import { CreateEventScreen } from '../screens/Events/CreateEventScreen';
 import { DiscoverScreen } from '../screens/Discover/DiscoverScreen';
@@ -41,20 +40,12 @@ export type MapStackParamList = {
   WalkDetail: { walkId: string };
   WalkChat: { walkId: string; walkTitle?: string };
   CreateWalk: undefined;
+  EventDetail: { eventId: string };
+  CreateEvent: undefined;
 };
 
 export type DiscoverStackParamList = {
   DiscoverHome: undefined;
-};
-
-export type EventsStackParamList = {
-  EventsList: undefined;
-  EventDetail: { eventId: string };
-  CreateEvent: undefined;
-  MyWalks: undefined;
-  WalkDetail: { walkId: string };
-  WalkChat: { walkId: string; walkTitle?: string };
-  CreateWalk: undefined;
 };
 
 export type ChatStackParamList = {
@@ -68,12 +59,16 @@ export type ProfileStackParamList = {
   EditProfile: undefined;
   MyDogs: undefined;
   AddDog: undefined;
+  MyWalks: undefined;
+  WalkDetail: { walkId: string };
+  WalkChat: { walkId: string; walkTitle?: string };
+  CreateWalk: undefined;
+  EventDetail: { eventId: string };
 };
 
 export type MainTabParamList = {
   MapTab: undefined;
   DiscoverTab: undefined;
-  EventsTab: undefined;
   ChatTab: undefined;
   ProfileTab: undefined;
 };
@@ -90,18 +85,12 @@ const linking: LinkingOptions<RootStackParamList> = {
               MapHome: 'explore',
               WalkDetail: 'walk/:walkId',
               WalkChat: 'walk-chat/:walkId',
+              EventDetail: 'event/:eventId',
+              CreateEvent: 'create-event',
             },
           },
           DiscoverTab: {
             screens: { DiscoverHome: 'discover' },
-          },
-          EventsTab: {
-            screens: {
-              EventsList: 'events',
-              EventDetail: 'event/:eventId',
-              CreateEvent: 'create-event',
-              MyWalks: 'my-walks',
-            },
           },
           ChatTab: {
             screens: {
@@ -114,6 +103,7 @@ const linking: LinkingOptions<RootStackParamList> = {
               ProfileHome: 'profile',
               EditProfile: 'edit-profile',
               MyDogs: 'my-dogs',
+              MyWalks: 'my-walks',
             },
           },
         },
@@ -133,6 +123,8 @@ const MapStackScreen: React.FC = () => (
     <MapStack.Screen name="WalkDetail" component={WalkDetailScreen} />
     <MapStack.Screen name="WalkChat" component={WalkChatScreen} />
     <MapStack.Screen name="CreateWalk" component={CreateWalkScreen} />
+    <MapStack.Screen name="EventDetail" component={EventDetailScreen} />
+    <MapStack.Screen name="CreateEvent" component={CreateEventScreen} />
   </MapStack.Navigator>
 );
 
@@ -141,19 +133,6 @@ const DiscoverStackScreen: React.FC = () => (
   <DiscoverStack.Navigator screenOptions={{ headerShown: false }}>
     <DiscoverStack.Screen name="DiscoverHome" component={DiscoverScreen} />
   </DiscoverStack.Navigator>
-);
-
-const EventsStack = createStackNavigator<EventsStackParamList>();
-const EventsStackScreen: React.FC = () => (
-  <EventsStack.Navigator screenOptions={{ headerShown: false }}>
-    <EventsStack.Screen name="EventsList" component={EventsScreen} />
-    <EventsStack.Screen name="EventDetail" component={EventDetailScreen} />
-    <EventsStack.Screen name="CreateEvent" component={CreateEventScreen} />
-    <EventsStack.Screen name="MyWalks" component={MyWalksScreen} />
-    <EventsStack.Screen name="WalkDetail" component={WalkDetailScreen} />
-    <EventsStack.Screen name="WalkChat" component={WalkChatScreen} />
-    <EventsStack.Screen name="CreateWalk" component={CreateWalkScreen} />
-  </EventsStack.Navigator>
 );
 
 const ChatStack = createStackNavigator<ChatStackParamList>();
@@ -172,36 +151,48 @@ const ProfileStackScreen: React.FC = () => (
     <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
     <ProfileStack.Screen name="MyDogs" component={MyDogsScreen} />
     <ProfileStack.Screen name="AddDog" component={AddDogScreen} />
+    <ProfileStack.Screen name="MyWalks" component={MyWalksScreen} />
+    <ProfileStack.Screen name="WalkDetail" component={WalkDetailScreen} />
+    <ProfileStack.Screen name="WalkChat" component={WalkChatScreen} />
+    <ProfileStack.Screen name="CreateWalk" component={CreateWalkScreen} />
+    <ProfileStack.Screen name="EventDetail" component={EventDetailScreen} />
   </ProfileStack.Navigator>
 );
 
 // ─── Bottom tabs ─────────────────────────────────────────────────────────────
 const Tab = createBottomTabNavigator<MainTabParamList>();
+
+const TAB_ICONS: Record<keyof MainTabParamList, IconName> = {
+  MapTab: 'compass',
+  DiscoverTab: 'paw',
+  ChatTab: 'chat',
+  ProfileTab: 'user',
+};
+
 const MainTabs: React.FC = () => (
   <Tab.Navigator
-    screenOptions={{
+    screenOptions={({ route }) => ({
       headerShown: false,
       tabBarStyle: {
-        backgroundColor: Colors.surfaceDark,
-        borderTopColor: Colors.border,
+        backgroundColor: Colors.backgroundDark,
+        borderTopColor: Ramp.neutral[800],
         borderTopWidth: 1,
-        height: 64,
-        paddingBottom: 8,
+        height: 60,
+        paddingTop: 6,
+        paddingBottom: 6,
       },
+      tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
       tabBarActiveTintColor: Colors.primary,
       tabBarInactiveTintColor: Colors.textMuted,
-    }}
+      tabBarIcon: ({ color, size, focused }) => (
+        <Icon name={TAB_ICONS[route.name]} size={size} color={color} weight={focused ? 'fill' : 'regular'} />
+      ),
+    })}
   >
-    <Tab.Screen name="MapTab" component={MapStackScreen}
-      options={{ tabBarLabel: 'Explore', tabBarIcon: ({ color, size }) => <Ionicons name="compass-outline" size={size} color={color} /> }} />
-    <Tab.Screen name="DiscoverTab" component={DiscoverStackScreen}
-      options={{ tabBarLabel: 'Discover', tabBarIcon: ({ color, size }) => <Ionicons name="paw-outline" size={size} color={color} /> }} />
-    <Tab.Screen name="EventsTab" component={EventsStackScreen}
-      options={{ tabBarLabel: 'Events', tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} /> }} />
-    <Tab.Screen name="ChatTab" component={ChatStackScreen}
-      options={{ tabBarLabel: 'Chat', tabBarIcon: ({ color, size }) => <Ionicons name="chatbubbles-outline" size={size} color={color} /> }} />
-    <Tab.Screen name="ProfileTab" component={ProfileStackScreen}
-      options={{ tabBarLabel: 'Me', tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} /> }} />
+    <Tab.Screen name="MapTab" component={MapStackScreen} options={{ tabBarLabel: 'Map' }} />
+    <Tab.Screen name="DiscoverTab" component={DiscoverStackScreen} options={{ tabBarLabel: 'Discover' }} />
+    <Tab.Screen name="ChatTab" component={ChatStackScreen} options={{ tabBarLabel: 'Chats' }} />
+    <Tab.Screen name="ProfileTab" component={ProfileStackScreen} options={{ tabBarLabel: 'Me' }} />
   </Tab.Navigator>
 );
 

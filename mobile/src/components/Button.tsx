@@ -1,13 +1,6 @@
 import React from 'react';
-import {
-  TouchableOpacity,
-  Text,
-  ActivityIndicator,
-  StyleSheet,
-  ViewStyle,
-  TextStyle,
-} from 'react-native';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../utils/theme';
+import { Pressable, Text, ActivityIndicator, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { Colors, Spacing, Radius } from '../utils/theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 export type ButtonSize = 'sm' | 'md' | 'lg';
@@ -24,29 +17,19 @@ interface ButtonProps {
   style?: ViewStyle;
 }
 
-const VARIANT_STYLES: Record<ButtonVariant, { container: ViewStyle; text: TextStyle }> = {
-  primary: {
-    container: { backgroundColor: Colors.primary, ...Shadow.card },
-    text: { color: '#fff' },
-  },
-  secondary: {
-    container: { backgroundColor: Colors.surfaceDark, borderWidth: 1.5, borderColor: Colors.primary },
-    text: { color: Colors.primary },
-  },
-  ghost: {
-    container: { backgroundColor: 'transparent' },
-    text: { color: Colors.textSecondary },
-  },
-  danger: {
-    container: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: Colors.error },
-    text: { color: Colors.error },
-  },
+// Nocturne: actions are outlined, never solid-filled. Pressed state is a tint
+// of the variant's own colour.
+const VARIANT: Record<ButtonVariant, { border: string; text: string; pressed: string }> = {
+  primary: { border: Colors.primary, text: Colors.primary, pressed: 'rgba(145,132,217,0.22)' },
+  secondary: { border: Colors.borderLight, text: Colors.textPrimary, pressed: 'rgba(233,233,237,0.14)' },
+  ghost: { border: 'transparent', text: Colors.primary, pressed: 'rgba(145,132,217,0.18)' },
+  danger: { border: Colors.error, text: Colors.error, pressed: 'rgba(224,131,127,0.20)' },
 };
 
-const SIZE_STYLES: Record<ButtonSize, { container: ViewStyle; text: TextStyle }> = {
-  sm: { container: { paddingVertical: Spacing.xs + 2, paddingHorizontal: Spacing.md }, text: { fontSize: 13 } },
-  md: { container: { paddingVertical: Spacing.sm + 2, paddingHorizontal: Spacing.lg }, text: { fontSize: 15 } },
-  lg: { container: { paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl }, text: { fontSize: 17 } },
+const SIZE: Record<ButtonSize, { container: ViewStyle; text: TextStyle }> = {
+  sm: { container: { paddingVertical: 5, paddingHorizontal: Spacing.md }, text: { fontSize: 12 } },
+  md: { container: { paddingVertical: 9, paddingHorizontal: Spacing.lg }, text: { fontSize: 14 } },
+  lg: { container: { paddingVertical: 12, paddingHorizontal: Spacing.xl }, text: { fontSize: 15 } },
 };
 
 export const Button: React.FC<ButtonProps> = ({
@@ -60,46 +43,32 @@ export const Button: React.FC<ButtonProps> = ({
   fullWidth = false,
   style,
 }) => {
-  const variantStyle = VARIANT_STYLES[variant];
-  const sizeStyle = SIZE_STYLES[size];
+  const v = VARIANT[variant];
+  const s = SIZE[size];
   const isDisabled = disabled || loading;
 
   return (
-    <TouchableOpacity
-      style={[
+    <Pressable
+      onPress={onPress}
+      disabled={isDisabled}
+      style={({ pressed }) => [
         styles.base,
-        variantStyle.container,
-        sizeStyle.container,
+        { borderColor: v.border, backgroundColor: pressed ? v.pressed : 'transparent' },
+        s.container,
         fullWidth && styles.fullWidth,
         isDisabled && styles.disabled,
         style,
       ]}
-      onPress={onPress}
-      disabled={isDisabled}
-      activeOpacity={0.8}
     >
       {loading ? (
-        <ActivityIndicator
-          color={variant === 'primary' || variant === 'danger' ? '#fff' : Colors.primary}
-          size="small"
-        />
+        <ActivityIndicator color={v.text} size="small" />
       ) : (
         <>
           {icon}
-          <Text
-            style={[
-              styles.text,
-              variantStyle.text,
-              sizeStyle.text,
-              !!icon && styles.textWithIcon,
-              isDisabled && styles.textDisabled,
-            ]}
-          >
-            {label}
-          </Text>
+          <Text style={[styles.text, { color: v.text }, s.text, !!icon && styles.textWithIcon]}>{label}</Text>
         </>
       )}
-    </TouchableOpacity>
+    </Pressable>
   );
 };
 
@@ -108,12 +77,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.xl,
-    minWidth: 80,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    minWidth: 72,
   },
   fullWidth: { width: '100%' },
   disabled: { opacity: 0.45 },
-  text: { fontWeight: '700' as const, textAlign: 'center' },
-  textWithIcon: { marginLeft: Spacing.xs },
-  textDisabled: {},
+  text: { fontWeight: '500', textAlign: 'center' },
+  textWithIcon: { marginLeft: Spacing.sm },
 });

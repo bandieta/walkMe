@@ -9,6 +9,7 @@ import { updateProfile } from '../../store/slices/profileSlice';
 import { Input, Button } from '../../components';
 import { Avatar } from '../../components/Avatar';
 import { Colors, Spacing, Radius } from '../../utils/theme';
+import { Icon } from '../../components/Icon';
 
 export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -29,7 +30,7 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
       name: displayName.trim(),
       bio: bio.trim(),
     } as any));
-    Alert.alert('Saved! ✅', 'Your profile has been updated.', [
+    Alert.alert('Saved', 'Your profile has been updated.', [
       { text: 'OK', onPress: () => navigation.goBack() },
     ]);
   };
@@ -39,7 +40,7 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
+          <Icon name="chevronLeft" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Edit Profile</Text>
         <View style={{ width: 60 }} />

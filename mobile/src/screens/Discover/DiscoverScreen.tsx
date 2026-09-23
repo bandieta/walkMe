@@ -242,7 +242,7 @@ export const DiscoverScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.surface },
+  container: { flex: 1, backgroundColor: Colors.surfaceDark },
   header: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.sm, alignItems: 'center' },
   headerTitle: { fontSize: 26, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -0.5 },
   headerSub: { fontSize: 13, color: Colors.textMuted, marginTop: 2 },
@@ -250,8 +250,8 @@ const styles = StyleSheet.create({
   card: {
     position: 'absolute',
     width: CARD_W,
-    borderRadius: Radius['2xl'],
-    backgroundColor: Colors.card,
+    borderRadius: Radius.lg,
+    backgroundColor: Colors.surfaceDark,
     overflow: 'hidden',
     ...Shadow.modal,
   },
@@ -282,9 +282,9 @@ const styles = StyleSheet.create({
   bio: { fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
   actions: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: Spacing.xl, gap: Spacing.lg },
   actionBtn: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', ...Shadow.card },
-  nopeBtn: { backgroundColor: Colors.card, borderWidth: 2, borderColor: Colors.error },
-  superLikeBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: Colors.card, borderWidth: 2, borderColor: Colors.warning },
-  likeBtn: { backgroundColor: Colors.card, borderWidth: 2, borderColor: Colors.success },
+  nopeBtn: { backgroundColor: Colors.surfaceDark, borderWidth: 2, borderColor: Colors.error },
+  superLikeBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: Colors.surfaceDark, borderWidth: 2, borderColor: Colors.warning },
+  likeBtn: { backgroundColor: Colors.surfaceDark, borderWidth: 2, borderColor: Colors.success },
   actionEmoji: { fontSize: 24 },
   loadingBox: { alignItems: 'center', gap: Spacing.md },
   loadingText: { color: Colors.textMuted, fontSize: 15 },

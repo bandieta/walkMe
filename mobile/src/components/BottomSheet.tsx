@@ -91,12 +91,12 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: 'rgba(22,24,38,0.72)',
   },
   sheet: {
-    backgroundColor: Colors.card,
-    borderTopLeftRadius: Radius['2xl'],
-    borderTopRightRadius: Radius['2xl'],
+    backgroundColor: Colors.surfaceDark,
+    borderTopLeftRadius: Radius.lg,
+    borderTopRightRadius: Radius.lg,
     paddingHorizontal: Spacing.xl,
     paddingBottom: Spacing.xl,
     ...Shadow.modal,

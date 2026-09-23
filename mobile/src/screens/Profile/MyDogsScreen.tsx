@@ -8,6 +8,7 @@ import { RootState, AppDispatch } from '../../store';
 import { fetchMyDogs, deleteDog } from '../../store/slices/dogsSlice';
 import { Colors, Spacing, Radius } from '../../utils/theme';
 import { Badge, EmptyState } from '../../components';
+import { Icon } from '../../components/Icon';
 
 export const MyDogsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -31,7 +32,7 @@ export const MyDogsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
+          <Icon name="chevronLeft" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>My Dogs</Text>
         <TouchableOpacity style={styles.addBtn} onPress={() => navigation.navigate('AddDog')}>
@@ -50,7 +51,7 @@ export const MyDogsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           contentContainerStyle={styles.list}
           ListEmptyComponent={
             <EmptyState
-              emoji="🐾"
+              icon="paw"
               title="No dogs yet"
               subtitle="Add your first dog to your profile!"
             />
@@ -65,7 +66,7 @@ export const MyDogsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     <Text style={styles.dogAge}>{item.age}y</Text>
                   </View>
                   <Text style={styles.dogBreed}>{item.breed}</Text>
-                  {item.weight && <Text style={styles.dogMeta}>⚖️ {item.weight} kg</Text>}
+                  {item.weight && <Text style={styles.dogMeta}>{item.weight} kg</Text>}
                   {(item as any).personality && (
                     <View style={styles.tagsRow}>
                       {(item as any).personality.slice(0, 2).map((p: string) => (
@@ -76,7 +77,7 @@ export const MyDogsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 </View>
               </View>
               <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id, item.name)}>
-                <Text style={styles.deleteIcon}>🗑️</Text>
+                <Icon name="trash" size={18} color={Colors.error} />
               </TouchableOpacity>
             </View>
           )}

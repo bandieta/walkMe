@@ -1,42 +1,41 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../utils/theme';
+import { View, Text, StyleSheet } from 'react-native';
+import { Colors, Typography, Spacing } from '../utils/theme';
+import { Button } from './Button';
+import { Icon, IconName } from './Icon';
 
 interface EmptyStateProps {
-  emoji: string;
+  icon?: IconName;
+  /** Legacy: an emoji instead of an icon. Prefer `icon`. */
+  emoji?: string;
   title: string;
   subtitle?: string;
   ctaLabel?: string;
   onCta?: () => void;
 }
 
-export const EmptyState: React.FC<EmptyStateProps> = ({
-  emoji, title, subtitle, ctaLabel, onCta,
-}) => (
+export const EmptyState: React.FC<EmptyStateProps> = ({ icon, emoji, title, subtitle, ctaLabel, onCta }) => (
   <View style={styles.container}>
-    <Text style={styles.emoji}>{emoji}</Text>
+    {icon ? (
+      <View style={styles.iconWrap}>
+        <Icon name={icon} size={30} color={Colors.primary} />
+      </View>
+    ) : (
+      !!emoji && <Text style={styles.emoji}>{emoji}</Text>
+    )}
     <Text style={styles.title}>{title}</Text>
     {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
-    {ctaLabel && onCta && (
-      <TouchableOpacity style={styles.btn} onPress={onCta} activeOpacity={0.85}>
-        <Text style={styles.btnText}>{ctaLabel}</Text>
-      </TouchableOpacity>
-    )}
+    {ctaLabel && onCta && <Button label={ctaLabel} onPress={onCta} />}
   </View>
 );
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
+  container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xl },
+  iconWrap: {
+    width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: Colors.borderLight, marginBottom: Spacing.lg,
   },
-  emoji: { fontSize: 56, marginBottom: Spacing.lg },
-  title: { ...Typography.h2, color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing.sm },
-  subtitle: { ...Typography.body, color: Colors.textSecondary, textAlign: 'center', marginBottom: Spacing.xl, lineHeight: 22 },
-  btn: {
-    backgroundColor: Colors.primary, borderRadius: Radius.xl,
-    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md,
-    ...Shadow.card,
-  },
-  btnText: { ...Typography.body, color: '#fff', fontWeight: '700' },
+  emoji: { fontSize: 44, marginBottom: Spacing.lg },
+  title: { ...Typography.h3, color: Colors.textPrimary, textAlign: 'center', marginBottom: Spacing.sm },
+  subtitle: { ...Typography.body, color: Colors.textSecondary, textAlign: 'center', marginBottom: Spacing.xl, lineHeight: 20 },
 });

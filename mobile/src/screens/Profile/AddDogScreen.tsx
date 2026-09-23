@@ -8,6 +8,7 @@ import { AppDispatch } from '../../store';
 import { createDog } from '../../store/slices/dogsSlice';
 import { Input, Button } from '../../components';
 import { Colors, Spacing, Radius } from '../../utils/theme';
+import { Icon } from '../../components/Icon';
 
 const DOG_EMOJIS = ['🐕', '🐶', '🐾', '🐕‍🦺', '🦮', '🐩', '🧸', '🧁'];
 
@@ -57,7 +58,7 @@ export const AddDogScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Text style={styles.backText}>← Back</Text>
+          <Icon name="chevronLeft" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.title}>Add Dog</Text>
         <View style={{ width: 60 }} />
@@ -113,7 +114,7 @@ export const AddDogScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </View>
 
         <Button
-          label={saving ? 'Adding…' : '🐾 Add Dog'}
+          label={saving ? 'Adding…' : 'Add dog'}
           onPress={handleSave}
           disabled={saving}
           fullWidth

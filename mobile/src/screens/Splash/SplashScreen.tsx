@@ -8,7 +8,8 @@ import {
   StatusBar,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Typography, Spacing } from '../../utils/theme';
+import { Colors, Typography, Spacing, Ramp } from '../../utils/theme';
+import { Icon } from '../../components/Icon';
 
 const { width } = Dimensions.get('window');
 
@@ -60,7 +61,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
       <Animated.View style={[styles.logoContainer, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
         <View style={styles.iconWrapper}>
           <View style={styles.iconGradient}>
-            <Text style={styles.iconEmoji}>🚶</Text>
+            <Icon name="walk" size={44} color={Colors.primary} />
           </View>
         </View>
         <Text style={styles.wordmark}>WalkMe</Text>
@@ -86,7 +87,7 @@ const styles = StyleSheet.create({
     width: 280,
     height: 280,
     borderRadius: 140,
-    backgroundColor: Colors.primary,
+    backgroundColor: Ramp.accent[900],
     opacity: 0,
     // Simulate radial glow via scale + blur (approximated)
     transform: [{ scale: 1.5 }],
@@ -100,8 +101,8 @@ const styles = StyleSheet.create({
   iconGradient: {
     width: 96,
     height: 96,
-    borderRadius: 24,
-    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    backgroundColor: Colors.surfaceDark, borderWidth: 1, borderColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     ...require('../../utils/theme').Shadow.card,

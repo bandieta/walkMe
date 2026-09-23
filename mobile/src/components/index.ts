@@ -12,3 +12,5 @@ export type { BadgeVariant } from './Badge';
 export { Modal } from './Modal';
 export { BottomSheet } from './BottomSheet';
 export { Header } from './Header';
+export { Icon, categoryIcon } from './Icon';
+export type { IconName } from './Icon';

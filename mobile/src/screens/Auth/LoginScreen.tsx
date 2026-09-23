@@ -17,6 +17,7 @@ import { signInWithGoogle } from '../../services/auth/google';
 import { signInWithFacebook } from '../../services/auth/facebook';
 import { signInWithApple } from '../../services/auth/apple';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
+import { Icon, IconName } from '../../components/Icon';
 
 type Provider = 'google' | 'facebook' | 'apple';
 
@@ -70,12 +71,11 @@ export const LoginScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.backgroundDark} />
-      <View style={styles.bgGlow} />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.logoRow}>
           <View style={styles.iconBox}>
-            <Text style={styles.iconEmoji}>🚶</Text>
+            <Icon name="walk" size={26} color={Colors.primary} />
           </View>
           <Text style={styles.wordmark}>WalkMe</Text>
         </View>
@@ -85,20 +85,20 @@ export const LoginScreen: React.FC = () => {
         <View style={styles.card}>
           {!!error && (
             <View style={styles.errorToast}>
-              <Text style={styles.errorToastText}>⚠ {error}</Text>
+              <Text style={styles.errorToastText}>{error}</Text>
             </View>
           )}
 
           <SocialButton
             label="Continue with Google"
-            emoji="🔵"
+            icon="googleLogo"
             loading={pending === 'google'}
             disabled={loading || pending !== null}
             onPress={() => handleSocialSignIn('google')}
           />
           <SocialButton
             label="Continue with Facebook"
-            emoji="📘"
+            icon="facebookLogo"
             loading={pending === 'facebook'}
             disabled={loading || pending !== null}
             onPress={() => handleSocialSignIn('facebook')}
@@ -106,7 +106,7 @@ export const LoginScreen: React.FC = () => {
           {Platform.OS === 'ios' && (
             <SocialButton
               label="Continue with Apple"
-              emoji="🍎"
+              icon="appleLogo"
               loading={pending === 'apple'}
               disabled={loading || pending !== null}
               onPress={() => handleSocialSignIn('apple')}
@@ -122,7 +122,7 @@ export const LoginScreen: React.FC = () => {
               </View>
               <SocialButton
                 label="Continue as test user"
-                emoji="🧪"
+                icon="flask"
                 loading={pending === 'dev'}
                 disabled={loading || pending !== null}
                 onPress={handleDevLogin}
@@ -142,13 +142,13 @@ export const LoginScreen: React.FC = () => {
 
 interface SocialButtonProps {
   label: string;
-  emoji: string;
+  icon: IconName;
   loading: boolean;
   disabled: boolean;
   onPress: () => void;
 }
 
-const SocialButton: React.FC<SocialButtonProps> = ({ label, emoji, loading, disabled, onPress }) => (
+const SocialButton: React.FC<SocialButtonProps> = ({ label, icon, loading, disabled, onPress }) => (
   <TouchableOpacity
     style={[styles.ghostButton, disabled && styles.ghostButtonDisabled]}
     activeOpacity={0.8}
@@ -158,9 +158,10 @@ const SocialButton: React.FC<SocialButtonProps> = ({ label, emoji, loading, disa
     {loading ? (
       <ActivityIndicator color={Colors.textPrimary} />
     ) : (
-      <Text style={styles.ghostButtonText}>
-        {emoji}  {label}
-      </Text>
+      <View style={styles.socialRow}>
+        <Icon name={icon} size={18} color={Colors.textPrimary} />
+        <Text style={styles.ghostButtonText}>{label}</Text>
+      </View>
     )}
   </TouchableOpacity>
 );
@@ -194,8 +195,8 @@ const styles = StyleSheet.create({
   iconBox: {
     width: 48,
     height: 48,
-    borderRadius: 14,
-    backgroundColor: Colors.primary,
+    borderRadius: Radius.md,
+    backgroundColor: Colors.surfaceDark, borderWidth: 1, borderColor: Colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: Spacing.sm,
@@ -247,6 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardDark,
   },
   ghostButtonDisabled: { opacity: 0.5 },
+  socialRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   ghostButtonText: { ...Typography.body, color: Colors.textPrimary, fontWeight: '500' },
   footnote: {
     ...Typography.caption,

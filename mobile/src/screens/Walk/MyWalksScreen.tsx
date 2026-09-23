@@ -14,13 +14,14 @@ import { AppDispatch, RootState } from '../../store';
 import { fetchNearbyWalks } from '../../store/slices/walksSlice';
 import { Walk } from '@walkme/shared';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
+import { Icon, IconName } from '../../components/Icon';
 
 type Tab = 'upcoming' | 'hosting' | 'past';
 
-const TABS: { key: Tab; label: string; emoji: string }[] = [
-  { key: 'upcoming', label: 'Joined', emoji: '🗓' },
-  { key: 'hosting', label: 'Hosting', emoji: '🎯' },
-  { key: 'past', label: 'Past', emoji: '✅' },
+const TABS: { key: Tab; label: string; icon: IconName }[] = [
+  { key: 'upcoming', label: 'Joined', icon: 'calendar' },
+  { key: 'hosting', label: 'Hosting', icon: 'star' },
+  { key: 'past', label: 'Past', icon: 'checkCircle' },
 ];
 
 const formatDate = (iso: string) =>
@@ -66,10 +67,10 @@ const WalkCard: React.FC<WalkCardProps> = ({ walk, userId, onPress }) => {
       <Text style={card.description} numberOfLines={2}>{walk.description}</Text>
 
       <View style={card.footer}>
-        <Text style={card.footerItem}>📍 {walk.meetingPoint?.address ?? 'TBD'}</Text>
+        <Text style={card.footerItem}>{(walk as any).meetingPoint?.address ?? (walk as any).meetingPoint ?? 'TBD'}</Text>
         <Text style={card.footerSpacer}>·</Text>
         <Text style={card.footerItem}>
-          👥 {walk.currentParticipants ?? 0}/{walk.maxParticipants}
+          {(walk as any).participants?.length ?? walk.currentParticipants ?? 0}/{walk.maxParticipants}
           {spotsLeft > 0 ? ` (${spotsLeft} left)` : ' Full'}
         </Text>
       </View>
@@ -127,21 +128,21 @@ const EmptyState: React.FC<{ tab: Tab; onDiscover: () => void; onCreate: () => v
 }) => {
   const content = {
     upcoming: {
-      emoji: '🗺',
+      icon: 'map' as IconName,
       title: 'No Upcoming Walks',
       subtitle: 'Browse walks near you and join a group walk.',
       cta: 'Discover Walks',
       onCta: onDiscover,
     },
     hosting: {
-      emoji: '🎯',
+      icon: 'star' as IconName,
       title: "You're Not Hosting",
       subtitle: "Create your first walk and invite others.",
       cta: 'Create a Walk',
       onCta: onCreate,
     },
     past: {
-      emoji: '✅',
+      icon: 'checkCircle' as IconName,
       title: 'No Past Walks',
       subtitle: 'Completed walks will appear here.',
       cta: 'Discover Walks',
@@ -151,7 +152,7 @@ const EmptyState: React.FC<{ tab: Tab; onDiscover: () => void; onCreate: () => v
 
   return (
     <View style={empty.container}>
-      <Text style={empty.emoji}>{content.emoji}</Text>
+      <Icon name={content.icon} size={30} color={Colors.primary} />
       <Text style={empty.title}>{content.title}</Text>
       <Text style={empty.subtitle}>{content.subtitle}</Text>
       <TouchableOpacity style={empty.btn} onPress={content.onCta} activeOpacity={0.85}>
@@ -222,7 +223,7 @@ export const MyWalksScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
             onPress={() => setActiveTab(t.key)}
             activeOpacity={0.7}
           >
-            <Text style={styles.tabEmoji}>{t.emoji}</Text>
+            <Icon name={t.icon} size={15} color={activeTab === t.key ? Colors.primary : Colors.textSecondary} />
             <Text style={[styles.tabLabel, activeTab === t.key && styles.tabLabelActive]}>
               {t.label}
             </Text>
@@ -243,7 +244,7 @@ export const MyWalksScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
       ) : tabData[activeTab].length === 0 ? (
         <EmptyState
           tab={activeTab}
-          onDiscover={() => navigation.navigate('Map')}
+          onDiscover={() => navigation.getParent()?.navigate('MapTab')}
           onCreate={() => navigation.navigate('CreateWalk')}
         />
       ) : (

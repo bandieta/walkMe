@@ -1303,6 +1303,8 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
+  - RNSVG (15.4.0):
+    - React-Core
   - RNVectorIcons (10.1.0):
     - DoubleConversion
     - glog
@@ -1393,6 +1395,7 @@ DEPENDENCIES:
   - "RNGoogleSignin (from `../../node_modules/@react-native-google-signin/google-signin`)"
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
+  - RNSVG (from `../node_modules/react-native-svg`)
   - RNVectorIcons (from `../node_modules/react-native-vector-icons`)
   - Yoga (from `../../node_modules/react-native/ReactCommon/yoga`)
 
@@ -1538,6 +1541,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native-reanimated"
   RNScreens:
     :path: "../node_modules/react-native-screens"
+  RNSVG:
+    :path: "../node_modules/react-native-svg"
   RNVectorIcons:
     :path: "../node_modules/react-native-vector-icons"
   Yoga:
@@ -1617,6 +1622,7 @@ SPEC CHECKSUMS:
   RNGoogleSignin: b8f09e3ec56e09497e1e53b0ff66d5a45916c6b1
   RNReanimated: 8206101cc442b4f87ef76bb711d54f8296e23306
   RNScreens: a2d8a2555b4653d7a19706eb172f855657ac30d7
+  RNSVG: eb0fc6e565276cafcffb3e25841a9ed16777519b
   RNVectorIcons: f733cb2133a8e1f7dc723b97a1d70dad681124c3
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
   Yoga: 348f8b538c3ed4423eb58a8e5730feec50bce372

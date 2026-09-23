@@ -26,7 +26,6 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 		<key>NSAllowsLocalNetworking</key>
@@ -45,15 +44,12 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- Facebook Login redirect — scheme is "fb" + your Facebook App ID. -->
 				<string>fb943705752145111</string>
 			</array>
 		</dict>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<!-- Google Sign-In redirect — the REVERSED_CLIENT_ID from your
-				     Google Cloud OAuth client (Console → Credentials → iOS client). -->
 				<string>com.googleusercontent.apps.YOUR_GOOGLE_REVERSED_CLIENT_ID</string>
 			</array>
 		</dict>
@@ -78,5 +74,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Inter-Medium.ttf</string>
+		<string>Inter-Regular.ttf</string>
+		<string>Inter-SemiBold.ttf</string>
+	</array>
 </dict>
 </plist>

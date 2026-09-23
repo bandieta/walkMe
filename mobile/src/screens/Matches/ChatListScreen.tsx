@@ -9,6 +9,7 @@ import { fetchMatches } from '../../store/slices/matchesSlice';
 import { fetchChatRooms } from '../../store/slices/chatSlice';
 import { Colors, Spacing, Radius } from '../../utils/theme';
 import { Avatar, Badge } from '../../components';
+import { Icon } from '../../components/Icon';
 
 const formatTime = (iso: string) => {
   const d = new Date(iso);
@@ -108,7 +109,7 @@ export const ChatListScreen: React.FC = () => {
               onPress={() => navigation.navigate('WalkChat', { walkId: room.walkId, walkTitle: room.walkTitle })}
             >
               <View style={styles.groupIcon}>
-                <Text style={{ fontSize: 20 }}>🐾</Text>
+                <Icon name="paw" size={20} color={Colors.primary} />
               </View>
               <View style={styles.rowContent}>
                 <View style={styles.rowTop}>
@@ -131,7 +132,7 @@ export const ChatListScreen: React.FC = () => {
 
       {!matchLoading && !chatLoading && matches.length === 0 && rooms.length === 0 && (
         <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>💬</Text>
+          <Icon name="chat" size={30} color={Colors.primary} />
           <Text style={styles.emptyTitle}>No messages yet</Text>
           <Text style={styles.emptySub}>Match with dog owners in Discover to start chatting!</Text>
         </View>
@@ -150,7 +151,7 @@ const styles = StyleSheet.create({
   matchesList: { paddingHorizontal: Spacing.xl, gap: Spacing.md },
   matchAvatar: { alignItems: 'center', width: 68 },
   matchCircle: { position: 'relative', marginBottom: 6 },
-  unreadDot: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.primary, top: 0, right: 0, borderWidth: 2, borderColor: Colors.surface },
+  unreadDot: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: Colors.primary, top: 0, right: 0, borderWidth: 2, borderColor: Colors.surfaceDark },
   matchName: { fontSize: 12, color: Colors.textSecondary, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md, borderBottomWidth: 1, borderBottomColor: Colors.border + '40' },
   rowContent: { flex: 1, marginLeft: Spacing.md },

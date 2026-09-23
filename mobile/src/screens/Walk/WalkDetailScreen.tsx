@@ -15,12 +15,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchWalkById, joinWalk, leaveWalk } from '../../store/slices/walksSlice';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
+import { Icon, IconName } from '../../components/Icon';
 
 const { width } = Dimensions.get('window');
 
-const InfoRow: React.FC<{ icon: string; label: string; value: string }> = ({ icon, label, value }) => (
+const InfoRow: React.FC<{ icon: IconName; label: string; value: string }> = ({ icon, label, value }) => (
   <View style={styles.infoRow}>
-    <View style={styles.infoIcon}><Text style={{ fontSize: 18 }}>{icon}</Text></View>
+    <View style={styles.infoIcon}><Icon name={icon} size={18} color={Colors.primary} /></View>
     <View>
       <Text style={styles.infoLabel}>{label}</Text>
       <Text style={styles.infoValue}>{value}</Text>
@@ -76,7 +77,7 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
       <View style={styles.hero}>
         <SafeAreaView>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtnText}>← Back</Text>
+            <Icon name="chevronLeft" size={20} color={Colors.textPrimary} />
           </TouchableOpacity>
         </SafeAreaView>
         <View style={styles.heroContent}>
@@ -102,7 +103,7 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
         {/* Info grid */}
         <View style={styles.card}>
           <InfoRow
-            icon="📅"
+            icon="calendar"
             label="Date & Time"
             value={new Date(currentWalk.scheduledAt).toLocaleString('en-US', {
               weekday: 'short', month: 'short', day: 'numeric',
@@ -111,13 +112,13 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
           />
           <View style={styles.divider} />
           <InfoRow
-            icon="📍"
+            icon="pin"
             label="Meeting Point"
             value={`${Number(currentWalk.meetingLat).toFixed(4)}, ${Number(currentWalk.meetingLng).toFixed(4)}`}
           />
           <View style={styles.divider} />
           <InfoRow
-            icon="👥"
+            icon="users"
             label="Participants"
             value={`${currentWalk.participants?.length ?? 0} / ${currentWalk.maxParticipants} (${spotsLeft} spots left)`}
           />
@@ -166,9 +167,10 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
         {isParticipant && (
           <TouchableOpacity
             style={styles.chatBtn}
-            onPress={() => navigation.navigate('Chat', { walkId })}
+            onPress={() => navigation.navigate('WalkChat', { walkId })}
           >
-            <Text style={styles.chatBtnText}>💬 Chat</Text>
+            <Icon name="chat" size={16} color={Colors.primary} />
+            <Text style={styles.chatBtnText}>Chat</Text>
           </TouchableOpacity>
         )}
         {!isHost && (
@@ -194,7 +196,7 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
         {isHost && (
           <TouchableOpacity
             style={styles.primaryBtn}
-            onPress={() => navigation.navigate('Chat', { walkId })}
+            onPress={() => navigation.navigate('WalkChat', { walkId })}
           >
             <Text style={styles.primaryBtnText}>Open Chat Room</Text>
           </TouchableOpacity>

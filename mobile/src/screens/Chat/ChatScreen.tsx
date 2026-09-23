@@ -24,6 +24,7 @@ import {
 import { chatApi } from '../../services/api';
 import { SOCKET_EVENTS, Message } from '@walkme/shared';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
+import { Icon } from '../../components/Icon';
 
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -124,7 +125,7 @@ export const ChatScreen: React.FC<{ route: any; navigation: any }> = ({ route, n
       {/* Header */}
       <SafeAreaView style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backBtnText}>←</Text>
+          <Icon name="chevronLeft" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>{walkTitle ?? 'Walk Chat'}</Text>
@@ -148,7 +149,7 @@ export const ChatScreen: React.FC<{ route: any; navigation: any }> = ({ route, n
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>💬</Text>
+            <Icon name="chat" size={30} color={Colors.primary} />
             <Text style={styles.emptyTitle}>No messages yet</Text>
             <Text style={styles.emptySubtitle}>Be the first to say something!</Text>
           </View>
@@ -169,7 +170,7 @@ export const ChatScreen: React.FC<{ route: any; navigation: any }> = ({ route, n
         {/* Input row */}
         <View style={styles.inputRow}>
           <TouchableOpacity style={styles.attachBtn}>
-            <Text style={{ fontSize: 20 }}>📎</Text>
+            <Icon name="camera" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
           <TextInput
             style={styles.input}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Text, StyleSheet, View } from 'react-native';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../utils/theme';
+import { Icon, IconName } from './Icon';
 
 export type ToastVariant = 'success' | 'error' | 'info' | 'warning';
 
@@ -12,11 +13,11 @@ interface ToastProps {
   onHide?: () => void;
 }
 
-const VARIANT_CONFIG: Record<ToastVariant, { emoji: string; color: string }> = {
-  success: { emoji: '✅', color: Colors.success },
-  error: { emoji: '⚠️', color: Colors.error },
-  info: { emoji: 'ℹ️', color: Colors.primary },
-  warning: { emoji: '🟡', color: Colors.accent },
+const VARIANT_CONFIG: Record<ToastVariant, { icon: IconName; color: string }> = {
+  success: { icon: 'checkCircle', color: Colors.success },
+  error: { icon: 'warning', color: Colors.error },
+  info: { icon: 'info', color: Colors.primary },
+  warning: { icon: 'warning', color: Colors.warning },
 };
 
 export const Toast: React.FC<ToastProps> = ({
@@ -47,8 +48,10 @@ export const Toast: React.FC<ToastProps> = ({
   const cfg = VARIANT_CONFIG[variant];
 
   return (
-    <Animated.View style={[styles.container, { opacity, transform: [{ translateY }], borderLeftColor: cfg.color }]}>
-      <Text style={styles.emoji}>{cfg.emoji}</Text>
+    <Animated.View style={[styles.container, { opacity, transform: [{ translateY }], borderColor: Colors.borderLight }]}>
+      <View style={styles.icon}>
+        <Icon name={cfg.icon} size={18} color={cfg.color} />
+      </View>
       <Text style={styles.message}>{message}</Text>
     </Animated.View>
   );
@@ -58,12 +61,12 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute', top: 60, left: Spacing.lg, right: Spacing.lg,
     backgroundColor: Colors.cardDark,
-    borderRadius: Radius.lg, padding: Spacing.md,
+    borderRadius: Radius.md, padding: Spacing.md,
     flexDirection: 'row', alignItems: 'center',
-    borderLeftWidth: 4,
+    borderWidth: 1, borderColor: Colors.borderLight,
     ...Shadow.card,
     zIndex: 9999,
   },
-  emoji: { fontSize: 18, marginRight: Spacing.sm },
+  icon: { marginRight: Spacing.sm },
   message: { ...Typography.body, color: Colors.textPrimary, flex: 1 },
 });

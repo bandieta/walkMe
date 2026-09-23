@@ -24,7 +24,13 @@ export function createApp() {
 
   app.get('/health', (_req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
+  // swagger-ui-express's types may resolve against another workspace's copy of
+  // @types/express (backend/ uses v5), so cast to this app's handler type.
+  app.use(
+    '/api/docs',
+    swaggerUi.serve as unknown as express.RequestHandler[],
+    swaggerUi.setup(openapiSpec) as unknown as express.RequestHandler,
+  );
   app.get('/api/docs.json', (_req, res) => res.json(openapiSpec));
 
   const v1 = express.Router();

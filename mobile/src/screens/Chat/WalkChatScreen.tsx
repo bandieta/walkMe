@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { chatApi } from '../../services/api';
 import { Colors, Typography, Spacing, Radius } from '../../utils/theme';
+import { Icon } from '../../components/Icon';
 
 const formatTime = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -79,7 +80,7 @@ export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ rout
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>←</Text>
+          <Icon name="chevronLeft" size={22} color={Colors.textPrimary} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle} numberOfLines={1}>{walkTitle ?? 'Walk Chat'}</Text>
@@ -97,7 +98,7 @@ export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ rout
           </View>
         ) : messages.length === 0 ? (
           <View style={styles.center}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>💬</Text>
+            <Icon name="chat" size={30} color={Colors.primary} />
             <Text style={styles.emptyTitle}>No messages yet</Text>
             <Text style={styles.emptySub}>Be the first to say hi!</Text>
           </View>
