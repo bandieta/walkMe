@@ -23,6 +23,8 @@ export const env = {
   allowDevLogin: process.env.ALLOW_DEV_LOGIN === 'true',
 
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
+  facebookAppId: process.env.FACEBOOK_APP_ID ?? '',
+  facebookAppSecret: process.env.FACEBOOK_APP_SECRET ?? '',
   appleBundleId: process.env.APPLE_BUNDLE_ID ?? 'com.walkme',
 
   uploadDir: process.env.UPLOAD_DIR ?? './uploads',

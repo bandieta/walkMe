@@ -14,6 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { logoutAndInvalidate } from '../../store/slices/authSlice';
 import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
+import { Avatar } from '../../components/Avatar';
 
 interface StatCardProps {
   value: string;
@@ -125,7 +126,7 @@ export const ProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrapper}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
+              <Avatar name={user?.displayName ?? initials} uri={user?.photoUrl} size="xl" />
             </View>
             <View style={styles.avatarBadge}>
               <Text style={{ fontSize: 12 }}>🐾</Text>
@@ -223,7 +224,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 88, height: 88, borderRadius: 44,
     backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     borderWidth: 3, borderColor: `${Colors.primary}60`,
     ...Shadow.card,
   },

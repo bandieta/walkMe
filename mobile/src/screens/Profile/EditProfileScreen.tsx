@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { updateProfile } from '../../store/slices/profileSlice';
 import { Input, Button } from '../../components';
+import { Avatar } from '../../components/Avatar';
 import { Colors, Spacing, Radius } from '../../utils/theme';
 
 export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
@@ -47,11 +48,9 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
         <View style={styles.avatarSection}>
           <View style={styles.avatarCircle}>
-            <Text style={styles.avatarInitial}>
-              {displayName?.[0]?.toUpperCase() ?? '?'}
-            </Text>
+            <Avatar name={displayName} uri={user?.photoUrl} size="xl" />
           </View>
-          <Text style={styles.avatarHint}>Tap to change photo</Text>
+          <Text style={styles.avatarHint}>Photo comes from your sign-in account</Text>
         </View>
 
         <Text style={styles.label}>Display Name</Text>
@@ -108,7 +107,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
   form: { padding: Spacing.xl, gap: 4 },
   avatarSection: { alignItems: 'center', marginBottom: Spacing.xl },
-  avatarCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center', marginBottom: Spacing.sm },
+  avatarCircle: { width: 88, height: 88, borderRadius: 44, overflow: 'hidden', marginBottom: Spacing.sm },
   avatarInitial: { fontSize: 32, fontWeight: '800', color: '#fff' },
   avatarHint: { fontSize: 13, color: Colors.textMuted },
   label: { fontSize: 13, fontWeight: '700', color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: Spacing.md, marginBottom: 6 },
