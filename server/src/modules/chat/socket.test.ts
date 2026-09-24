@@ -39,8 +39,8 @@ describe('chat socket gateway', () => {
         scheduledAt: new Date(Date.now() + 3600_000).toISOString(),
       });
 
-    const hostSocket: ClientSocket = ioClient(`http://localhost:${port}`, { auth: { token: host.accessToken } });
-    const guestSocket: ClientSocket = ioClient(`http://localhost:${port}`, { auth: { token: guest.accessToken } });
+    const hostSocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: host.accessToken } });
+    const guestSocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: guest.accessToken } });
 
     await Promise.all([
       new Promise<void>((resolve) => hostSocket.on('connect', () => resolve())),
@@ -66,7 +66,7 @@ describe('chat socket gateway', () => {
   });
 
   it('rejects a connection without a valid token', (done) => {
-    const badSocket: ClientSocket = ioClient(`http://localhost:${port}`, { auth: { token: 'garbage' } });
+    const badSocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: 'garbage' } });
     badSocket.on('connect_error', (err) => {
       expect(err.message).toMatch(/Invalid|expired/i);
       badSocket.close();
