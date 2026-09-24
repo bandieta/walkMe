@@ -7,9 +7,15 @@
 import { Platform } from 'react-native';
 
 const DEV_HOST = Platform.OS === 'android' ? '10.0.2.2' : 'localhost';
+const DEV_ORIGIN = `http://${DEV_HOST}:4000`;
+
+// Release builds talk to the deployed server (see deploy/hostinger/README.md).
+const PROD_API_HOST = 'https://api.yourdomain.com';
+
+const ORIGIN = __DEV__ ? DEV_ORIGIN : PROD_API_HOST;
 
 export const ENV = {
-  API_BASE_URL: `http://${DEV_HOST}:4000/api/v1`,
-  SOCKET_URL: `http://${DEV_HOST}:4000`,
+  API_BASE_URL: `${ORIGIN}/api/v1`,
+  SOCKET_URL: ORIGIN,
   GOOGLE_MAPS_API_KEY: 'YOUR_GOOGLE_MAPS_API_KEY',
 };

@@ -1,5 +1,7 @@
 # Deploying to a Hostinger VPS
 
+> **Runnable scripts:** see [`deploy/hostinger/`](../deploy/hostinger/README.md) — `setup-vps.sh`, `deploy.sh`, `setup-nginx.sh`, `backup.sh`, plus a runbook for Claude Code on the VPS. This page is the background/reference.
+
 This server is a single Node.js process with a file-based SQLite database, so
 deployment is just: get Node on the box, copy the code, run it under a process
 manager, and put Nginx in front of it for HTTPS + WebSocket upgrades.
