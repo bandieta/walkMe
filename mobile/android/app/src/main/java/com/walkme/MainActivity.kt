@@ -3,6 +3,9 @@ package com.walkme
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.view.View
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowCompat
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -25,6 +28,12 @@ class MainActivity : ReactActivity() {
     window.navigationBarColor = Color.TRANSPARENT
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
       window.isNavigationBarContrastEnforced = false
+    }
+    // Edge-to-edge windows no longer resize for the keyboard (adjustResize is ignored), so pad the content by hand.
+    ViewCompat.setOnApplyWindowInsetsListener(findViewById<View>(android.R.id.content)) { view, insets ->
+      val ime = insets.getInsets(WindowInsetsCompat.Type.ime())
+      view.setPadding(0, 0, 0, ime.bottom)
+      insets
     }
     WindowCompat.getInsetsController(window, window.decorView).apply {
       isAppearanceLightStatusBars = false
