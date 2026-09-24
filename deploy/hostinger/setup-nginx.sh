@@ -4,7 +4,7 @@
 # Usage: sudo DOMAIN=api.example.com EMAIL=you@example.com bash deploy/hostinger/setup-nginx.sh
 set -euo pipefail
 : "${DOMAIN:?Set DOMAIN, e.g. DOMAIN=api.example.com}"
-: "${EMAIL:?Set EMAIL for Let's Encrypt expiry notices}"
+: "${EMAIL:?Set EMAIL for certificate expiry notices}"
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SITE=/etc/nginx/sites-available/walkme-api
