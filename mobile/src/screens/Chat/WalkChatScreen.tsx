@@ -9,6 +9,7 @@ import {
 import { categoryIcon, IconName } from '../../components/Icon';
 import { ThreadView } from './ThreadView';
 import { useChatRoom } from './useChatRoom';
+import { useTypingIndicator } from './useTypingIndicator';
 import { walkWhen } from './threadFormat';
 
 const NO_MESSAGES: ChatMessage[] = [];
@@ -46,6 +47,7 @@ export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ rout
 
   // Messages from the other walkers arrive over the socket (our own come back through it too; the slice dedupes).
   useChatRoom(walkId, (msg) => dispatch(receiveMessage({ ...msg, walkId })));
+  const { remoteTyping, notifyTyping, notifyStoppedTyping } = useTypingIndicator(walkId);
 
   const title = walk?.title ?? walkTitle ?? '';
   const going = walk ? (walk.participantIds ?? walk.participants ?? []).length : 0;
@@ -89,6 +91,9 @@ export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ rout
       emptyTitle={t('chat.groupChatEmptyTitle')}
       emptyBody={t('chat.groupChatEmptyBody', { title: title || t('chat.defaultWalk') })}
       onSend={send}
+      otherTyping={remoteTyping}
+      onTyping={notifyTyping}
+      onStoppedTyping={notifyStoppedTyping}
     />
   );
 };

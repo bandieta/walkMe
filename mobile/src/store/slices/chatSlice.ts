@@ -85,12 +85,21 @@ export const sendWalkMessage = createAsyncThunk(
   },
 );
 
-/** Adds a confirmed message once: ignores one already present, and swaps in for our own matching pending one. */
-function addIncoming(list: ChatMessage[], msg: ChatMessage) {
-  if (list.some((m) => m.id === msg.id)) return;
+/**
+ * Adds a confirmed message once: ignores one already present, and swaps in for our own matching pending one.
+ * Returns whether this was a genuinely new message from someone else — as opposed to a duplicate delivery (the
+ * global listener and a screen's own room listener can both receive the same socket event) or our own optimistic
+ * send being confirmed — which is what unread-count bumps should key off, so a message is never double-counted.
+ */
+function addIncoming(list: ChatMessage[], msg: ChatMessage): boolean {
+  if (list.some((m) => m.id === msg.id)) return false;
   const pending = list.findIndex((m) => m.pending && m.senderId === msg.senderId && m.content === msg.content);
-  if (pending >= 0) list[pending] = msg;
-  else list.push(msg);
+  if (pending >= 0) {
+    list[pending] = msg;
+    return false;
+  }
+  list.push(msg);
+  return true;
 }
 
 const chatSlice = createSlice({
@@ -106,12 +115,12 @@ const chatSlice = createSlice({
       if (!state.messages[walkId]) {
         state.messages[walkId] = [];
       }
-      addIncoming(state.messages[walkId], { ...msg, walkId });
+      const isNew = addIncoming(state.messages[walkId], { ...msg, walkId });
 
       const room = state.rooms.find(r => r.walkId === walkId);
       if (room) {
         room.lastMessage = msg;
-        if (state.activeRoomId !== walkId) {
+        if (isNew && state.activeRoomId !== walkId) {
           room.unreadCount += 1;
         }
       }

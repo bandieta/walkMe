@@ -3,6 +3,7 @@ import { asyncHandler } from '../../middleware/errorHandler';
 import { requireAuth } from '../../middleware/auth';
 import { sendMatchMessageSchema } from './schema';
 import * as matchesService from './service';
+import { CHAT_NAMESPACE } from '../chat/socket';
 
 export const matchesRouter = Router();
 matchesRouter.use(requireAuth);
@@ -47,7 +48,7 @@ matchesRouter.post(
   asyncHandler(async (req, res) => {
     const body = sendMatchMessageSchema.parse(req.body);
     const message = await matchesService.sendMatchMessage(req.params.id, req.userId!, body.content);
-    req.app.get('io')?.to(req.params.id).emit('chat:message:receive', message);
+    req.app.get('io')?.of(CHAT_NAMESPACE).to(req.params.id).emit('chat:message:receive', message);
     res.status(201).json(message);
   }),
 );

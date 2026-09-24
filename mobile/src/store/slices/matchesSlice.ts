@@ -59,6 +59,8 @@ interface MatchesState {
   loading: boolean;
   swipeLoading: boolean;
   error: string | null;
+  /** The match whose DirectMessageScreen is currently open — an incoming message for this one shouldn't bump its badge. */
+  activeMatchId: string | null;
 }
 
 const initialState: MatchesState = {
@@ -69,6 +71,7 @@ const initialState: MatchesState = {
   loading: false,
   swipeLoading: false,
   error: null,
+  activeMatchId: null,
 };
 
 export const fetchMatches = createAsyncThunk('matches/fetchAll', async (_, { rejectWithValue }) => {
@@ -145,12 +148,21 @@ export const markMatchRead = createAsyncThunk('matches/markRead', async (matchId
   return matchId;
 });
 
-/** Adds a confirmed message once: ignores one already present, and swaps in for our own matching pending one. */
-function addIncoming(list: MatchMessage[], msg: MatchMessage) {
-  if (list.some((m) => m.id === msg.id)) return;
+/**
+ * Adds a confirmed message once: ignores one already present, and swaps in for our own matching pending one.
+ * Returns whether this was a genuinely new message from someone else — as opposed to a duplicate delivery (the
+ * global listener and a screen's own room listener can both receive the same socket event) or our own optimistic
+ * send being confirmed — which is what the unread bump should key off, so a message is never double-counted.
+ */
+function addIncoming(list: MatchMessage[], msg: MatchMessage): boolean {
+  if (list.some((m) => m.id === msg.id)) return false;
   const pending = list.findIndex((m) => m.pending && m.senderId === msg.senderId && m.content === msg.content);
-  if (pending >= 0) list[pending] = msg;
-  else list.push(msg);
+  if (pending >= 0) {
+    list[pending] = msg;
+    return false;
+  }
+  list.push(msg);
+  return true;
 }
 
 const matchesSlice = createSlice({
@@ -160,12 +172,20 @@ const matchesSlice = createSlice({
     clearLatestMatch(state) {
       state.latestMatch = null;
     },
+    setActiveMatch(state, action: PayloadAction<string | null>) {
+      state.activeMatchId = action.payload;
+    },
     receiveMatchMessage(state, action: PayloadAction<MatchMessage>) {
       const msg = action.payload;
       if (!state.messages[msg.roomId]) state.messages[msg.roomId] = [];
-      addIncoming(state.messages[msg.roomId], msg);
+      const isNew = addIncoming(state.messages[msg.roomId], msg);
       const match = state.matches.find(m => m.id === msg.roomId);
-      if (match) { match.lastMessage = msg.content; match.lastMessageAt = msg.createdAt; match.lastMessageSenderId = msg.senderId; }
+      if (match) {
+        match.lastMessage = msg.content;
+        match.lastMessageAt = msg.createdAt;
+        match.lastMessageSenderId = msg.senderId;
+        if (isNew && state.activeMatchId !== msg.roomId) match.unread += 1;
+      }
     },
   },
   extraReducers: builder => {
@@ -233,5 +253,5 @@ const matchesSlice = createSlice({
   },
 });
 
-export const { clearLatestMatch, receiveMatchMessage } = matchesSlice.actions;
+export const { clearLatestMatch, setActiveMatch, receiveMatchMessage } = matchesSlice.actions;
 export default matchesSlice.reducer;
