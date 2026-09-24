@@ -49,7 +49,15 @@ export const MyDogsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           const age = d.ageGroup ?? (d.age < 1 ? 'Puppy' : d.age > 8 ? 'Senior' : 'Adult');
           const energy = d.energy ?? 'Balanced';
           return (
-            <View key={d.id} style={{ flexDirection: 'row', columnGap: 14, padding: 12, borderRadius: 12, backgroundColor: Colors.surfaceDark }}>
+            <Pressable
+              key={d.id}
+              onPress={() => navigation.navigate('EditDog', { dogId: d.id })}
+              accessibilityLabel={`Edit ${d.name}`}
+              style={({ pressed }) => [
+                { flexDirection: 'row', columnGap: 14, padding: 12, borderRadius: 12, backgroundColor: Colors.surfaceDark },
+                pressed && { backgroundColor: '#282a38' },
+              ]}
+            >
               {d.photoUrl ? (
                 <Image source={{ uri: resolveMediaUrl(d.photoUrl) }} style={{ width: 76, height: 76, borderRadius: 10, backgroundColor: '#1f2130' }} />
               ) : (
@@ -66,15 +74,24 @@ export const MyDogsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   ))}
                 </View>
               </View>
-              <Pressable
-                disabled={!canRemove}
-                onPress={() => setPending({ id: d.id, name: d.name })}
-                accessibilityLabel="Remove"
-                style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', opacity: canRemove ? 1 : 0.3, backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
-              >
-                <Icon name="trash" size={16} color={Ramp.neutral[500]} />
-              </Pressable>
-            </View>
+              <View style={{ rowGap: 4 }}>
+                <Pressable
+                  onPress={() => navigation.navigate('EditDog', { dogId: d.id })}
+                  accessibilityLabel={`Edit ${d.name}`}
+                  style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
+                >
+                  <Icon name="edit" size={16} color={Ramp.neutral[500]} />
+                </Pressable>
+                <Pressable
+                  disabled={!canRemove}
+                  onPress={() => setPending({ id: d.id, name: d.name })}
+                  accessibilityLabel="Remove"
+                  style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', opacity: canRemove ? 1 : 0.3, backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
+                >
+                  <Icon name="trash" size={16} color={Ramp.neutral[500]} />
+                </Pressable>
+              </View>
+            </Pressable>
           );
         })}
         <Pressable

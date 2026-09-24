@@ -14,6 +14,7 @@ import { chatRouter } from './modules/chat/routes';
 import { matchesRouter } from './modules/matches/routes';
 import { placesRouter } from './modules/places/routes';
 import { storageRouter } from './modules/storage/routes';
+import { adminRouter } from './modules/admin/routes';
 
 export function createApp() {
   const app = express();
@@ -40,6 +41,12 @@ export function createApp() {
   v1.use('/walks', walksRouter);
   v1.use('/events', eventsRouter);
   v1.use('/chat', chatRouter);
+  // Mounted ahead of matchesRouter: matchesRouter is mounted at the v1 root (no
+  // path prefix, since it owns two top-level paths) with a blanket requireAuth,
+  // which — for any *unauthenticated* request — matches and short-circuits
+  // before reaching a router mounted after it. /admin/auth/login must stay
+  // reachable without an app-user token, so it has to come first in the chain.
+  v1.use('/admin', adminRouter); // separate admin-only auth (requireAdmin) — never uses the app-user JWT
   v1.use(matchesRouter); // mounts /matches and /discover itself
   v1.use('/places', placesRouter);
   v1.use('/storage', storageRouter);

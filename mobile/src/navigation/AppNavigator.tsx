@@ -28,6 +28,7 @@ import { WalkChatScreen } from '../screens/Chat/WalkChatScreen';
 import { EditProfileScreen } from '../screens/Profile/EditProfileScreen';
 import { MyDogsScreen } from '../screens/Profile/MyDogsScreen';
 import { AddDogScreen } from '../screens/Profile/AddDogScreen';
+import { EditDogScreen } from '../screens/Profile/EditDogScreen';
 
 // ─── Param lists ─────────────────────────────────────────────────────────────
 export type RootStackParamList = {
@@ -70,6 +71,7 @@ export type ProfileStackParamList = {
   EditProfile: undefined;
   MyDogs: undefined;
   AddDog: undefined;
+  EditDog: { dogId: string };
   MyWalks: undefined;
   Rhythm: undefined;
   WalkDetail: { walkId: string };
@@ -118,6 +120,7 @@ const linking: LinkingOptions<RootStackParamList> = {
               EditProfile: 'edit-profile',
               MyDogs: 'my-dogs',
               AddDog: 'add-dog',
+              EditDog: 'edit-dog/:dogId',
               MyWalks: 'my-walks',
               Rhythm: 'walking-rhythm',
             },
@@ -168,6 +171,7 @@ const ProfileStackScreen: React.FC = () => (
     <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} />
     <ProfileStack.Screen name="MyDogs" component={MyDogsScreen} />
     <ProfileStack.Screen name="AddDog" component={AddDogScreen} />
+    <ProfileStack.Screen name="EditDog" component={EditDogScreen} />
     <ProfileStack.Screen name="MyWalks" component={MyWalksScreen} />
     <ProfileStack.Screen name="Rhythm" component={RhythmScreen} />
     <ProfileStack.Screen name="WalkDetail" component={WalkDetailScreen} />
