@@ -9,7 +9,7 @@ import { Colors, Ramp } from '../../utils/theme';
 
 const backIcon = Platform.OS === 'ios' ? 'caret-left' : 'arrow-left';
 
-/** Profile > Language — picks the app's display language (English, Spanish or German for now). */
+/** Profile > Language — picks the app's display language (English, Spanish, German or Polish for now). */
 export const LanguageScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const { top } = useScreenInsets();
