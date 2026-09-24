@@ -37,15 +37,14 @@ const Spinner: React.FC = () => {
 interface Props {
   /** null = closed. `new` titles the sheet "Create your account", `existing` "Welcome back". */
   mode: SheetMode | null;
-  /** Provider (or 'dev') whose sign-in is in flight; every other option dims and all are disabled. */
-  pending: Provider | 'dev' | null;
+  /** Provider whose sign-in is in flight; every other option dims and all are disabled. */
+  pending: Provider | null;
   onProvider: (provider: Provider) => void;
-  onDevLogin: () => void;
   onClose: () => void;
 }
 
 /** Bottom sheet from the overlays spec ("auth sheet"): dimmed backdrop + 22px-radius surface sheet with the provider buttons. */
-export const SignInSheet: React.FC<Props> = ({ mode, pending, onProvider, onDevLogin, onClose }) => {
+export const SignInSheet: React.FC<Props> = ({ mode, pending, onProvider, onClose }) => {
   const { bottom } = useScreenInsets();
   const anim = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(mode !== null);
@@ -116,13 +115,6 @@ export const SignInSheet: React.FC<Props> = ({ mode, pending, onProvider, onDevL
         })}
 
         <Text style={styles.terms}>By continuing you agree to the Terms and Privacy Policy.</Text>
-
-        {/* Dev builds only: sits in the sheet's bottom padding so it never moves the production layout. */}
-        {__DEV__ && (
-          <Pressable onPress={onDevLogin} disabled={!!pending} hitSlop={8} style={styles.dev} accessibilityLabel="Continue as test user">
-            <Text style={styles.devText}>{pending === 'dev' ? 'Signing in…' : 'Dev: continue as test user'}</Text>
-          </Pressable>
-        )}
       </Animated.View>
     </View>
   );
@@ -172,6 +164,4 @@ const styles = StyleSheet.create({
     columnGap: 10,
   },
   terms: { fontSize: 11, color: Ramp.neutral[500], marginTop: 4 },
-  dev: { position: 'absolute', left: 0, right: 0, bottom: 16, alignItems: 'center' },
-  devText: { fontSize: 11, color: Ramp.neutral[600] },
 });

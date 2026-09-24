@@ -43,9 +43,9 @@ npx tsx prisma/seed.ts
 npm run dev
 ```
 API docs at http://localhost:4000/api/docs. `ALLOW_DEV_LOGIN=true` (the
-default in `.env.example`) enables `POST /auth/dev-login`, which the mobile
-LoginScreen's "Continue as test user" button uses — everything else works
-end-to-end without any provider credentials.
+default in `.env.example`) enables `POST /auth/dev-login`, a test-only
+endpoint the automated backend tests use to sign in without real provider
+credentials (see `server/test/helpers.ts`).
 
 ### 2. Mobile
 ```bash
@@ -78,9 +78,7 @@ sign-in:
    `server/.env` to your real bundle ID if it differs from `com.walkme`.
    Apple Sign-In only appears on iOS — Apple doesn't require it on Android.
 
-Until these are filled in, the buttons will fail with a clear error — use
-the dev-login button (visible only in `__DEV__` builds) to keep testing
-everything else.
+Until these are filled in, the buttons will fail with a clear error.
 
 ## API Endpoints
 

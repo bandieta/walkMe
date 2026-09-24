@@ -3,7 +3,7 @@ import { View, Text, Pressable, Animated, Easing, StyleSheet, StatusBar, Platfor
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../../store';
-import { socialLogin, devLogin } from '../../store/slices/authSlice';
+import { socialLogin } from '../../store/slices/authSlice';
 import { signInWithGoogle } from '../../services/auth/google';
 import { signInWithFacebook } from '../../services/auth/facebook';
 import { signInWithApple } from '../../services/auth/apple';
@@ -49,7 +49,7 @@ export const WelcomeScreen: React.FC = () => {
   // let scripts capture the sheet / spinner / toast states without tapping. Ignored in release builds.
   const devArg = (k: string) => (__DEV__ ? (Settings.get(k) as string | null) || null : null);
   const [sheet, setSheet] = useState<SheetMode | null>(() => devArg('devSheet') as SheetMode | null);
-  const [pending, setPending] = useState<Provider | 'dev' | null>(() => devArg('devPending') as Provider | null);
+  const [pending, setPending] = useState<Provider | null>(() => devArg('devPending') as Provider | null);
   const alive = useRef(true);
   const fade = useRef(new Animated.Value(0)).current;
 
@@ -102,16 +102,6 @@ export const WelcomeScreen: React.FC = () => {
     }
   };
 
-  const handleDevLogin = async () => {
-    setPending('dev');
-    try {
-      const result = await dispatch(devLogin('Test User'));
-      if (devLogin.rejected.match(result)) showToast(String(result.payload ?? 'Dev login failed.'), 'error');
-    } finally {
-      if (alive.current) setPending(null);
-    }
-  };
-
   const s = SLIDES[slide];
 
   return (
@@ -152,7 +142,7 @@ export const WelcomeScreen: React.FC = () => {
         </Pressable>
       </View>
 
-      <SignInSheet mode={sheet} pending={pending} onProvider={handleProvider} onDevLogin={handleDevLogin} onClose={closeSheet} />
+      <SignInSheet mode={sheet} pending={pending} onProvider={handleProvider} onClose={closeSheet} />
       {toast}
     </Animated.View>
   );
