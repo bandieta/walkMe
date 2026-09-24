@@ -5,6 +5,13 @@ the `admin/` panel on a single Hostinger VPS behind Nginx with HTTPS.
 Background and scaling notes live in [`server/DEPLOY.md`](../../server/DEPLOY.md);
 this folder is the runnable version of it.
 
+> **This app is already deployed**, at `https://dagora.tech`, behind Nginx
+> at the path prefix `/walkMe/` (not a dedicated subdomain — see
+> `mobile/src/utils/env.ts`). The scripts below assume a *fresh* subdomain
+> mounted at the root path, which is a different shape, so use
+> [`CLAUDE_INSTALL.md`](CLAUDE_INSTALL.md) rather than these scripts
+> directly when updating that install — it has the path-prefix-aware steps.
+
 | File | What it does | Run as |
 |------|--------------|--------|
 | `setup-vps.sh` | One-time: Node 20, PM2, Nginx, Certbot, sqlite3, UFW firewall | `sudo` |
