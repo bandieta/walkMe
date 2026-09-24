@@ -4,15 +4,16 @@ import {
 } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { AppDispatch } from '../../store';
-import { createDog, updateDog, fetchMyDogs, NewDog } from '../../store/slices/dogsSlice';
+import { createDog, updateDog, fetchMyDogs, Dog, NewDog } from '../../store/slices/dogsSlice';
+import { resolveMediaUrl } from '../../utils/media';
 import { storageApi } from '../../services/api';
 import { Icon } from '../../components/Icon';
 import { Btn, Placeholder, useScreenInsets } from '../../ui';
 import { Colors, Ramp } from '../../utils/theme';
 
-// Prototype 02 "dog": one form serves onboarding step 1 and the "Add a dog" screen (mode picks title / header / CTA).
+// Prototype 02 "dog": one form serves onboarding step 1, "Add a dog" and "Edit dog" (mode picks title / header / CTA).
 
-export type DogFormMode = 'onboarding' | 'add';
+export type DogFormMode = 'onboarding' | 'add' | 'edit';
 
 const DIV = 'rgba(233,233,237,0.16)';
 const AGES = ['Puppy', 'Adult', 'Senior'] as const;
@@ -25,6 +26,7 @@ const AGE_YEARS: Record<(typeof AGES)[number], number> = { Puppy: 0, Adult: 3, S
 const COPY = {
   onboarding: { title: 'Tell us about your dog', body: 'Matches start with your dog, then you.', cta: 'Continue' },
   add: { title: 'Another dog in the family', body: 'Each dog gets their own card in Discover.', cta: 'Save dog' },
+  edit: { title: 'Edit dog profile', body: 'Changes show up on their card right away.', cta: 'Save changes' },
 };
 
 type Photo = { uri: string; name: string; type: string; remoteUrl?: string };
@@ -103,20 +105,27 @@ export const DogForm: React.FC<{
   onSaved: () => void;
   /** onboarding only: leave the step without adding a dog */
   onSkip?: () => void;
-}> = ({ mode, onBack, onSaved, onSkip }) => {
+  /** edit mode: the dog being edited, used to pre-fill every field */
+  initialDog?: Dog;
+}> = ({ mode, onBack, onSaved, onSkip, initialDog }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { top, bottom } = useScreenInsets();
   const copy = COPY[mode];
 
-  const [name, setName] = useState('');
-  const [breed, setBreed] = useState('');
-  const [age, setAge] = useState<(typeof AGES)[number]>('Adult');
-  const [energy, setEnergy] = useState<(typeof ENERGIES)[number]>('Balanced');
-  const [temps, setTemps] = useState<string[]>(['Friendly']);
-  const [photo, setPhoto] = useState<Photo | null>(null);
+  const [name, setName] = useState(initialDog?.name ?? '');
+  const [breed, setBreed] = useState(initialDog?.breed ?? '');
+  const [age, setAge] = useState<(typeof AGES)[number]>(
+    initialDog?.ageGroup ?? (initialDog ? (initialDog.age < 1 ? 'Puppy' : initialDog.age > 8 ? 'Senior' : 'Adult') : 'Adult'),
+  );
+  const [energy, setEnergy] = useState<(typeof ENERGIES)[number]>(initialDog?.energy ?? 'Balanced');
+  const [temps, setTemps] = useState<string[]>(initialDog?.personality?.length ? initialDog.personality : ['Friendly']);
+  const [photo, setPhoto] = useState<Photo | null>(
+    initialDog?.photoUrl ? { uri: resolveMediaUrl(initialDog.photoUrl)!, name: '', type: '', remoteUrl: initialDog.photoUrl } : null,
+  );
   const [saving, setSaving] = useState(false);
-  // Onboarding can be revisited with the back button: keep updating the same dog instead of creating a second one.
-  const savedId = useRef<string | null>(null);
+  // Onboarding can be revisited with the back button, and edit starts from an existing
+  // dog: either way, keep updating the same dog instead of creating a second one.
+  const savedId = useRef<string | null>(initialDog?.id ?? null);
 
   const invalid = name.trim().length < 2;
   const showSkip = mode === 'onboarding' && !!onSkip;
@@ -215,7 +224,7 @@ export const DogForm: React.FC<{
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: top - 4, paddingBottom: 4, paddingLeft: 8, paddingRight: 16 }}>
           {backBtn()}
-          <Text style={{ fontSize: 17, fontWeight: '500', marginLeft: 4 }}>Add a dog</Text>
+          <Text style={{ fontSize: 17, fontWeight: '500', marginLeft: 4 }}>{mode === 'edit' ? 'Edit dog' : 'Add a dog'}</Text>
         </View>
       )}
 
