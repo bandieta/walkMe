@@ -25,7 +25,7 @@ if [[ ! -f "$SERVER_DIR/.env" ]]; then
     -e "s|^ALLOW_DEV_LOGIN=.*|ALLOW_DEV_LOGIN=false|" \
     "$SERVER_DIR/.env.example" > "$SERVER_DIR/.env"
   chmod 600 "$SERVER_DIR/.env"
-  echo "Created server/.env — fill in GOOGLE_CLIENT_ID / FACEBOOK_* / APPLE_BUNDLE_ID / ADMIN_EMAIL / ADMIN_PASSWORD, then re-run this script."
+  echo "Created server/.env — fill in GOOGLE_CLIENT_ID / FACEBOOK_* / APPLE_BUNDLE_ID / RESEND_API_KEY / ADMIN_EMAIL / ADMIN_PASSWORD, then re-run this script."
 fi
 
 # 2. Install only the server workspace. --ignore-scripts skips the root `husky`

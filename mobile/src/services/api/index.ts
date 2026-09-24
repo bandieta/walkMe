@@ -10,6 +10,9 @@ export const authApi = {
   devLogin: (displayName: string) => apiClient.post('/auth/dev-login', { displayName }),
   refresh: (refreshToken: string) => apiClient.post('/auth/refresh', { refreshToken }),
   logout: (refreshToken: string) => apiClient.post('/auth/logout', { refreshToken }),
+  emailStart: (email: string) => apiClient.post('/auth/email/start', { email }),
+  emailVerify: (email: string, code: string, displayName?: string) =>
+    apiClient.post('/auth/email/verify', { email, code, displayName }),
 };
 
 export const usersApi = {

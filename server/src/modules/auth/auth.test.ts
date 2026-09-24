@@ -55,4 +55,51 @@ describe('auth', () => {
     const res = await request(app).post('/api/v1/auth/social').send({ provider: 'google', token: 'not-a-real-token' });
     expect([401, 500]).toContain(res.status);
   });
+
+  describe('email sign-in', () => {
+    it('signs up, then signs back in, with the code from /start (no RESEND_API_KEY in tests, so devCode is returned)', async () => {
+      const email = `${unique('newbie')}@example.com`;
+
+      const start = await request(app).post('/api/v1/auth/email/start').send({ email });
+      expect(start.status).toBe(200);
+      expect(start.body.devCode).toMatch(/^\d{6}$/);
+
+      const verify = await request(app)
+        .post('/api/v1/auth/email/verify')
+        .send({ email, code: start.body.devCode, displayName: 'New Bee' });
+      expect(verify.status).toBe(200);
+      expect(verify.body.user.email).toBe(email);
+      expect(verify.body.user.displayName).toBe('New Bee');
+      expect(verify.body.accessToken).toBeTruthy();
+
+      // Signing in again reuses the same account and its saved name (displayName isn't required or applied a second time).
+      const start2 = await request(app).post('/api/v1/auth/email/start').send({ email });
+      const verify2 = await request(app).post('/api/v1/auth/email/verify').send({ email, code: start2.body.devCode });
+      expect(verify2.body.user.id).toBe(verify.body.user.id);
+      expect(verify2.body.user.displayName).toBe('New Bee');
+    });
+
+    it('rejects a wrong code', async () => {
+      const email = `${unique('wrongcode')}@example.com`;
+      await request(app).post('/api/v1/auth/email/start').send({ email });
+      const res = await request(app).post('/api/v1/auth/email/verify').send({ email, code: '000000' });
+      expect(res.status).toBe(400);
+    });
+
+    it('rejects a code once it has been used', async () => {
+      const email = `${unique('reuse')}@example.com`;
+      const start = await request(app).post('/api/v1/auth/email/start').send({ email });
+      const first = await request(app).post('/api/v1/auth/email/verify').send({ email, code: start.body.devCode });
+      expect(first.status).toBe(200);
+      const second = await request(app).post('/api/v1/auth/email/verify').send({ email, code: start.body.devCode });
+      expect(second.status).toBe(400);
+    });
+
+    it('throttles rapid re-requests for the same email', async () => {
+      const email = `${unique('cooldown')}@example.com`;
+      await request(app).post('/api/v1/auth/email/start').send({ email });
+      const res = await request(app).post('/api/v1/auth/email/start').send({ email });
+      expect(res.status).toBe(429);
+    });
+  });
 });

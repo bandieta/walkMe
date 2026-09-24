@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, Image, StyleSheet } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { AppDispatch, RootState } from '../../store';
 import { logoutAndInvalidate } from '../../store/slices/authSlice';
 import { fetchMyDogs } from '../../store/slices/dogsSlice';
 import { fetchNearbyWalks } from '../../store/slices/walksSlice';
 import { fetchEvents } from '../../store/slices/eventsSlice';
 import { usersApi } from '../../services/api';
+import { ageGroupFromAge } from '../../utils/dogLabels';
 import { Icon, IconName } from '../../components/Icon';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { useToast } from '../../components/Toast';
@@ -21,6 +23,7 @@ const Overline: React.FC<{ children: string }> = ({ children }) => (
 );
 
 export const ProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const { top } = useScreenInsets();
   const user = useSelector((s: RootState) => s.auth.user);
@@ -52,17 +55,19 @@ export const ProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navi
   const upcoming =
     walks.filter((w) => w.status !== 'ended' && (w.participantIds ?? []).includes(user?.id)).length +
     events.filter((e) => e.isJoined && e.status !== 'ended').length;
+  const ageGroupOf = (d: any) => ageGroupFromAge(t, d.age, d.ageGroup);
 
   const prefRows: { key: keyof typeof prefs; label: string; desc: string }[] = [
-    { key: 'push', label: 'Push notifications', desc: 'Walk invites and messages' },
-    { key: 'loc', label: 'Share location', desc: 'Visible to people on your walks' },
-    { key: 'nearby', label: 'Nearby walk alerts', desc: `When a walk starts within ${radiusLabel}` },
+    { key: 'push', label: t('profile.preferences.push.label'), desc: t('profile.preferences.push.desc') },
+    { key: 'loc', label: t('profile.preferences.shareLocation.label'), desc: t('profile.preferences.shareLocation.desc') },
+    { key: 'nearby', label: t('profile.preferences.nearby.label'), desc: t('profile.preferences.nearby.desc', { radius: radiusLabel }) },
   ];
   const menuRows: { icon: IconName; label: string; meta: string; go: () => void }[] = [
-    { icon: 'path', label: 'Walks & events', meta: `${upcoming} upcoming`, go: () => navigation.navigate('MyWalks') },
-    { icon: 'sliders-horizontal', label: 'Walking rhythm', meta: radiusLabel, go: () => navigation.navigate('Rhythm') },
-    { icon: 'shield-check', label: 'Privacy & safety', meta: '', go: () => Alert.alert('Privacy & safety', 'Privacy settings come in the next round.') },
-    { icon: 'question', label: 'Help & support', meta: '', go: () => Alert.alert('Help & support', 'The help centre comes in the next round.') },
+    { icon: 'path', label: t('profile.account.walksEvents.label'), meta: t('profile.account.walksEvents.upcoming', { count: upcoming }), go: () => navigation.navigate('MyWalks') },
+    { icon: 'sliders-horizontal', label: t('profile.account.rhythm'), meta: radiusLabel, go: () => navigation.navigate('Rhythm') },
+    { icon: 'globe', label: t('profile.account.language'), meta: '', go: () => navigation.navigate('Language') },
+    { icon: 'shield-check', label: t('profile.account.privacy.label'), meta: '', go: () => Alert.alert(t('profile.account.privacy.alertTitle'), t('profile.account.privacy.alertBody')) },
+    { icon: 'question', label: t('profile.account.help.label'), meta: '', go: () => Alert.alert(t('profile.account.help.alertTitle'), t('profile.account.help.alertBody')) },
   ];
 
   const doSignOut = () => {
@@ -73,9 +78,9 @@ export const ProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navi
   return (
     <View style={styles.screen}>
       <View style={[styles.header, { paddingTop: top }]}>
-        <Text style={styles.title}>Profile</Text>
+        <Text style={styles.title}>{t('profile.title')}</Text>
         <Pressable onPress={() => navigation.navigate('EditProfile')} style={({ pressed }) => [styles.editBtn, pressed && { backgroundColor: 'rgba(233,233,237,0.07)' }]}>
-          <Text style={cssText(13)}>Edit</Text>
+          <Text style={cssText(13)}>{t('profile.edit')}</Text>
         </Pressable>
       </View>
 
@@ -99,13 +104,13 @@ export const ProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navi
 
         <View style={styles.stats}>
           {[
-            [stats?.walks ?? 0, 'Walks'],
-            [stats?.friends ?? 0, 'Walk friends'],
-            [stats?.km ?? 0, 'km together'],
+            [stats?.walks ?? 0, t('profile.stats.walks')],
+            [stats?.friends ?? 0, t('profile.stats.walkFriends')],
+            [stats?.km ?? 0, t('profile.stats.kmTogether')],
           ].map(([value, label]) => (
             <View key={label}>
               <Text style={cssText(22, { fontWeight: '500' })}>{value}</Text>
-              <Text style={cssText(12, { color: Ramp.neutral[500] })}>{label}</Text>
+              <Text numberOfLines={1} style={cssText(12, { color: Ramp.neutral[500] })}>{label}</Text>
             </View>
           ))}
         </View>
@@ -113,9 +118,9 @@ export const ProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navi
         {/* dogs */}
         <View>
           <View style={styles.sectionHead}>
-            <Text style={cssText(15, { fontWeight: '500' })}>Your dogs</Text>
+            <Text style={cssText(15, { fontWeight: '500' })}>{t('profile.dogs.title')}</Text>
             <Pressable onPress={() => navigation.navigate('MyDogs')} style={{ paddingVertical: 6 }}>
-              <Text style={cssText(12, { color: Ramp.accent[300] })}>Manage</Text>
+              <Text style={cssText(12, { color: Ramp.accent[300] })}>{t('profile.dogs.manage')}</Text>
             </Pressable>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10, marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, columnGap: 10 }}>
@@ -129,21 +134,21 @@ export const ProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navi
                 <View style={{ marginTop: 8 }}>
                   <Text style={cssText(14, { fontWeight: '500' })} numberOfLines={1}>{d.name}</Text>
                   <Text style={cssText(12, { color: Ramp.neutral[500] })} numberOfLines={1}>
-                    {d.breed} · {d.ageGroup ?? (d.age < 1 ? 'Puppy' : d.age > 8 ? 'Senior' : 'Adult')}
+                    {d.breed} · {ageGroupOf(d)}
                   </Text>
                 </View>
               </View>
             ))}
             <Pressable onPress={() => navigation.navigate('AddDog')} style={styles.addDog}>
               <Icon name="plus" size={20} color={Ramp.neutral[400]} />
-              <Text style={cssText(12, { color: Ramp.neutral[400], marginTop: 6 })}>Add a dog</Text>
+              <Text numberOfLines={1} style={cssText(12, { color: Ramp.neutral[400], marginTop: 6 })}>{t('profile.dogs.addDog')}</Text>
             </Pressable>
           </ScrollView>
         </View>
 
         {/* preferences */}
         <View>
-          <Overline>Preferences</Overline>
+          <Overline>{t('profile.preferences.title')}</Overline>
           {prefRows.map((p) => (
             <View key={p.key} style={styles.prefRow}>
               <View style={{ flex: 1 }}>
@@ -158,19 +163,19 @@ export const ProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navi
 
         {/* account */}
         <View>
-          <Overline>Account</Overline>
+          <Overline>{t('profile.account.title')}</Overline>
           {menuRows.map((m) => (
             <Pressable key={m.label} onPress={m.go} style={styles.menuRow}>
               <Icon name={m.icon} size={18} color={Ramp.neutral[400]} />
-              <Text style={cssText(14, { flex: 1, marginLeft: 12 })}>{m.label}</Text>
-              {!!m.meta && <Text style={cssText(12, { color: Ramp.neutral[500], marginRight: 12 })}>{m.meta}</Text>}
+              <Text numberOfLines={1} style={cssText(14, { flex: 1, marginLeft: 12 })}>{m.label}</Text>
+              {!!m.meta && <Text numberOfLines={1} style={cssText(12, { color: Ramp.neutral[500], marginRight: 12, maxWidth: 100 })}>{m.meta}</Text>}
               <Icon name="caret-right" size={14} color={Ramp.neutral[600]} />
               <Hairline style={styles.rowRule} />
             </Pressable>
           ))}
           <Pressable onPress={() => setSignOutOpen(true)} style={styles.menuRow}>
             <Icon name="sign-out" size={18} color={Ramp.neutral[400]} />
-            <Text style={cssText(14, { marginLeft: 12, color: Ramp.neutral[300] })}>Sign out</Text>
+            <Text style={cssText(14, { marginLeft: 12, color: Ramp.neutral[300] })}>{t('profile.account.signOut')}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -178,9 +183,9 @@ export const ProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navi
       {toastElement}
       <ConfirmDialog
         visible={signOutOpen}
-        title="Sign out?"
-        message="You'll need to sign in again to see walks and messages."
-        confirmLabel="Sign out"
+        title={t('profile.signOutDialog.title')}
+        message={t('profile.signOutDialog.message')}
+        confirmLabel={t('profile.signOutDialog.confirm')}
         onCancel={() => setSignOutOpen(false)}
         onConfirm={doSignOut}
       />

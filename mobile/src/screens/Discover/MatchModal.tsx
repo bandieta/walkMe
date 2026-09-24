@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Modal, Pressable, Image } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Btn, useScreenInsets } from '../../ui';
 import { resolveMediaUrl } from '../../utils/media';
 import { Colors, Ramp } from '../../utils/theme';
@@ -31,8 +32,12 @@ export const MatchModal: React.FC<{
   onMessage: () => void;
   onClose: () => void;
 }> = ({ visible, me, other, myDogName, theirDogName, onMessage, onClose }) => {
+  const { t } = useTranslation();
   const { bottom } = useScreenInsets();
   const dist = formatDistance(other?.distanceKm);
+  const body = dist
+    ? t('discover.match.bodyApart', { myDog: myDogName || t('discover.match.defaultYourDog'), theirDog: theirDogName || t('discover.match.defaultTheirDog'), dist })
+    : t('discover.match.bodyCloseBy', { myDog: myDogName || t('discover.match.defaultYourDog'), theirDog: theirDogName || t('discover.match.defaultTheirDog') });
   return (
     <Modal visible={visible} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(22,24,38,0.92)', justifyContent: 'flex-end', paddingHorizontal: 28, paddingBottom: bottom + 26, rowGap: 14 }}>
@@ -40,16 +45,16 @@ export const MatchModal: React.FC<{
           <RingAvatar name={me?.displayName} photoUrl={me?.photoUrl} bg={Ramp.accent[800]} fg={Ramp.accent[200]} />
           <RingAvatar name={other?.displayName} photoUrl={other?.photoUrl} bg={Ramp.neutral[800]} fg={Colors.textPrimary} overlap />
         </View>
-        <Text style={{ fontSize: 11, letterSpacing: 1.32, color: Ramp.accent[300] }}>IT'S A MATCH</Text>
+        <Text style={{ fontSize: 11, letterSpacing: 1.32, color: Ramp.accent[300] }}>{t('discover.match.itsAMatch')}</Text>
         <Text style={{ fontSize: 32, lineHeight: 34.56, fontWeight: '500', letterSpacing: -0.64 }}>
-          You and {firstName(other?.displayName)} both want to walk.
+          {t('discover.match.title', { name: firstName(other?.displayName) })}
         </Text>
         <Text style={{ fontSize: 14, color: Ramp.neutral[400], marginBottom: 12 }}>
-          {`${myDogName || 'Your dog'} and ${theirDogName || 'their dog'} are ${dist ? `${dist} apart` : 'close by'}. Say hello and pick a park.`}
+          {body}
         </Text>
-        <Btn label="Send a message" shape="pill" height={52} fontSize={16} onPress={onMessage} />
+        <Btn label={t('discover.match.sendMessage')} shape="pill" height={52} fontSize={16} onPress={onMessage} />
         <Pressable onPress={onClose} style={({ pressed }) => ({ height: 44, alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 })}>
-          <Text style={{ fontSize: 14, color: Ramp.neutral[300] }}>Keep browsing</Text>
+          <Text style={{ fontSize: 14, color: Ramp.neutral[300] }}>{t('discover.match.keepBrowsing')}</Text>
         </Pressable>
       </View>
     </Modal>

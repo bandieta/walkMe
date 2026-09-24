@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { RootState, AppDispatch } from '../../store';
 import {
   fetchMatches, fetchMatchMessages, sendMatchMessage, markMatchRead, receiveMatchMessage, MatchMessage,
@@ -12,6 +13,7 @@ const NO_MESSAGES: MatchMessage[] = [];
 
 /** Direct message with a match. Reached from the chat list, the Discover match modal or a `walkme://dm/<matchId>` link. */
 export const DirectMessageScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
+  const { t } = useTranslation();
   const { matchId, userName } = route.params as { matchId: string; userName?: string };
   const dispatch = useDispatch<AppDispatch>();
   const me = useSelector((s: RootState) => s.auth.user);
@@ -43,9 +45,9 @@ export const DirectMessageScreen: React.FC<{ route: any; navigation: any }> = ({
   const dog = other?.dogs?.[0];
   const distance = formatKm(other?.distanceKm);
   const subtitle = [dog?.name, dog?.breed, distance].filter(Boolean).join(' · ');
-  const emptyBody = `You both liked each other’s dogs. Suggest a park or a time${
-    dog && distance ? ` — ${dog.name} is ${distance} away.` : '.'
-  }`;
+  const emptyBody = dog && distance
+    ? t('chat.direct.emptyBodyWithDistance', { dog: dog.name, distance })
+    : t('chat.direct.emptyBodyBase');
 
   const goBack = () => {
     if (navigation.canGoBack()) navigation.goBack();
@@ -54,7 +56,9 @@ export const DirectMessageScreen: React.FC<{ route: any; navigation: any }> = ({
 
   // "Plan walk" starts a walk with them. The chat tab has no create screen, so it goes through the map stack.
   const planWalk = () => {
-    const title = `Walk with ${firstName(name)}${dog ? ` & ${dog.name}` : ''}`;
+    const title = dog
+      ? t('chat.direct.walkWithTitleAndDog', { name: firstName(name), dog: dog.name })
+      : t('chat.direct.walkWithTitle', { name: firstName(name) });
     const state = navigation.getState();
     if (state.routeNames.includes('CreateWalk')) navigation.navigate('CreateWalk', { title });
     else navigation.navigate('MapTab', { screen: 'CreateWalk', params: { title } });
@@ -72,14 +76,14 @@ export const DirectMessageScreen: React.FC<{ route: any; navigation: any }> = ({
       title={name}
       subtitle={subtitle}
       avatarText={initials(name)}
-      actionLabel="Plan walk"
+      actionLabel={t('chat.direct.planWalk')}
       actionIcon="path"
       onAction={planWalk}
       onBack={goBack}
       messages={messages}
       myId={me?.id}
       loading={loading}
-      emptyTitle={name ? `Say hello to ${firstName(name)}` : ''}
+      emptyTitle={name ? t('chat.direct.sayHelloTo', { name: firstName(name) }) : ''}
       emptyBody={name ? emptyBody : ''}
       onSend={send}
     />

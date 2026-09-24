@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { AppDispatch, RootState } from '../../store';
 import { fetchNearbyWalks } from '../../store/slices/walksSlice';
 import { fetchEvents } from '../../store/slices/eventsSlice';
@@ -10,11 +11,6 @@ import { whenLong } from '../Map/mapFormat';
 import { Colors, Ramp } from '../../utils/theme';
 
 type Seg = 'upcoming' | 'hosting' | 'past';
-const SEGS: { key: Seg; label: string }[] = [
-  { key: 'upcoming', label: 'Upcoming' },
-  { key: 'hosting', label: 'Hosting' },
-  { key: 'past', label: 'Past' },
-];
 const DIV = 'rgba(233,233,237,0.16)';
 
 interface Row {
@@ -29,12 +25,19 @@ interface Row {
 }
 
 export const MyWalksScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const { walks } = useSelector((s: RootState) => s.walks);
   const { events } = useSelector((s: RootState) => s.events);
   const user = useSelector((s: RootState) => s.auth.user) as any;
   const [seg, setSeg] = useState<Seg>('upcoming');
   useScreenInsets();
+
+  const SEGS: { key: Seg; label: string }[] = [
+    { key: 'upcoming', label: t('walks.mine.upcoming') },
+    { key: 'hosting', label: t('walks.mine.hosting') },
+    { key: 'past', label: t('walks.mine.past') },
+  ];
 
   useEffect(() => {
     dispatch(fetchNearbyWalks({} as any));
@@ -47,8 +50,8 @@ export const MyWalksScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
       id: 'w' + w.id,
       icon: categoryIcon(w.category) === 'map-pin' ? 'path' : categoryIcon(w.category),
       title: w.title,
-      sub: [whenLong(w.scheduledAt), w.meetingPoint].filter(Boolean).join(' · '),
-      kind: w.host?.id === uid ? 'Hosting' : 'Walk',
+      sub: [whenLong(t, w.scheduledAt), w.meetingPoint].filter(Boolean).join(' · '),
+      kind: w.host?.id === uid ? t('walks.mine.hosting') : t('walks.mine.walk'),
       live: w.status === 'live',
       at: new Date(w.scheduledAt).getTime(),
       open: () => navigation.navigate('WalkDetail', { walkId: w.id }),
@@ -57,8 +60,8 @@ export const MyWalksScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
       id: 'e' + e.id,
       icon: categoryIcon(e.category) === 'map-pin' ? 'calendar-blank' : categoryIcon(e.category),
       title: e.title,
-      sub: [whenLong(e.date), e.location].filter(Boolean).join(' · '),
-      kind: e.organizerId === uid ? 'Organising' : 'Event',
+      sub: [whenLong(t, e.date), e.location].filter(Boolean).join(' · '),
+      kind: e.organizerId === uid ? t('walks.mine.organising') : t('walks.mine.event'),
       live: false,
       at: new Date(e.date).getTime(),
       open: () => navigation.navigate('EventDetail', { eventId: e.id }),
@@ -73,21 +76,21 @@ export const MyWalksScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
       out = [...walks.filter((w: any) => inWalk(w) && w.status === 'ended').map(walkRow), ...events.filter((e) => e.isJoined && e.status === 'ended').map(eventRow)];
     }
     return out;
-  }, [seg, walks, events, user?.id, navigation]);
+  }, [seg, walks, events, user?.id, navigation, t]);
 
-  const emptyText = seg === 'hosting' ? 'You haven’t hosted anything yet.' : seg === 'past' ? 'Past walks and events show up here.' : 'Nothing planned yet.';
+  const emptyText = seg === 'hosting' ? t('walks.mine.emptyHosting') : seg === 'past' ? t('walks.mine.emptyPast') : t('walks.mine.emptyUpcoming');
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.backgroundDark }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 4, paddingTop: 52, paddingRight: 16, paddingBottom: 4, paddingLeft: 8 }}>
         <Pressable
           onPress={() => navigation.goBack()}
-          accessibilityLabel="Back"
+          accessibilityLabel={t('walks.detail.back')}
           style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
         >
           <Icon name="caret-left" size={20} color={Colors.textPrimary} />
         </Pressable>
-        <Text style={{ fontSize: 17, fontWeight: '500' }}>Walks & events</Text>
+        <Text style={{ fontSize: 17, fontWeight: '500' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t('walks.mine.title')}</Text>
       </View>
       <Segmented options={SEGS} value={seg} onChange={setSeg} height={38} style={{ marginTop: 10, marginHorizontal: 20, marginBottom: 4 }} />
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 4, paddingHorizontal: 20, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
@@ -110,7 +113,7 @@ export const MyWalksScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
           <View style={{ paddingVertical: 28, rowGap: 10, alignItems: 'flex-start' }}>
             <Text style={{ fontSize: 13, color: Ramp.neutral[500] }}>{emptyText}</Text>
             <Pressable onPress={() => navigation.navigate('CreateWalk')} style={{ height: 40, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 13, color: Colors.primary }}>Plan a walk</Text>
+              <Text style={{ fontSize: 13, color: Colors.primary }}>{t('walks.mine.planAWalk')}</Text>
             </Pressable>
           </View>
         )}

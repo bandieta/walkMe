@@ -38,7 +38,15 @@ export const Btn: React.FC<{
       ) : (
         <>
           {icon && <View style={{ marginRight: 8 }}><Icon name={icon} size={fontSize + 3} color={t.color} weight={iconWeight} /></View>}
-          <Text style={[{ fontSize, fontWeight: '500', color: t.color }, textStyle]}>{label}</Text>
+          {/* A translated label can run longer than English — shrink rather than clip or wrap inside a fixed-height button. */}
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.75}
+            style={[{ fontSize, fontWeight: '500', color: t.color }, textStyle]}
+          >
+            {label}
+          </Text>
         </>
       )}
     </Pressable>

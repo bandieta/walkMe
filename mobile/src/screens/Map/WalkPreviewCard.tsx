@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Pressable, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Icon, IconName } from '../../components/Icon';
 import { Colors, Ramp } from '../../utils/theme';
 
@@ -11,6 +12,7 @@ export const WalkPreviewCard: React.FC<{
   bottom: Animated.AnimatedInterpolation<number> | Animated.Value | number;
   icon: IconName; title: string; sub: string; cta: string; onClose: () => void; onOpen: () => void;
 }> = ({ bottom, icon, title, sub, cta, onClose, onOpen }) => {
+  const { t } = useTranslation();
   const pop = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     pop.setValue(0);
@@ -42,7 +44,7 @@ export const WalkPreviewCard: React.FC<{
           </Pressable>
           <Pressable
             onPress={onClose}
-            accessibilityLabel="Close"
+            accessibilityLabel={t('common.close')}
             style={{ width: 32, height: 32, marginTop: -6, marginRight: -6, borderRadius: 16, alignItems: 'center', justifyContent: 'center' }}
           >
             <Icon name="x" size={15} color={Ramp.neutral[400]} />

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Animated, Dimensions, Easing, Platform, Pressable, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import MapView, { Polygon, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { AppDispatch, RootState } from '../../store';
 import { fetchNearbyWalks } from '../../store/slices/walksSlice';
 import { fetchEvents } from '../../store/slices/eventsSlice';
@@ -23,19 +24,19 @@ const RING = Ramp.neutral[800];
 const SHEET_MIN = 300;
 
 const CHIPS = [
-  { key: 'live', label: 'Live now' },
-  { key: 'today', label: 'Today' },
-  { key: 'near', label: 'Under 2 km' },
-  { key: 'mine', label: 'Joined' },
+  { key: 'live', labelKey: 'map.chips.liveNow' },
+  { key: 'today', labelKey: 'map.chips.today' },
+  { key: 'near', labelKey: 'map.chips.nearby' },
+  { key: 'mine', labelKey: 'map.chips.joined' },
 ];
 
-const PLACEHOLDER: Record<Segment, string> = {
-  walks: 'Search walks and parks',
-  events: 'Search events',
-  places: 'Parks, cafés, vets',
-};
-
 export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useTranslation();
+  const PLACEHOLDER: Record<Segment, string> = {
+    walks: t('map.searchPlaceholder.walks'),
+    events: t('map.searchPlaceholder.events'),
+    places: t('map.searchPlaceholder.places'),
+  };
   const dispatch = useDispatch<AppDispatch>();
   const { top } = useScreenInsets();
   const me = useSelector((s: RootState) => s.auth.user);
@@ -91,11 +92,11 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             lng: w.meetingLng,
             icon: categoryGlyph(w.category, 'path'),
             live: w.status === 'live',
-            tag: `Live · ${count}`,
+            tag: t('map.walk.liveTag', { count }),
             title: w.title,
-            sub: `${walkWhen(w.scheduledAt, w.status)} · ${km(w.meetingLat, w.meetingLng).toFixed(1)} km · ${count} of ${w.maxParticipants}`,
-            pv: `${whenLong(w.scheduledAt)} · ${w.meetingPoint}`,
-            cta: 'View walk',
+            sub: t('map.walk.sub', { when: walkWhen(t, w.scheduledAt, w.status), distance: km(w.meetingLat, w.meetingLng).toFixed(1), count, max: w.maxParticipants }),
+            pv: `${whenLong(t, w.scheduledAt)} · ${w.meetingPoint}`,
+            cta: t('map.walk.cta'),
             act: () => navigation.navigate('WalkDetail', { walkId: w.id }),
           };
         });
@@ -112,11 +113,13 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           lng: e.lng,
           icon: categoryGlyph(e.category, 'calendar-blank'),
           live: e.status === 'live',
-          tag: 'Today',
+          tag: t('map.event.todayTag'),
           title: e.title,
-          sub: `${eventWhen(e.date, e.status)} · ${e.participantCount} going${e.isJoined ? ' · you’re going' : ''}`,
-          pv: `${whenLong(e.date)} · ${e.location}`,
-          cta: 'View event',
+          sub: e.isJoined
+            ? t('map.event.subGoing', { when: eventWhen(t, e.date, e.status), count: e.participantCount })
+            : t('map.event.sub', { when: eventWhen(t, e.date, e.status), count: e.participantCount }),
+          pv: `${whenLong(t, e.date)} · ${e.location}`,
+          cta: t('map.event.cta'),
           act: () => navigation.navigate('EventDetail', { eventId: e.id }),
         }));
     }
@@ -135,9 +138,9 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           live: false,
           tag: '',
           title: p.name,
-          sub: `Rated ${rating} · ${p.isOpen ? 'Open now' : 'Closed'}${note ? ` · ${note}` : ''}`,
-          pv: `Rated ${rating}${note ? ` · ${note}` : ''}`,
-          cta: 'Plan a walk here',
+          sub: `${t('map.place.rated', { rating })} · ${p.isOpen ? t('map.place.openNow') : t('map.place.closed')}${note ? ` · ${note}` : ''}`,
+          pv: `${t('map.place.rated', { rating })}${note ? ` · ${note}` : ''}`,
+          cta: t('map.place.cta'),
           // pickedLocation matches CreateWalkParams — CreateWalkScreen treats it exactly like a map pick,
           // so the walk's coordinates are this place's, not a fuzzy name match against the typed text.
           act: () => navigation.navigate('CreateWalk', { category: p.category, pickedLocation: { name: p.name, lat: p.lat, lng: p.lng } }),
@@ -236,7 +239,7 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Icon name="magnifying-glass" size={17} color={Ramp.neutral[400]} />
             <TextInput
               value={query}
-              onChangeText={(t) => { setQuery(t); setSelected(null); }}
+              onChangeText={(v) => { setQuery(v); setSelected(null); }}
               placeholder={PLACEHOLDER[segment]}
               placeholderTextColor={Ramp.neutral[600]}
               selectionColor={Colors.primary}
@@ -247,7 +250,7 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             />
             <View pointerEvents="none" style={styles.pillRing} />
           </View>
-          <Pressable onPress={recenter} accessibilityLabel="Recenter" style={styles.round}>
+          <Pressable onPress={recenter} accessibilityLabel={t('map.recenter')} style={styles.round}>
             <Icon name="crosshair" size={18} color={Colors.textPrimary} />
             <View pointerEvents="none" style={styles.pillRing} />
           </Pressable>
@@ -265,7 +268,7 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     borderColor: on ? Colors.primary : DIV, backgroundColor: on ? Colors.backgroundDark : Colors.surfaceDark,
                   }}
                 >
-                  <Text style={{ fontSize: 12, color: on ? Colors.primary : Ramp.neutral[300] }}>{c.label}</Text>
+                  <Text numberOfLines={1} style={{ fontSize: 12, color: on ? Colors.primary : Ramp.neutral[300] }}>{t(c.labelKey)}</Text>
                 </Pressable>
               );
             })}
@@ -297,7 +300,7 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         loading={loading}
       />
 
-      <Toast visible={toast} message={`Centred on ${(me as any)?.location?.split(',')[0] || 'Mokotów'}`} onHide={() => setToast(false)} />
+      <Toast visible={toast} message={t('map.centredOn', { area: (me as any)?.location?.split(',')[0] || t('map.defaultArea') })} onHide={() => setToast(false)} />
     </View>
   );
 };

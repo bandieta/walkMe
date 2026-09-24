@@ -73,6 +73,14 @@ Then edit `server/.env` for real social login (`GOOGLE_CLIENT_ID`,
 `deploy.sh`. `ALLOW_DEV_LOGIN` is set to `false` — keep it that way on a public
 server.
 
+Email sign-in works out of the box without any setup — without a
+`RESEND_API_KEY`, the verification code is logged to `pm2 logs` and echoed
+back to the client as `devCode` instead of actually emailed, so you can
+develop and demo it before creating a [resend.com](https://resend.com)
+account. Add `RESEND_API_KEY` (and optionally a verified `EMAIL_FROM`) and
+re-run `deploy.sh` when you're ready for it to send real emails — `devCode`
+stops appearing in responses the moment a key is set.
+
 ## Admin panel
 
 A separate React app (`admin/`) at `/admin/` for maintaining users and

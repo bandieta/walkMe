@@ -3,6 +3,7 @@ import { View, Text, Pressable, Modal, Animated, StyleSheet } from 'react-native
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { RootState } from '../store';
 import { Icon, IconName } from './Icon';
 import { Colors, Ramp } from '../utils/theme';
@@ -10,14 +11,15 @@ import { Colors, Ramp } from '../utils/theme';
 // Nocturne's tab bar floats: a 62px pill, 24px from the sides and 28px from the bottom, with the create action
 // as an outlined accent circle in the middle. It only shows on the four root screens.
 const ROOTS = [undefined, 'MapHome', 'DiscoverHome', 'ChatList', 'ProfileHome'];
-const TABS: Record<string, { label: string; icon: IconName; side: 'L' | 'R' }> = {
-  MapTab: { label: 'Map', icon: 'map-trifold', side: 'L' },
-  DiscoverTab: { label: 'Discover', icon: 'paw-print', side: 'L' },
-  ChatTab: { label: 'Chat', icon: 'chat-circle', side: 'R' },
-  ProfileTab: { label: 'Me', icon: 'user', side: 'R' },
+const TABS: Record<string, { labelKey: string; icon: IconName; side: 'L' | 'R' }> = {
+  MapTab: { labelKey: 'nav.tabs.map', icon: 'map-trifold', side: 'L' },
+  DiscoverTab: { labelKey: 'nav.tabs.discover', icon: 'paw-print', side: 'L' },
+  ChatTab: { labelKey: 'nav.tabs.chat', icon: 'chat-circle', side: 'R' },
+  ProfileTab: { labelKey: 'nav.tabs.profile', icon: 'user', side: 'R' },
 };
 
 export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
+  const { t } = useTranslation();
   const [sheet, setSheet] = useState(false);
   const unread = useSelector((s: RootState) => s.matches.matches.reduce((n: number, m: any) => n + (m.unread ?? 0), 0));
   const focused = state.routes[state.index];
@@ -27,12 +29,13 @@ export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, navigation 
   const item = (routeName: string) => {
     const route = state.routes.find((r) => r.name === routeName)!;
     const meta = TABS[routeName];
+    const label = t(meta.labelKey);
     const active = focused.name === routeName;
     const color = active ? Colors.primary : Ramp.neutral[500];
     return (
       <Pressable
         key={routeName}
-        accessibilityLabel={meta.label}
+        accessibilityLabel={label}
         onPress={() => {
           const e = navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
           if (!active && !e.defaultPrevented) navigation.navigate(route.name);
@@ -40,7 +43,10 @@ export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, navigation 
         style={styles.item}
       >
         <Icon name={meta.icon} size={22} color={color} weight={active && (routeName === 'MapTab' || routeName === 'ProfileTab') ? 'fill' : 'regular'} />
-        <Text style={{ fontSize: 9, color, marginTop: 2 }}>{meta.label}</Text>
+        {/* Fixed 52px-wide item: a longer translated label shrinks rather than clipping. */}
+        <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: 9, color, marginTop: 2, maxWidth: 48 }}>
+          {label}
+        </Text>
         {routeName === 'ChatTab' && unread > 0 && <View style={styles.dot} />}
       </Pressable>
     );
@@ -59,7 +65,7 @@ export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, navigation 
             {item('MapTab')}
             {item('DiscoverTab')}
             <Pressable
-              accessibilityLabel="Create"
+              accessibilityLabel={t('nav.create.button')}
               onPress={() => setSheet(true)}
               style={({ pressed }) => [styles.plus, pressed && { backgroundColor: 'rgba(145,132,217,0.22)' }]}
             >
@@ -76,6 +82,7 @@ export const FloatingTabBar: React.FC<BottomTabBarProps> = ({ state, navigation 
 };
 
 const CreateSheet: React.FC<{ visible: boolean; onClose: () => void; onPick: (s: 'CreateWalk' | 'CreateEvent') => void }> = ({ visible, onClose, onPick }) => {
+  const { t } = useTranslation();
   const row = (icon: IconName, title: string, sub: string, accent: boolean, onPress: () => void) => (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.sheetRow, pressed && { backgroundColor: 'rgba(233,233,237,0.05)' }]}>
       <View style={[styles.sheetIcon, { borderColor: accent ? Colors.primary : 'rgba(233,233,237,0.16)' }]}>
@@ -94,9 +101,9 @@ const CreateSheet: React.FC<{ visible: boolean; onClose: () => void; onPick: (s:
       <View style={styles.sheet} pointerEvents="box-none">
         <View style={styles.sheetBody}>
           <View style={styles.grab} />
-          <Text style={{ fontSize: 19, fontWeight: '500', paddingHorizontal: 8, paddingBottom: 6 }}>Create</Text>
-          {row('path', 'New walk', 'Pick a place and time. Neighbours can join.', true, () => onPick('CreateWalk'))}
-          {row('calendar-plus', 'New event', 'Meetups, playdates and competitions.', false, () => onPick('CreateEvent'))}
+          <Text style={{ fontSize: 19, fontWeight: '500', paddingHorizontal: 8, paddingBottom: 6 }}>{t('nav.create.title')}</Text>
+          {row('path', t('nav.create.walkTitle'), t('nav.create.walkSub'), true, () => onPick('CreateWalk'))}
+          {row('calendar-plus', t('nav.create.eventTitle'), t('nav.create.eventSub'), false, () => onPick('CreateEvent'))}
         </View>
       </View>
     </Modal>

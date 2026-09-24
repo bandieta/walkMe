@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Easing, Modal, Pressable, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Ramp } from '../utils/theme';
 import { cssLine } from '../ui/cssLine';
 
@@ -26,7 +27,8 @@ export const ConfirmDialog: React.FC<{
   tone?: Tone;
   onConfirm: () => void;
   onCancel: () => void;
-}> = ({ visible, title, message, confirmLabel, cancelLabel = 'Cancel', tone = 'accent', onConfirm, onCancel }) => {
+}> = ({ visible, title, message, confirmLabel, cancelLabel, tone = 'accent', onConfirm, onCancel }) => {
+  const { t } = useTranslation();
   const anim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (!visible) return;
@@ -34,7 +36,7 @@ export const ConfirmDialog: React.FC<{
     Animated.timing(anim, { toValue: 1, duration: 200, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
   }, [visible, anim]);
 
-  const t = TONE[tone];
+  const toneColors = TONE[tone];
   const button = (label: string, onPress: () => void, border: string, color: string, pressed: string) => (
     <Pressable
       onPress={onPress}
@@ -65,8 +67,8 @@ export const ConfirmDialog: React.FC<{
           <Text accessibilityRole="header" style={{ fontSize: 19, lineHeight: cssLine(19), fontWeight: '500' }}>{title}</Text>
           {!!message && <Text style={{ fontSize: 14, lineHeight: cssLine(14), color: Ramp.neutral[300] }}>{message}</Text>}
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', columnGap: 8, marginTop: 8 }}>
-            {button(cancelLabel, onCancel, DIVIDER, Colors.textPrimary, 'rgba(233,233,237,0.07)')}
-            {button(confirmLabel, onConfirm, t.border, t.color, t.pressed)}
+            {button(cancelLabel ?? t('common.cancel'), onCancel, DIVIDER, Colors.textPrimary, 'rgba(233,233,237,0.07)')}
+            {button(confirmLabel, onConfirm, toneColors.border, toneColors.color, toneColors.pressed)}
           </View>
         </Animated.View>
       </Animated.View>

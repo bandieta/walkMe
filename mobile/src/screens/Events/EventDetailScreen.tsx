@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Image, Alert, Platform, ActivityIndicator, StatusBar, useWindowDimensions } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { RootState, AppDispatch } from '../../store';
 import { fetchEventById, joinEvent, leaveEvent } from '../../store/slices/eventsSlice';
 import { Colors, Ramp } from '../../utils/theme';
@@ -10,6 +11,7 @@ import { Toast } from '../../components/Toast';
 import { Hairline, Placeholder, Btn, useScreenInsets } from '../../ui';
 import { whenLong } from '../Map/mapFormat';
 import { resolveMediaUrl } from '../../utils/media';
+import { eventCategoryLabel } from '../../utils/categoryLabels';
 
 const DIVIDER = 'rgba(233,233,237,0.16)';
 const MONO = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
@@ -51,10 +53,10 @@ const PhotoHeader: React.FC<{ caption?: string; photoUrl?: string; width: number
 };
 
 /** 44px round surface button floating over the photo (its 1px #3f424d ring sits just outside). */
-const BackButton: React.FC<{ top: number; onPress: () => void }> = ({ top, onPress }) => (
+const BackButton: React.FC<{ top: number; onPress: () => void; label: string }> = ({ top, onPress, label }) => (
   <Pressable
     accessibilityRole="button"
-    accessibilityLabel="Back"
+    accessibilityLabel={label}
     onPress={onPress}
     style={{ position: 'absolute', top: top - 4, left: 14, width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.surfaceDark, alignItems: 'center', justifyContent: 'center' }}
   >
@@ -64,6 +66,7 @@ const BackButton: React.FC<{ top: number; onPress: () => void }> = ({ top, onPre
 );
 
 export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
+  const { t } = useTranslation();
   const { eventId } = route.params as { eventId: string };
   const dispatch = useDispatch<AppDispatch>();
   const { width } = useWindowDimensions();
@@ -90,17 +93,17 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
     const isOrganiser = event.organizerId === user?.id || event.organizer?.id === user?.id;
     return {
       ended, live, full,
-      statusLabel: live ? 'Happening now' : ended ? 'Ended' : 'Upcoming',
+      statusLabel: live ? t('events.detail.statusLive') : ended ? t('events.detail.statusEnded') : t('events.detail.statusUpcoming'),
       canJoin: !ended && !event.isJoined && !full,
       joined: !ended && event.isJoined,
       blocked: ended || (!event.isJoined && full),
-      blockedLabel: ended ? 'This event has ended' : 'This event is full',
-      when: whenLong(event.date),
-      organiser: isOrganiser ? 'you' : event.organizer?.displayName ?? '',
+      blockedLabel: ended ? t('events.detail.blockedEnded') : t('events.detail.blockedFull'),
+      when: whenLong(t, event.date),
+      organiser: isOrganiser ? null : event.organizer?.displayName ?? '',
       left,
       pct: Math.min(100, Math.round((event.participantCount / (event.maxParticipants || 1)) * 100)),
     };
-  }, [event, user]);
+  }, [event, user, t]);
 
   const toggle = async () => {
     if (!event || busy) return;
@@ -108,9 +111,9 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
     setBusy(true);
     try {
       await (joining ? dispatch(joinEvent(eventId)) : dispatch(leaveEvent(eventId))).unwrap();
-      setToast({ text: joining ? `You’re going to ${event.title}` : 'RSVP cancelled', n: Date.now() });
+      setToast({ text: joining ? t('events.detail.joinedToast', { title: event.title }) : t('events.detail.leftToast'), n: Date.now() });
     } catch (e: any) {
-      Alert.alert('Something went wrong', typeof e === 'string' ? e : e?.message ?? 'Please try again.');
+      Alert.alert(t('events.detail.errorTitle'), typeof e === 'string' ? e : e?.message ?? t('events.detail.errorMessage'));
     } finally {
       setBusy(false);
     }
@@ -122,13 +125,13 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
         <StatusBar barStyle="light-content" />
         {failed ? (
           <View style={{ alignItems: 'center', rowGap: 14 }}>
-            <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[400] }}>We couldn’t load this event.</Text>
-            <Btn label="Try again" variant="neutral" onPress={() => { setFailed(false); dispatch(fetchEventById(eventId)).unwrap().catch(() => setFailed(true)); }} />
+            <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[400] }}>{t('events.detail.loadFailed')}</Text>
+            <Btn label={t('events.detail.tryAgain')} variant="neutral" onPress={() => { setFailed(false); dispatch(fetchEventById(eventId)).unwrap().catch(() => setFailed(true)); }} />
           </View>
         ) : (
           <ActivityIndicator color={Colors.primary} />
         )}
-        <BackButton top={top} onPress={goBack} />
+        <BackButton top={top} onPress={goBack} label={t('events.detail.back')} />
       </View>
     );
   }
@@ -139,7 +142,7 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} bounces={false}>
         <View>
           <PhotoHeader caption={event.photoCaption} photoUrl={event.photoUrl} width={width} />
-          <BackButton top={top} onPress={goBack} />
+          <BackButton top={top} onPress={goBack} label={t('events.detail.back')} />
         </View>
 
         <View style={{ paddingHorizontal: 20, paddingBottom: 24, rowGap: 18 }}>
@@ -147,7 +150,7 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
           <View style={{ rowGap: 8 }}>
             <View style={{ flexDirection: 'row', columnGap: 6 }}>
               <Chip label={view.statusLabel} accent={view.live} />
-              <Chip label={event.category ?? 'Meetup'} />
+              <Chip label={event.category ? eventCategoryLabel(t, event.category) : t('events.detail.fallbackCategory')} />
             </View>
             <Text style={{ fontSize: 26, fontWeight: '500', lineHeight: 29, letterSpacing: -0.39, transform: [{ translateY: 0.67 }] }}>{event.title}</Text>
           </View>
@@ -164,16 +167,22 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 10 }}>
               <Icon name="user" size={17} color={Ramp.neutral[400]} />
-              <Text style={{ fontSize: 14, lineHeight: lh(14) }}>Organised by</Text>
-              <Text style={{ fontSize: 14, lineHeight: lh(14), flexShrink: 1 }} numberOfLines={1}>{view.organiser}</Text>
+              {view.organiser ? (
+                <>
+                  <Text style={{ fontSize: 14, lineHeight: lh(14) }}>{t('events.detail.organisedByLabel')}</Text>
+                  <Text style={{ fontSize: 14, lineHeight: lh(14), flexShrink: 1 }} numberOfLines={1}>{view.organiser}</Text>
+                </>
+              ) : (
+                <Text style={{ fontSize: 14, lineHeight: lh(14), flexShrink: 1 }} numberOfLines={1}>{t('events.detail.organisedByYou')}</Text>
+              )}
             </View>
           </View>
 
           {/* going */}
           <View style={{ rowGap: 8 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', transform: [{ translateY: -0.67 }] }}>
-              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500' }}>{event.participantCount} going</Text>
-              <Text style={{ fontSize: 13, lineHeight: lh(13), color: Ramp.neutral[400] }}>{view.left} spots left</Text>
+              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500' }}>{t('events.detail.going', { count: event.participantCount })}</Text>
+              <Text style={{ fontSize: 13, lineHeight: lh(13), color: Ramp.neutral[400] }}>{t('events.detail.spotsLeft', { count: view.left })}</Text>
             </View>
             <View style={{ height: 3, borderRadius: 2, backgroundColor: Ramp.neutral[900] }}>
               <View style={{ width: `${view.pct}%`, height: 3, borderRadius: 2, backgroundColor: Colors.primary }} />
@@ -183,7 +192,7 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
           {/* about */}
           {!!event.description && (
             <View style={{ rowGap: 6 }}>
-              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500', transform: [{ translateY: -1 }] }}>About</Text>
+              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500', transform: [{ translateY: -1 }] }}>{t('events.detail.about')}</Text>
               <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[300] }}>{event.description}</Text>
             </View>
           )}
@@ -193,12 +202,12 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
       {/* action bar: 12/20/36 padding, divider hairline along the top edge */}
       <View style={{ paddingTop: 12, paddingHorizontal: 20, paddingBottom: bottom + 2, flexDirection: 'row', alignItems: 'center', columnGap: 10 }}>
         <Hairline tone="divider" style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
-        {view.canJoin && <Btn label="Join event" shape="pill" onPress={toggle} loading={busy} style={{ flex: 1 }} />}
+        {view.canJoin && <Btn label={t('events.detail.joinEvent')} shape="pill" onPress={toggle} loading={busy} style={{ flex: 1 }} />}
         {view.joined && (
           <>
             <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', columnGap: 8 }}>
               <Icon name="check-circle" weight="fill" size={18} color={Ramp.accent[300]} />
-              <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.accent[300] }}>You're going</Text>
+              <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.accent[300] }}>{t('events.detail.youreGoing')}</Text>
             </View>
             <Pressable
               onPress={toggle}
@@ -208,7 +217,7 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
                 backgroundColor: pressed ? 'rgba(233,233,237,0.14)' : 'transparent', opacity: busy ? 0.45 : 1,
               })}
             >
-              <Text style={{ fontSize: 14, lineHeight: lh(14) }}>Can't make it</Text>
+              <Text style={{ fontSize: 14, lineHeight: lh(14) }}>{t('events.detail.cantMakeIt')}</Text>
             </Pressable>
           </>
         )}

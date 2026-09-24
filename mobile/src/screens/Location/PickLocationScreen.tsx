@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StatusBar, StyleSheet, Text, View } from 'react-native';
 import MapView, { Polygon, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { RootState } from '../../store';
 import { placesApi } from '../../services/api';
 import { Icon } from '../../components/Icon';
@@ -28,6 +29,7 @@ export interface PickedLocation {
  * already uses to hand a result back up the stack.
  */
 export const PickLocationScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const { initialLat, initialLng, returnTo } = route.params ?? {};
   const { top, bottom } = useScreenInsets();
   const userLocation = useSelector((s: RootState) => s.map.userLocation);
@@ -53,7 +55,7 @@ export const PickLocationScreen: React.FC<{ navigation: any; route: any }> = ({ 
   }, []);
 
   const snapped = places.find((p) => distanceKm(center, p.lat, p.lng) * 1000 < SNAP_METERS);
-  const label = snapped ? snapped.name : `Pinned location (${center.latitude.toFixed(4)}, ${center.longitude.toFixed(4)})`;
+  const label = snapped ? snapped.name : t('location.picker.pinnedLocation', { lat: center.latitude.toFixed(4), lng: center.longitude.toFixed(4) });
 
   const onRegionChangeComplete = (r: Region) => setCenter({ latitude: r.latitude, longitude: r.longitude });
 
@@ -111,15 +113,15 @@ export const PickLocationScreen: React.FC<{ navigation: any; route: any }> = ({ 
       </View>
 
       <View style={[styles.header, { paddingTop: top - 4 }]}>
-        <Pressable onPress={() => navigation.goBack()} accessibilityLabel="Cancel" style={styles.headerBtn}>
-          <Text style={{ fontSize: 15, color: Ramp.neutral[400] }}>Cancel</Text>
+        <Pressable onPress={() => navigation.goBack()} accessibilityLabel={t('common.cancel')} style={styles.headerBtn}>
+          <Text style={{ fontSize: 15, color: Ramp.neutral[400] }}>{t('common.cancel')}</Text>
         </Pressable>
-        <Text style={{ fontSize: 17, fontWeight: '500' }}>Choose location</Text>
+        <Text style={{ fontSize: 17, fontWeight: '500' }}>{t('location.picker.title')}</Text>
         <View style={{ width: 66 }} />
       </View>
 
       {userLocation && (
-        <Pressable onPress={() => goTo(userLocation.latitude, userLocation.longitude)} accessibilityLabel="Use my location" style={styles.recenter}>
+        <Pressable onPress={() => goTo(userLocation.latitude, userLocation.longitude)} accessibilityLabel={t('location.picker.useMyLocation')} style={styles.recenter}>
           <Icon name="crosshair" size={18} color={Colors.textPrimary} />
         </Pressable>
       )}
@@ -129,7 +131,7 @@ export const PickLocationScreen: React.FC<{ navigation: any; route: any }> = ({ 
           <Icon name="map-pin" size={15} color={snapped ? Colors.primary : Ramp.neutral[400]} />
           <Text numberOfLines={1} style={{ flex: 1, fontSize: 13, color: snapped ? Colors.primary : Ramp.neutral[300] }}>{label}</Text>
         </View>
-        <Btn label="Confirm location" shape="pill" height={50} fontSize={15} onPress={confirm} />
+        <Btn label={t('location.picker.confirm')} shape="pill" height={50} fontSize={15} onPress={confirm} />
       </View>
     </View>
   );

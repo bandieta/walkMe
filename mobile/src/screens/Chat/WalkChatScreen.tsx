@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { RootState, AppDispatch } from '../../store';
 import { walksApi } from '../../services/api';
 import {
@@ -23,6 +24,7 @@ interface WalkInfo {
 
 /** Group chat of a walk. Reached from the walk detail, the chat list or the profile's walks. */
 export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
+  const { t } = useTranslation();
   const { walkId, walkTitle } = route.params as { walkId: string; walkTitle?: string };
   const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((s: RootState) => s.auth.user);
@@ -47,8 +49,8 @@ export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ rout
 
   const title = walk?.title ?? walkTitle ?? '';
   const going = walk ? (walk.participantIds ?? walk.participants ?? []).length : 0;
-  const when = walk ? walkWhen(walk.scheduledAt, walk.status) : '';
-  const subtitle = walk ? [`${going} going`, when].filter(Boolean).join(' · ') : '';
+  const when = walk ? walkWhen(t, walk.scheduledAt, walk.status) : '';
+  const subtitle = walk ? [t('chat.goingCount', { count: going }), when].filter(Boolean).join(' · ') : '';
   const icon = categoryIcon(walk?.category);
 
   const goBack = () => {
@@ -77,15 +79,15 @@ export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ rout
       title={title}
       subtitle={subtitle}
       avatarIcon={(icon === 'map-pin' ? 'path' : icon) as IconName}
-      actionLabel="Walk"
+      actionLabel={t('chat.walkAction')}
       actionIcon="info"
       onAction={openWalk}
       onBack={goBack}
       messages={messages}
       myId={user?.id}
       loading={loading}
-      emptyTitle="Group chat is open"
-      emptyBody={`Everyone who joins ${title || 'this walk'} can read and post here.`}
+      emptyTitle={t('chat.groupChatEmptyTitle')}
+      emptyBody={t('chat.groupChatEmptyBody', { title: title || t('chat.defaultWalk') })}
       onSend={send}
     />
   );

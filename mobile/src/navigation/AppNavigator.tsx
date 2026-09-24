@@ -11,6 +11,8 @@ import { Colors } from '../utils/theme';
 import { FloatingTabBar } from '../components/FloatingTabBar';
 import { SplashScreen } from '../screens/Splash/SplashScreen';
 import { WelcomeScreen } from '../screens/Auth/WelcomeScreen';
+import { EmailAuthScreen } from '../screens/Auth/EmailAuthScreen';
+import { EmailCodeScreen } from '../screens/Auth/EmailCodeScreen';
 import { DogProfileScreen } from '../screens/Onboarding/DogProfileScreen';
 import { RhythmScreen } from '../screens/Onboarding/RhythmScreen';
 import { LocationScreen } from '../screens/Onboarding/LocationScreen';
@@ -29,6 +31,7 @@ import { EditProfileScreen } from '../screens/Profile/EditProfileScreen';
 import { MyDogsScreen } from '../screens/Profile/MyDogsScreen';
 import { AddDogScreen } from '../screens/Profile/AddDogScreen';
 import { EditDogScreen } from '../screens/Profile/EditDogScreen';
+import { LanguageScreen } from '../screens/Profile/LanguageScreen';
 import { PickLocationScreen } from '../screens/Location/PickLocationScreen';
 
 // ─── Param lists ─────────────────────────────────────────────────────────────
@@ -40,6 +43,8 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Welcome: undefined;
+  EmailAuth: { mode: 'new' | 'existing' };
+  EmailCode: { email: string; mode: 'new' | 'existing'; devCode?: string };
 };
 
 export type OnboardingStackParamList = {
@@ -76,6 +81,7 @@ export type ProfileStackParamList = {
   EditDog: { dogId: string };
   MyWalks: undefined;
   Rhythm: undefined;
+  Language: undefined;
   WalkDetail: { walkId: string };
   WalkChat: { walkId: string; walkTitle?: string };
   CreateWalk: undefined;
@@ -126,6 +132,7 @@ const linking: LinkingOptions<RootStackParamList> = {
               EditDog: 'edit-dog/:dogId',
               MyWalks: 'my-walks',
               Rhythm: 'walking-rhythm',
+              Language: 'language',
             },
           },
         },
@@ -133,7 +140,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       Onboarding: {
         screens: { DogProfile: 'onboarding/dog', Rhythm: 'onboarding/rhythm', Location: 'onboarding/location' },
       },
-      Auth: { screens: { Welcome: 'welcome' } },
+      Auth: { screens: { Welcome: 'welcome', EmailAuth: 'welcome/email', EmailCode: 'welcome/email/code' } },
     },
   },
 };
@@ -178,6 +185,7 @@ const ProfileStackScreen: React.FC = () => (
     <ProfileStack.Screen name="EditDog" component={EditDogScreen} />
     <ProfileStack.Screen name="MyWalks" component={MyWalksScreen} />
     <ProfileStack.Screen name="Rhythm" component={RhythmScreen} />
+    <ProfileStack.Screen name="Language" component={LanguageScreen} />
     <ProfileStack.Screen name="WalkDetail" component={WalkDetailScreen} />
     <ProfileStack.Screen name="WalkChat" component={WalkChatScreen} />
     <ProfileStack.Screen name="CreateWalk" component={CreateWalkScreen} />
@@ -203,6 +211,8 @@ const AuthStack = createStackNavigator<AuthStackParamList>();
 const AuthStackScreen: React.FC = () => (
   <AuthStack.Navigator screenOptions={{ headerShown: false }}>
     <AuthStack.Screen name="Welcome" component={WelcomeScreen} />
+    <AuthStack.Screen name="EmailAuth" component={EmailAuthScreen} />
+    <AuthStack.Screen name="EmailCode" component={EmailCodeScreen} />
   </AuthStack.Navigator>
 );
 

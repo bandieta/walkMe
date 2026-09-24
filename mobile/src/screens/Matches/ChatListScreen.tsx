@@ -2,6 +2,8 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, Image, ScrollView, Pressable } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { RootState, AppDispatch } from '../../store';
 import { fetchMatches, Match } from '../../store/slices/matchesSlice';
 import { fetchChatRooms, ChatRoom } from '../../store/slices/chatSlice';
@@ -13,12 +15,14 @@ import { useScreenInsets } from '../../ui';
 import { initials, firstName, walkWhen } from '../Chat/threadFormat';
 
 const HOVER = 'rgba(233,233,237,0.04)';
+const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const MONTH_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 
 /**
  * The short time of a direct thread's last message: "Now", "12 min", "3 h" today, then "Yesterday", the weekday
  * ("Mon") for the past week and "12 Sep" after that. (The prototype stores these strings; here they are derived.)
  */
-export function chatTime(iso?: string, now: Date = new Date()): string {
+export function chatTime(t: TFunction, iso?: string, now: Date = new Date()): string {
   if (!iso) return '';
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return '';
@@ -26,12 +30,12 @@ export function chatTime(iso?: string, now: Date = new Date()): string {
   const days = Math.round((startOfDay(now) - startOfDay(at)) / 86400000);
   if (days <= 0) {
     const minutes = Math.max(0, Math.floor((now.getTime() - at.getTime()) / 60000));
-    if (minutes < 1) return 'Now';
-    return minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h`;
+    if (minutes < 1) return t('chat.list.now');
+    return minutes < 60 ? t('chat.list.minutesShort', { count: minutes }) : t('chat.list.hoursShort', { count: Math.floor(minutes / 60) });
   }
-  if (days === 1) return 'Yesterday';
-  if (days < 7) return at.toLocaleDateString('en-GB', { weekday: 'short' });
-  return at.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  if (days === 1) return t('chat.list.yesterday');
+  if (days < 7) return t(`common.weekdaysShort.${WEEKDAY_KEYS[at.getDay()]}`);
+  return `${at.getDate()} ${t(`common.monthsShort.${MONTH_KEYS[at.getMonth()]}`)}`;
 }
 
 /** Photo when the person has one, else their initials on the given tint. */
@@ -66,6 +70,7 @@ const Row: React.FC<{ onPress: () => void; children: React.ReactNode }> = ({ onP
 );
 
 export const ChatListScreen: React.FC = () => {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation<any>();
   const { top } = useScreenInsets();
@@ -90,13 +95,13 @@ export const ChatListScreen: React.FC = () => {
   const dmRows = useMemo(() => matches.filter((m) => !!m.lastMessage), [matches]);
   const walkRooms = useMemo(() => rooms.filter((r) => r.walkStatus !== 'ended'), [rooms]);
 
-  const openMatch = (m: Match) => navigation.navigate('DirectMessage', { matchId: m.id, userName: m.user?.displayName ?? 'Match' });
+  const openMatch = (m: Match) => navigation.navigate('DirectMessage', { matchId: m.id, userName: m.user?.displayName ?? t('chat.list.defaultMatchName') });
   const openWalk = (r: ChatRoom) => navigation.navigate('WalkChat', { walkId: r.walkId, walkTitle: r.walkTitle });
 
   const walkPreview = (r: ChatRoom) => {
     const l = r.lastMessage;
-    if (!l) return 'No messages yet';
-    return `${l.senderId === me?.id ? 'You' : firstName(l.senderName)}: ${l.content}`;
+    if (!l) return t('chat.list.noMessagesYet');
+    return `${l.senderId === me?.id ? t('chat.list.you') : firstName(l.senderName)}: ${l.content}`;
   };
 
   const empty = !matchLoading && !chatLoading && newMatches.length === 0 && dmRows.length === 0 && walkRooms.length === 0;
@@ -105,7 +110,7 @@ export const ChatListScreen: React.FC = () => {
   return (
     <View style={{ flex: 1, backgroundColor: Colors.backgroundDark }}>
       <View style={{ paddingTop: top, paddingHorizontal: 20, paddingBottom: 8 }}>
-        <Text style={{ fontSize: 24, fontWeight: '500', letterSpacing: -0.36 }}>Messages</Text>
+        <Text style={{ fontSize: 24, fontWeight: '500', letterSpacing: -0.36 }}>{t('chat.list.title')}</Text>
       </View>
 
       <ScrollView
@@ -114,7 +119,7 @@ export const ChatListScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}>
         {newMatches.length > 0 && (
           <View style={{ rowGap: 10 }}>
-            <SectionLabel>New matches</SectionLabel>
+            <SectionLabel>{t('chat.list.newMatches')}</SectionLabel>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ columnGap: 14, paddingHorizontal: 20 }}>
               {newMatches.map((m) => (
                 <Pressable key={m.id} onPress={() => openMatch(m)} style={{ width: 62, alignItems: 'center', rowGap: 6, paddingVertical: 1 }}>
@@ -133,7 +138,7 @@ export const ChatListScreen: React.FC = () => {
 
         {walkRooms.length > 0 && (
           <View>
-            <SectionLabel style={{ paddingBottom: 4 }}>Walk chats</SectionLabel>
+            <SectionLabel style={{ paddingBottom: 4 }}>{t('chat.list.walkChats')}</SectionLabel>
             {walkRooms.map((r) => (
               <Row key={r.walkId} onPress={() => openWalk(r)}>
                 <View style={{ width: 48, height: 48, borderRadius: 12, borderCurve: 'circular', backgroundColor: Ramp.accent[900], alignItems: 'center', justifyContent: 'center' }}>
@@ -143,7 +148,7 @@ export const ChatListScreen: React.FC = () => {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', columnGap: 8 }}>
                     <Text style={{ fontSize: 15, flexShrink: 1 }} numberOfLines={1}>{r.walkTitle}</Text>
                     <Text style={{ fontSize: 11, flexShrink: 0, color: r.walkStatus === 'live' ? Ramp.accent[300] : Ramp.neutral[500] }} numberOfLines={1}>
-                      {walkWhen(r.scheduledAt, r.walkStatus, now)}
+                      {walkWhen(t, r.scheduledAt, r.walkStatus, now)}
                     </Text>
                   </View>
                   <Text style={{ fontSize: 13, color: Ramp.neutral[500] }} numberOfLines={1}>{walkPreview(r)}</Text>
@@ -155,7 +160,7 @@ export const ChatListScreen: React.FC = () => {
 
         {dmRows.length > 0 && (
           <View>
-            <SectionLabel style={{ paddingBottom: 4 }}>Direct</SectionLabel>
+            <SectionLabel style={{ paddingBottom: 4 }}>{t('chat.list.direct')}</SectionLabel>
             {dmRows.map((m) => {
               const dog = m.user?.dogs?.[0]?.name;
               const mine = !!me?.id && m.lastMessageSenderId === me.id;
@@ -165,16 +170,16 @@ export const ChatListScreen: React.FC = () => {
                   <View style={{ flex: 1, minWidth: 0, marginTop: -1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', columnGap: 8 }}>
                       <Text style={{ fontSize: 15, flexShrink: 1 }} numberOfLines={1}>
-                        {m.user?.displayName ?? 'User'}
+                        {m.user?.displayName ?? t('chat.list.defaultUserName')}
                         {!!dog && <Text style={{ fontSize: 13, color: Ramp.neutral[500] }}>{` & ${dog}`}</Text>}
                       </Text>
                       <Text style={{ fontSize: 11, flexShrink: 0, color: Ramp.neutral[500] }} numberOfLines={1}>
-                        {chatTime(m.lastMessageAt, now) || 'Now'}
+                        {chatTime(t, m.lastMessageAt, now) || t('chat.list.now')}
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 8 }}>
                       <Text style={{ flex: 1, fontSize: 13, color: m.unread > 0 ? Colors.textPrimary : Ramp.neutral[500] }} numberOfLines={1}>
-                        {(mine ? 'You: ' : '') + m.lastMessage}
+                        {(mine ? `${t('chat.list.you')}: ` : '') + m.lastMessage}
                       </Text>
                       {m.unread > 0 && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary }} />}
                     </View>
@@ -186,7 +191,7 @@ export const ChatListScreen: React.FC = () => {
         )}
 
         {empty && (
-          <EmptyState icon="chat" title="No messages yet" subtitle="Match with dog owners in Discover to start chatting!" />
+          <EmptyState icon="chat" title={t('chat.list.emptyTitle')} subtitle={t('chat.list.emptySubtitle')} />
         )}
       </ScrollView>
     </View>

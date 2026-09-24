@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Text, TextInput, View, Pressable } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon';
 import { Colors, Ramp } from '../utils/theme';
 
@@ -21,6 +22,7 @@ export const LocationField: React.FC<{
   onChangeMode: () => void;
   maxLength?: number;
 }> = ({ label, value, onChangeText, placeholder, locked, onPickFromMap, onChangeMode, maxLength }) => {
+  const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
   return (
     <View style={{ rowGap: 6 }}>
@@ -28,7 +30,7 @@ export const LocationField: React.FC<{
         <Text style={{ fontSize: 12, color: Ramp.neutral[400], transform: [{ translateY: -1 }] }}>{label}</Text>
         {locked && (
           <Pressable onPress={onChangeMode} hitSlop={8}>
-            <Text style={{ fontSize: 12, color: Colors.primary }}>Change</Text>
+            <Text style={{ fontSize: 12, color: Colors.primary }}>{t('common.change')}</Text>
           </Pressable>
         )}
       </View>
@@ -60,7 +62,7 @@ export const LocationField: React.FC<{
         {!locked && (
           <Pressable
             onPress={onPickFromMap}
-            accessibilityLabel="Pick on map"
+            accessibilityLabel={t('location.pickOnMap')}
             hitSlop={8}
             style={{ position: 'absolute', right: 6, top: 6, width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' }}
           >
@@ -74,7 +76,7 @@ export const LocationField: React.FC<{
         )}
       </View>
       {locked && (
-        <Text style={{ fontSize: 11, color: Ramp.neutral[500] }}>Pinned on the map — location is exact.</Text>
+        <Text style={{ fontSize: 11, color: Ramp.neutral[500] }}>{t('location.pinnedExact')}</Text>
       )}
     </View>
   );

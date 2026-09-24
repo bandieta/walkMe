@@ -1,19 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Animated, Easing, StyleSheet, Platform, BackHandler } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
 import { useScreenInsets } from '../../ui';
 
-export type Provider = 'google' | 'facebook' | 'apple';
+export type Provider = 'google' | 'facebook' | 'apple' | 'email';
 export type SheetMode = 'new' | 'existing';
 
 const DIVIDER = 'rgba(233,233,237,0.16)';
 
 // Apple leads on iOS (the accent-outlined primary action), like the prototype; elsewhere Google does.
-const PROVIDERS: { key: Provider; label: string; icon: IconName; weight: 'fill' | 'regular' }[] = [
-  ...(Platform.OS === 'ios' ? [{ key: 'apple' as const, label: 'Continue with Apple', icon: 'apple-logo' as IconName, weight: 'fill' as const }] : []),
-  { key: 'google', label: 'Continue with Google', icon: 'google-logo', weight: 'regular' },
-  { key: 'facebook', label: 'Continue with Facebook', icon: 'facebook-logo', weight: 'regular' },
+// Email is always last: a fallback for anyone without (or not wanting to use) a social account.
+const PROVIDERS: { key: Provider; labelKey: string; icon: IconName; weight: 'fill' | 'regular' }[] = [
+  ...(Platform.OS === 'ios' ? [{ key: 'apple' as const, labelKey: 'auth.continueWithApple', icon: 'apple-logo' as IconName, weight: 'fill' as const }] : []),
+  { key: 'google', labelKey: 'auth.continueWithGoogle', icon: 'google-logo', weight: 'regular' },
+  { key: 'facebook', labelKey: 'auth.continueWithFacebook', icon: 'facebook-logo', weight: 'regular' },
+  { key: 'email', labelKey: 'auth.continueWithEmail', icon: 'envelope-simple', weight: 'regular' },
 ];
 
 /** The prototype's 18px spinner: neutral-700 ring with an accent leading edge, one turn every 0.7 s. */
@@ -45,6 +48,7 @@ interface Props {
 
 /** Bottom sheet from the overlays spec ("auth sheet"): dimmed backdrop + 22px-radius surface sheet with the provider buttons. */
 export const SignInSheet: React.FC<Props> = ({ mode, pending, onProvider, onClose }) => {
+  const { t } = useTranslation();
   const { bottom } = useScreenInsets();
   const anim = useRef(new Animated.Value(0)).current;
   const [mounted, setMounted] = useState(mode !== null);
@@ -88,20 +92,21 @@ export const SignInSheet: React.FC<Props> = ({ mode, pending, onProvider, onClos
         {/* box-shadow ring: 0 0 0 1px neutral-500 */}
         <View pointerEvents="none" style={styles.ring} />
         <View style={styles.handle} />
-        <Text style={styles.title}>{shownMode === 'existing' ? 'Welcome back' : 'Create your account'}</Text>
-        <Text style={styles.sub}>No passwords. We only use your name and photo.</Text>
+        <Text style={styles.title}>{shownMode === 'existing' ? t('auth.welcomeBack') : t('auth.createAccount')}</Text>
+        <Text style={styles.sub}>{t('auth.noPasswords')}</Text>
 
         {PROVIDERS.map((p, i) => {
           const primary = i === 0;
           const isPending = pending === p.key;
           const fg = primary ? Colors.primary : Colors.textPrimary;
+          const label = t(p.labelKey);
           return (
             <Pressable
               key={p.key}
               onPress={() => onProvider(p.key)}
               disabled={!!pending}
               accessibilityRole="button"
-              accessibilityLabel={p.label}
+              accessibilityLabel={label}
               style={({ pressed }) => [
                 styles.provider,
                 { borderColor: primary ? Colors.primary : DIVIDER, opacity: pending && !isPending ? 0.45 : 1 },
@@ -109,12 +114,15 @@ export const SignInSheet: React.FC<Props> = ({ mode, pending, onProvider, onClos
               ]}
             >
               {isPending ? <Spinner /> : <Icon name={p.icon} size={19} color={fg} weight={p.weight} />}
-              <Text style={{ fontSize: 15, fontWeight: '500', color: fg }}>{p.label}</Text>
+              {/* Fixed-height row: a longer translated provider name shrinks rather than wrapping. */}
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 15, fontWeight: '500', color: fg }}>
+                {label}
+              </Text>
             </Pressable>
           );
         })}
 
-        <Text style={styles.terms}>By continuing you agree to the Terms and Privacy Policy.</Text>
+        <Text style={styles.terms}>{t('auth.termsNotice')}</Text>
       </Animated.View>
     </View>
   );
