@@ -41,8 +41,9 @@ served at `/api/docs` whenever the server is running.
 | Events | Create, list, join/leave |
 | Chat | Per-walk message history (REST) + Socket.io for real-time delivery |
 | Matches / Discover | Swipe deck, mutual-swipe matching, per-match messaging with unread counts |
-| Places | Dog-friendly places (seeded fixtures for now) |
+| Places | Dog-friendly places — CRUD via the admin panel, browsable by the app |
 | Storage | Image upload to local disk, served back over HTTP |
+| Admin (`/admin/*`) | Separate email+password auth (not `Authorization: Bearer <accessToken>`) — dashboard stats, user/content moderation, audit log. See `src/modules/admin/` and [`admin/README.md`](../admin/README.md). |
 
 ## Auth model
 

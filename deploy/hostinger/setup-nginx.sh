@@ -7,9 +7,10 @@ set -euo pipefail
 : "${EMAIL:?Set EMAIL for certificate expiry notices}"
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$HERE/../.." && pwd)"
 SITE=/etc/nginx/sites-available/walkme-api
 
-sed "s|__DOMAIN__|$DOMAIN|g" "$HERE/nginx-walkme.conf" > "$SITE"
+sed -e "s|__DOMAIN__|$DOMAIN|g" -e "s|__REPO_ROOT__|$REPO_ROOT|g" "$HERE/nginx-walkme.conf" > "$SITE"
 ln -sf "$SITE" /etc/nginx/sites-enabled/walkme-api
 rm -f /etc/nginx/sites-enabled/default
 nginx -t
@@ -18,3 +19,4 @@ systemctl reload nginx
 certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos -m "$EMAIL" --redirect
 echo "https://$DOMAIN/health ->"
 curl -fsS "https://$DOMAIN/health" && echo
+echo "Admin panel (once deploy.sh has built it): https://$DOMAIN/admin/"

@@ -1,0 +1,113 @@
+/* walkMe Admin — same "Nocturne" tokens as the mobile app
+   (mobile/src/utils/theme.ts), ported to CSS custom properties so the panel
+   reads as the same product: quiet dark ground, one blurple accent used as
+   a line/glow rather than a flood, medium-weight Inter, soft 8px radii. */
+
+:root {
+  --neutral-100: #f3f5fe;
+  --neutral-200: #e4e7f5;
+  --neutral-300: #cfd3e5;
+  --neutral-400: #b2b6ca;
+  --neutral-500: #9397ab;
+  --neutral-600: #75798c;
+  --neutral-700: #595d6c;
+  --neutral-800: #3f424d;
+  --neutral-900: #292b31;
+
+  --accent-100: #f5f4ff;
+  --accent-200: #e7e5fe;
+  --accent-300: #d2cefd;
+  --accent-400: #b5abfc;
+  --accent-500: #968ae0;
+  --accent-600: #796cbf;
+  --accent-700: #5d5294;
+  --accent-800: #423a6a;
+  --accent-900: #2b2741;
+
+  --primary: #9184d9;
+  --primary-dark: var(--accent-600);
+  --success: #7fc8a9;
+  --warning: #d9b877;
+  --error: #e0837f;
+  --info: #a7a1db;
+
+  --bg: #161826;
+  --surface: #232532;
+  --card: #232532;
+
+  --text-primary: #e9e9ed;
+  --text-secondary: rgba(233, 233, 237, 0.7);
+  --text-muted: rgba(233, 233, 237, 0.5);
+
+  --border: rgba(233, 233, 237, 0.1);
+  --border-light: rgba(233, 233, 237, 0.16);
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-full: 999px;
+
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-xxl: 48px;
+
+  --shadow-card: 0 6px 14px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 -8px 24px rgba(0, 0, 0, 0.6);
+  --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: var(--accent-700);
+  color: var(--text-primary);
+}
+
+/* Thin, quiet scrollbars over the dark ground. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--neutral-800);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neutral-700);
+}

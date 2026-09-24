@@ -8,6 +8,7 @@ A community walking app for iOS & Android built with React Native and Node.js.
 walkMe/
 ├── mobile/          # React Native app (iOS + Android)
 ├── server/          # Current backend — Express + Prisma + SQLite (see server/README.md)
+├── admin/           # Admin panel — React + Vite (see admin/README.md)
 ├── backend/         # Future, larger-scale backend — NestJS + PostgreSQL + Redis (not wired up yet)
 ├── shared/          # Shared TypeScript types
 └── docker-compose.yml
@@ -54,6 +55,18 @@ npm install
 npx pod-install ios      # iOS only
 npm run ios              # or: npm run android
 ```
+
+### 3. Admin panel
+```bash
+cd admin
+cp .env.example .env.local
+npm install    # admin/ has its own package-lock.json — not a root npm workspace,
+                # so this never touches mobile/backend/server's dependency tree
+npm run dev
+```
+Sign in with the account `server/prisma/seed-admin.ts` creates — see
+[`admin/README.md`](admin/README.md) for what the panel covers (users, dogs,
+walks, events, places, matches, chat moderation, uploads, audit log).
 
 ## Setting up real social login
 

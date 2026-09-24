@@ -2,10 +2,15 @@
 
 You are Claude Code running directly on the user's Hostinger VPS, inside a
 clone of the walkMe repo. Goal: the API from `server/` is live at
-`https://<DOMAIN>` behind Nginx, managed by PM2, surviving reboots.
+`https://<DOMAIN>` behind Nginx, managed by PM2, surviving reboots — and the
+`admin/` panel is live at `https://<DOMAIN>/admin/` with its first admin
+account created.
 
-The user should have given you `DOMAIN` (e.g. `api.example.com`) and `EMAIL`
-(for Let's Encrypt). If not, ask before step 3.
+The user should have given you `DOMAIN` (e.g. `api.example.com`), `EMAIL`
+(for Let's Encrypt), and an `ADMIN_EMAIL` / `ADMIN_PASSWORD` for the first
+admin account. If not, ask before step 2 (the admin account can be added
+later by re-running `deploy.sh`, so don't block on it if the user wants to
+come back to it).
 
 Rules:
 - Show the user each command's result briefly; stop and ask on any failure you
@@ -37,8 +42,14 @@ Verify: `node -v` (v20+), `pm2 -v`, `nginx -v`.
 ```bash
 DOMAIN=<DOMAIN> bash deploy/hostinger/deploy.sh
 ```
-Must end with `{"status":"ok",...}` and "walkMe server is up."
-If it fails, `pm2 logs walkme-server --lines 50 --nostream`.
+Must end with `{"status":"ok",...}`, "walkMe server is up.", and "Admin panel
+built -> .../admin/dist". If it fails, `pm2 logs walkme-server --lines 50
+--nostream`.
+
+If the user gave you `ADMIN_EMAIL`/`ADMIN_PASSWORD`, this first run created
+`server/.env` without them (it's templated from `.env.example`, which leaves
+those blank). Set them in `server/.env` now and re-run `deploy.sh` once —
+it's idempotent, so this just adds the admin account and rebuilds the panel.
 
 ## 3. HTTPS
 
@@ -74,14 +85,23 @@ mkdir -p ~/walkme-backups && bash deploy/hostinger/backup.sh
 ```bash
 curl -fsS https://<DOMAIN>/health
 curl -fsSI https://<DOMAIN>/api/docs/ | head -1
+curl -fsSI https://<DOMAIN>/admin/ | head -1
 pm2 status
 sudo ufw status
 ```
+If the `/admin/` check comes back 403/404, it's almost always Nginx (running
+as `www-data`) lacking read+execute on a parent directory of the repo — see
+the permissions row in `deploy/hostinger/README.md`'s troubleshooting table
+before guessing further.
 
 Report to the user:
 - the public URL and that `/api/docs` works,
 - that `server/.env` still has placeholder `GOOGLE_CLIENT_ID` /
   `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` (list which), which they need to fill
   in for real sign-in, followed by `bash deploy/hostinger/deploy.sh`,
+- the admin panel URL (`https://<DOMAIN>/admin/`) and whether its first
+  account was created (only happens once `ADMIN_EMAIL`/`ADMIN_PASSWORD` are
+  set in `server/.env`),
 - that `mobile/src/utils/env.ts` → `PROD_API_HOST` should be set to `https://<DOMAIN>`,
-- how to update later: `git pull && bash deploy/hostinger/deploy.sh`.
+- how to update later: `git pull && bash deploy/hostinger/deploy.sh` (rebuilds
+  both the server and the admin panel).

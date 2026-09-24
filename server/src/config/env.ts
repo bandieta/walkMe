@@ -22,6 +22,11 @@ export const env = {
 
   allowDevLogin: process.env.ALLOW_DEV_LOGIN === 'true',
 
+  // Admin panel — a separate secret so an app-user access token can never be
+  // replayed as an admin token even if a payload shape ever collided.
+  jwtAdminSecret: required('JWT_ADMIN_SECRET', 'dev-insecure-admin-secret'),
+  jwtAdminExpiresIn: process.env.JWT_ADMIN_EXPIRES_IN ?? '12h',
+
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
   facebookAppId: process.env.FACEBOOK_APP_ID ?? '',
   facebookAppSecret: process.env.FACEBOOK_APP_SECRET ?? '',

@@ -31,6 +31,7 @@ model User {
   onboardedAt     DateTime?
   lat             Float? // home area, used to compute distances in Discover
   lng             Float?
+  status          String   @default("active") // "active" | "suspended" | "banned" — set from the admin panel
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -180,4 +181,32 @@ model Place {
   isOpen      Boolean @default(true)
   description String?
   emoji       String?
+}
+
+// ── Admin panel ───────────────────────────────────────────────────────────
+// Separate from User: admins sign in with an email + password (the app's
+// users never have passwords — social sign-in only), and are never exposed
+// through any /api/v1/* route a mobile client calls.
+
+model AdminUser {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String
+  role         String   @default("admin") // "admin" | "superadmin" — only superadmin can manage other admins
+  createdAt    DateTime @default(now())
+  lastLoginAt  DateTime?
+
+  auditLogs    AuditLog[]
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  adminId    String
+  admin      AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  action     String // e.g. "user.suspend", "place.delete"
+  targetType String // "User" | "Dog" | "Walk" | "Event" | "Place" | "Message" | "Match" | "AdminUser"
+  targetId   String
+  meta       String? // JSON-encoded details (e.g. { "status": "suspended" })
+  createdAt  DateTime  @default(now())
 }

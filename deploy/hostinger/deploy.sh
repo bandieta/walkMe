@@ -8,6 +8,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SERVER_DIR="$REPO_ROOT/server"
+ADMIN_DIR="$REPO_ROOT/admin"
 cd "$REPO_ROOT"
 
 # 1. server/.env — created once, never overwritten.
@@ -20,10 +21,11 @@ if [[ ! -f "$SERVER_DIR/.env" ]]; then
     -e "s|^DATABASE_URL=.*|DATABASE_URL=\"file:./prod.db\"|" \
     -e "s|^JWT_ACCESS_SECRET=.*|JWT_ACCESS_SECRET=$(secret)|" \
     -e "s|^JWT_REFRESH_SECRET=.*|JWT_REFRESH_SECRET=$(secret)|" \
+    -e "s|^JWT_ADMIN_SECRET=.*|JWT_ADMIN_SECRET=$(secret)|" \
     -e "s|^ALLOW_DEV_LOGIN=.*|ALLOW_DEV_LOGIN=false|" \
     "$SERVER_DIR/.env.example" > "$SERVER_DIR/.env"
   chmod 600 "$SERVER_DIR/.env"
-  echo "Created server/.env — fill in GOOGLE_CLIENT_ID / FACEBOOK_* / APPLE_BUNDLE_ID, then re-run this script."
+  echo "Created server/.env — fill in GOOGLE_CLIENT_ID / FACEBOOK_* / APPLE_BUNDLE_ID / ADMIN_EMAIL / ADMIN_PASSWORD, then re-run this script."
 fi
 
 # 2. Install only the server workspace. --ignore-scripts skips the root `husky`
@@ -38,7 +40,8 @@ set -a; source ./.env; set +a
 
 npx prisma generate
 npx prisma migrate deploy
-npx tsx prisma/seed.ts   # idempotent: skips when places already exist
+npx tsx prisma/seed.ts        # idempotent: skips when places already exist
+npx tsx prisma/seed-admin.ts  # idempotent: no-op unless ADMIN_EMAIL/ADMIN_PASSWORD are set in .env
 npm run build
 
 # 3. Start or zero-downtime reload.
@@ -47,3 +50,13 @@ pm2 save
 
 sleep 2
 curl -fsS "http://127.0.0.1:${PORT:-4000}/health" && echo && echo "walkMe server is up."
+
+# 4. Build the admin panel as static files, pointed at this same server's API.
+# Nginx serves admin/dist at /admin/ (see setup-nginx.sh) — no PM2 process needed.
+# admin/ has its own package-lock.json (deliberately not an npm workspace of
+# the repo root, so installing it never touches mobile/backend/server's tree).
+# --include=dev: NODE_ENV=production is exported into this shell by sourcing
+# server/.env above, which would otherwise make npm skip devDependencies —
+# and vite/@vitejs/plugin-react (needed just to build) live there.
+(cd "$ADMIN_DIR" && npm ci --include=dev --ignore-scripts --no-audit --no-fund && VITE_API_BASE_URL="${PUBLIC_BASE_URL}/api/v1/admin" npx vite build)
+echo "Admin panel built -> $ADMIN_DIR/dist (served at ${PUBLIC_BASE_URL}/admin/)."
