@@ -7,6 +7,7 @@ let socket: Socket | null = null;
 export const getSocket = (token: string): Socket => {
   if (!socket) {
     socket = io(`${ENV.SOCKET_URL}/chat`, {
+      path: ENV.SOCKET_PATH,
       auth: { token },
       transports: ['websocket'],
       autoConnect: false,
