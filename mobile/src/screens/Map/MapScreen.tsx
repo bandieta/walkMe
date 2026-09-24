@@ -13,6 +13,7 @@ import { Colors, Ramp } from '../../utils/theme';
 import { MeMarker, PinMarker } from './MapPin';
 import { MapSheet } from './MapSheet';
 import { WalkPreviewCard } from './WalkPreviewCard';
+import { darkMapStyle, TINT } from './mapStyle';
 import {
   HOME, MapItem, Segment, categoryGlyph, distanceKm, eventWhen, isToday, walkWhen, whenLong,
 } from './mapFormat';
@@ -137,7 +138,9 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           sub: `Rated ${rating} · ${p.isOpen ? 'Open now' : 'Closed'}${note ? ` · ${note}` : ''}`,
           pv: `Rated ${rating}${note ? ` · ${note}` : ''}`,
           cta: 'Plan a walk here',
-          act: () => navigation.navigate('CreateWalk', { place: { name: p.name, category: p.category, lat: p.lat, lng: p.lng } }),
+          // pickedLocation matches CreateWalkParams — CreateWalkScreen treats it exactly like a map pick,
+          // so the walk's coordinates are this place's, not a fuzzy name match against the typed text.
+          act: () => navigation.navigate('CreateWalk', { category: p.category, pickedLocation: { name: p.name, lat: p.lat, lng: p.lng } }),
         };
       });
   }, [segment, chips, query, walks, events, places, me?.id, navigation, origin]);
@@ -298,24 +301,6 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     </View>
   );
 };
-
-// Nocturne-toned dark map (Google provider on Android; iOS uses Apple's dark style via userInterfaceStyle).
-const darkMapStyle = [
-  { elementType: 'geometry', stylers: [{ color: '#1b1d2b' }] },
-  { elementType: 'labels.text.stroke', stylers: [{ color: '#161826' }] },
-  { elementType: 'labels.text.fill', stylers: [{ color: '#75798c' }] },
-  { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a2c3b' }] },
-  { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#232532' }] },
-  { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3f424d' }] },
-  { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#12131e' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-];
-
-// Apple Maps can't be restyled, so a translucent ground-coloured sheet laid over the tiles (below the pins) pulls it into Nocturne.
-const TINT = [
-  { latitude: 55, longitude: 17 }, { latitude: 55, longitude: 25 }, { latitude: 49.5, longitude: 25 }, { latitude: 49.5, longitude: 17 },
-];
 
 const pillShadow = { shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.45, shadowRadius: 9 };
 

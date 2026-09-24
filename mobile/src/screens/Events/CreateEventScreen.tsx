@@ -9,6 +9,7 @@ import { placesApi } from '../../services/api';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
 import { Hairline, Placeholder, useScreenInsets } from '../../ui';
+import { LocationField } from '../../components/LocationField';
 
 /**
  * "Create event" from the prototype: Cancel / New event header, cover-photo stand-in, type chips, name, location,
@@ -97,7 +98,7 @@ const Box: React.FC<TextInputProps & { left?: number; multiline?: boolean }> = (
   );
 };
 
-export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { top, bottom } = useScreenInsets();
   const days = useMemo(() => weekendOptions(new Date()), []);
@@ -105,6 +106,9 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
   const [cat, setCat] = useState(CATEGORIES[0].label);
   const [title, setTitle] = useState('');
   const [point, setPoint] = useState('');
+  // Set once a location is picked on the map: the exact coordinates under the pin, kept in lockstep with `point`
+  // so the two can never disagree. Typing again ("Change") clears both, falling back to the known-places match below.
+  const [pointCoords, setPointCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dayKey, setDayKey] = useState(days[0].key);
   const [time, setTime] = useState(DEFAULT_TIME);
   const [max, setMax] = useState(20);
@@ -130,6 +134,16 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
     return () => { alive = false; };
   }, []);
 
+  // A pick returned from PickLocationScreen (`navigation.navigate({ name: 'CreateEvent', params: { pickedLocation } })`).
+  useEffect(() => {
+    const picked = route?.params?.pickedLocation;
+    if (!picked) return;
+    setPoint(picked.name);
+    setPointCoords({ lat: picked.lat, lng: picked.lng });
+    navigation.setParams({ pickedLocation: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params?.pickedLocation]);
+
   const invalid = title.trim().length < 3 || point.trim().length < 3;
 
   const trackY = (key: string) => (e: { nativeEvent: { layout: { y: number } } }) => { fieldY.current[key] = e.nativeEvent.layout.y; };
@@ -139,6 +153,7 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
   };
 
   const resolveCoords = (text: string) => {
+    if (pointCoords) return pointCoords;
     const q = text.trim().toLowerCase();
     const hit = places.find((p) => {
       const n = p.name.toLowerCase();
@@ -231,14 +246,20 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
         </View>
 
         {/* Location */}
-        <View style={{ rowGap: 6 }} onLayout={trackY('point')}>
-          <Label>Location</Label>
-          <View>
-            <Box value={point} onChangeText={setPoint} onFocus={reveal('point')} placeholder="Park, café or address" left={36} autoCapitalize="words" returnKeyType="done" maxLength={200} />
-            <View pointerEvents="none" style={{ position: 'absolute', left: 12, top: 13.5 }}>
-              <Icon name="map-pin" size={17} color={Ramp.neutral[500]} />
-            </View>
-          </View>
+        <View onLayout={trackY('point')}>
+          <LocationField
+            label="Location"
+            value={point}
+            onChangeText={setPoint}
+            placeholder="Park, café or address"
+            maxLength={200}
+            locked={!!pointCoords}
+            onPickFromMap={() => {
+              Keyboard.dismiss();
+              navigation.navigate('PickLocation', { initialLat: pointCoords?.lat, initialLng: pointCoords?.lng, returnTo: 'CreateEvent' });
+            }}
+            onChangeMode={() => setPointCoords(null)}
+          />
         </View>
 
         {/* Date */}

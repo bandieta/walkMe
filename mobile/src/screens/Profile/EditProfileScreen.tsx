@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, ScrollView, Pressable, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
@@ -8,6 +8,7 @@ import { useScreenInsets } from '../../ui';
 import { cssText } from '../../ui/cssLine';
 import { Colors, Ramp } from '../../utils/theme';
 import { ProfileAvatar } from './ProfileAvatar';
+import { LocationField } from '../../components/LocationField';
 
 // Prototype 14 "Edit profile": Cancel / title / Save header, avatar + "Change photo", Name, Neighbourhood, About you (160).
 
@@ -52,13 +53,19 @@ const TextBox: React.FC<{
   );
 };
 
-export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const EditProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { top } = useScreenInsets();
   const user = useSelector((s: RootState) => s.auth.user);
 
   const [name, setName] = useState(user?.displayName ?? '');
   const [loc, setLoc] = useState(user?.location ?? '');
+  // Set when the neighbourhood is (or already was) an exact map pick, kept in lockstep with `loc` so the two can
+  // never disagree — mirrors CreateWalk/CreateEventScreen's LocationField wiring. Typing again ("Change") clears
+  // both; the server keeps whatever coordinates it already had, since lat/lng are simply left out of the save.
+  const [locCoords, setLocCoords] = useState<{ lat: number; lng: number } | null>(
+    user?.lat != null && user?.lng != null ? { lat: user.lat, lng: user.lng } : null,
+  );
   const [bio, setBio] = useState(user?.bio ?? '');
   const [bioFocused, setBioFocused] = useState(false);
   const [photo, setPhoto] = useState<Photo | null>(null);
@@ -67,6 +74,16 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
   const invalid = name.trim().length < 2;
 
   const close = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('ProfileHome'));
+
+  // A pick returned from PickLocationScreen (`navigation.navigate({ name: 'EditProfile', params: { pickedLocation } })`).
+  useEffect(() => {
+    const picked = route?.params?.pickedLocation;
+    if (!picked) return;
+    setLoc(picked.name);
+    setLocCoords({ lat: picked.lat, lng: picked.lng });
+    navigation.setParams({ pickedLocation: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params?.pickedLocation]);
 
   const pickPhoto = async () => {
     let picker: any;
@@ -99,6 +116,7 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
         location: loc.trim(),
         bio: bio.trim(),
         ...(photoUrl ? { photoUrl } : {}),
+        ...(locCoords ? { lat: locCoords.lat, lng: locCoords.lng } : {}),
       });
       const saved = res?.data ?? {};
       dispatch(userUpdated({
@@ -106,6 +124,7 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
         location: saved.location ?? loc.trim(),
         bio: saved.bio ?? bio.trim(),
         ...(saved.photoUrl || photoUrl ? { photoUrl: saved.photoUrl ?? photoUrl } : {}),
+        ...(locCoords ? { lat: saved.lat ?? locCoords.lat, lng: saved.lng ?? locCoords.lng } : {}),
       }));
       navigation.navigate({ name: 'ProfileHome', params: { toast: 'Profile saved' }, merge: true });
     } catch (e: any) {
@@ -158,10 +177,16 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
           <TextBox value={name} onChangeText={setName} />
         </View>
 
-        <View style={{ rowGap: 6 }}>
-          <Label>Neighbourhood</Label>
-          <TextBox value={loc} onChangeText={setLoc} maxLength={120} />
-        </View>
+        <LocationField
+          label="Neighbourhood"
+          value={loc}
+          onChangeText={setLoc}
+          placeholder="Mokotów, Warsaw"
+          maxLength={120}
+          locked={!!locCoords}
+          onPickFromMap={() => navigation.navigate('PickLocation', { initialLat: locCoords?.lat, initialLng: locCoords?.lng, returnTo: 'EditProfile' })}
+          onChangeMode={() => setLocCoords(null)}
+        />
 
         <View style={{ rowGap: 6 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>

@@ -18,6 +18,8 @@ import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
 import { Btn, Hairline, useScreenInsets } from '../../ui';
 import { useToast } from '../../components/Toast';
+import { LocationField } from '../../components/LocationField';
+import { PickedLocation } from '../Location/PickLocationScreen';
 
 /**
  * "New walk" from the prototype (08 create walk): Cancel / title header, a scrolling form (type, title, meeting
@@ -139,7 +141,7 @@ const Input: React.FC<{
 };
 
 /** Optional prefill, as the prototype does for "Plan a walk here" (place + type) and "Plan walk" (title). */
-export interface CreateWalkParams { title?: string; point?: string; category?: string; description?: string }
+export interface CreateWalkParams { title?: string; point?: string; category?: string; description?: string; pickedLocation?: PickedLocation }
 
 export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: CreateWalkParams } }> = ({ navigation, route }) => {
   const prefill = route?.params;
@@ -153,12 +155,28 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
   const [dayIdx, setDayIdx] = useState(() => (startAt(days[0].date, '17:30').getTime() > Date.now() ? 0 : 1));
   const [category, setCategory] = useState(() => CATEGORIES.find((c) => c.label === prefill?.category)?.label ?? 'Park');
   const [title, setTitle] = useState(prefill?.title ?? '');
-  const [point, setPoint] = useState(prefill?.point ?? '');
+  const [point, setPoint] = useState(prefill?.point ?? prefill?.pickedLocation?.name ?? '');
+  // Set once a meeting point is picked on the map (or the screen opened from "Plan a walk here"): the exact
+  // coordinates under the pin, kept in lockstep with `point` so the two can never disagree. Typing again ("Change")
+  // clears both, falling back to the known-places name match below.
+  const [pointCoords, setPointCoords] = useState<{ lat: number; lng: number } | null>(
+    prefill?.pickedLocation ? { lat: prefill.pickedLocation.lat, lng: prefill.pickedLocation.lng } : null,
+  );
   const [time, setTime] = useState('17:30');
   const [duration, setDuration] = useState('1 h');
   const [max, setMax] = useState(8);
   const [desc, setDesc] = useState(prefill?.description ?? '');
   const [busy, setBusy] = useState(false);
+
+  // A pick returned from PickLocationScreen (`navigation.navigate({ name: 'CreateWalk', params: { pickedLocation } })`).
+  useEffect(() => {
+    const picked = route?.params?.pickedLocation;
+    if (!picked) return;
+    setPoint(picked.name);
+    setPointCoords({ lat: picked.lat, lng: picked.lng });
+    navigation.setParams({ pickedLocation: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params?.pickedLocation]);
 
   const trimmedTitle = title.trim();
   const titleErr = trimmedTitle.length > 0 && trimmedTitle.length < MIN_LEN;
@@ -202,7 +220,6 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
   const onBlurField = (key: string) => () => { if (focusedKey.current === key) focusedKey.current = null; };
   const measure = (key: string) => (e: any) => { fieldY.current[key] = e.nativeEvent.layout.y; };
 
-  const pointRef = useRef<TextInput>(null);
   const descRef = useRef<TextInput>(null);
 
   const create = async () => {
@@ -215,7 +232,11 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
     }
     const name = point.trim();
     const known = places.current.find((p) => p.name.trim().toLowerCase() === name.toLowerCase());
-    const where = known ? { latitude: known.lat, longitude: known.lng } : userLocation ?? WARSAW;
+    const where = pointCoords
+      ? { latitude: pointCoords.lat, longitude: pointCoords.lng }
+      : known
+        ? { latitude: known.lat, longitude: known.lng }
+        : userLocation ?? WARSAW;
     setBusy(true);
     try {
       const res = await walksApi.create({
@@ -283,27 +304,30 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
             placeholder="Morning park walk"
             error={titleErr}
             maxLength={80}
-            returnKeyType="next"
-            onSubmitEditing={() => pointRef.current?.focus()}
+            returnKeyType="done"
             onFocus={onFocusField('title')}
             onBlur={onBlurField('title')}
           />
           {titleErr && <Text style={{ fontSize: 12, color: Ramp.accent[300] }}>At least 3 characters.</Text>}
         </View>
 
-        <View style={{ rowGap: 6 }} onLayout={measure('point')}>
-          <Label>Meeting point</Label>
-          <Input
-            inputRef={pointRef}
+        <View onLayout={measure('point')}>
+          <LocationField
+            label="Meeting point"
             value={point}
             onChangeText={setPoint}
             placeholder="Park entrance, landmark or address"
-            leftIcon="map-pin"
             maxLength={120}
-            returnKeyType="next"
-            onSubmitEditing={() => descRef.current?.focus()}
-            onFocus={onFocusField('point')}
-            onBlur={onBlurField('point')}
+            locked={!!pointCoords}
+            onPickFromMap={() => {
+              Keyboard.dismiss();
+              navigation.navigate('PickLocation', {
+                initialLat: pointCoords?.lat ?? userLocation?.latitude,
+                initialLng: pointCoords?.lng ?? userLocation?.longitude,
+                returnTo: 'CreateWalk',
+              });
+            }}
+            onChangeMode={() => setPointCoords(null)}
           />
         </View>
 

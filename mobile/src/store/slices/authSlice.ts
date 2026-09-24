@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi, usersApi } from '../../services/api';
 
 interface AuthState {
-  user: { id: string; email?: string; displayName: string; photoUrl?: string; bio?: string; location?: string; walkTimes?: string[]; radiusKm?: number; onboarded?: boolean } | null;
+  user: { id: string; email?: string; displayName: string; photoUrl?: string; bio?: string; location?: string; lat?: number; lng?: number; walkTimes?: string[]; radiusKm?: number; onboarded?: boolean } | null;
   token: string | null;
   refreshToken: string | null;
   loading: boolean;

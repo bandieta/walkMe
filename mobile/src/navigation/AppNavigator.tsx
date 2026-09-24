@@ -29,6 +29,7 @@ import { EditProfileScreen } from '../screens/Profile/EditProfileScreen';
 import { MyDogsScreen } from '../screens/Profile/MyDogsScreen';
 import { AddDogScreen } from '../screens/Profile/AddDogScreen';
 import { EditDogScreen } from '../screens/Profile/EditDogScreen';
+import { PickLocationScreen } from '../screens/Location/PickLocationScreen';
 
 // ─── Param lists ─────────────────────────────────────────────────────────────
 export type RootStackParamList = {
@@ -54,6 +55,7 @@ export type MapStackParamList = {
   CreateWalk: undefined;
   EventDetail: { eventId: string };
   CreateEvent: undefined;
+  PickLocation: { initialLat?: number; initialLng?: number; returnTo: string };
 };
 
 export type DiscoverStackParamList = {
@@ -78,6 +80,7 @@ export type ProfileStackParamList = {
   WalkChat: { walkId: string; walkTitle?: string };
   CreateWalk: undefined;
   EventDetail: { eventId: string };
+  PickLocation: { initialLat?: number; initialLng?: number; returnTo: string };
 };
 
 export type MainTabParamList = {
@@ -145,6 +148,7 @@ const MapStackScreen: React.FC = () => (
     <MapStack.Screen name="CreateWalk" component={CreateWalkScreen} />
     <MapStack.Screen name="EventDetail" component={EventDetailScreen} />
     <MapStack.Screen name="CreateEvent" component={CreateEventScreen} />
+    <MapStack.Screen name="PickLocation" component={PickLocationScreen} />
   </MapStack.Navigator>
 );
 
@@ -178,6 +182,7 @@ const ProfileStackScreen: React.FC = () => (
     <ProfileStack.Screen name="WalkChat" component={WalkChatScreen} />
     <ProfileStack.Screen name="CreateWalk" component={CreateWalkScreen} />
     <ProfileStack.Screen name="EventDetail" component={EventDetailScreen} />
+    <ProfileStack.Screen name="PickLocation" component={PickLocationScreen} />
   </ProfileStack.Navigator>
 );
 
