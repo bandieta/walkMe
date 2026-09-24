@@ -7,6 +7,9 @@ export const createDogSchema = z.object({
   weight: z.number().positive().optional(),
   bio: z.string().max(500).optional(),
   emoji: z.string().optional(),
+  energy: z.enum(['Calm', 'Balanced', 'High']).optional(),
+  ageGroup: z.enum(['Puppy', 'Adult', 'Senior']).optional(),
+  photoUrl: z.string().optional(),
   personality: z.array(z.string()).default([]),
 });
 export type CreateDogInput = z.infer<typeof createDogSchema>;

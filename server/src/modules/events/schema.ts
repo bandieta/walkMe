@@ -10,5 +10,6 @@ export const createEventSchema = z.object({
   maxParticipants: z.number().int().positive().default(30),
   category: z.string().default('Meetup'),
   emoji: z.string().default('🎉'),
+  photoCaption: z.string().max(200).optional(),
 });
 export type CreateEventInput = z.infer<typeof createEventSchema>;

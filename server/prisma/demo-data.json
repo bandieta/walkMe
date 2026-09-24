@@ -1,0 +1,566 @@
+{
+ "U": {
+  "u0": {
+   "name": "Alex Johnson",
+   "loc": "Mokotów",
+   "dist": "",
+   "bio": "",
+   "dog": {
+    "name": "Luna",
+    "breed": "Golden Retriever",
+    "age": 3
+   }
+  },
+  "u1": {
+   "name": "Karolina W.",
+   "age": 28,
+   "loc": "Śródmieście",
+   "dist": "0.8 km",
+   "bio": "Golden retriever mom. Love morning walks in Łazienki. Always up for a coffee after.",
+   "dog": {
+    "name": "Mochi",
+    "breed": "Golden Retriever",
+    "age": 2,
+    "tags": [
+     "Gentle",
+     "Social",
+     "Curious"
+    ]
+   }
+  },
+  "u2": {
+   "name": "Tomasz K.",
+   "age": 33,
+   "loc": "Żoliborz",
+   "dist": "1.4 km",
+   "bio": "German Shepherd enthusiast. Max and I do 10 km every day, rain or shine.",
+   "dog": {
+    "name": "Max",
+    "breed": "German Shepherd",
+    "age": 4,
+    "tags": [
+     "Loyal",
+     "Athletic",
+     "Smart"
+    ]
+   }
+  },
+  "u3": {
+   "name": "Monika N.",
+   "age": 26,
+   "loc": "Praga Północ",
+   "dist": "2.1 km",
+   "bio": "Frenchie and Chihuahua mom. Small dogs, big personalities. Praga Park is our spot.",
+   "dog": {
+    "name": "Bella",
+    "breed": "French Bulldog",
+    "age": 3,
+    "tags": [
+     "Stubborn",
+     "Funny",
+     "Loving"
+    ]
+   }
+  },
+  "u4": {
+   "name": "Adam Z.",
+   "age": 34,
+   "loc": "Ursynów",
+   "dist": "3.2 km",
+   "bio": "Lab dad. Rocky is my best buddy. Looking for play dates around Ursynów.",
+   "dog": {
+    "name": "Rocky",
+    "breed": "Labrador",
+    "age": 2,
+    "tags": [
+     "Goofy",
+     "Energetic",
+     "Food-motivated"
+    ]
+   }
+  },
+  "u5": {
+   "name": "Kasia D.",
+   "age": 27,
+   "loc": "Wilanów",
+   "dist": "4.1 km",
+   "bio": "Beagle mom. Zoe is obsessed with squirrels. We explore new parks every weekend.",
+   "dog": {
+    "name": "Zoe",
+    "breed": "Beagle",
+    "age": 4,
+    "tags": [
+     "Curious",
+     "Stubborn",
+     "Nose-driven"
+    ]
+   }
+  },
+  "u6": {
+   "name": "Michał W.",
+   "age": 31,
+   "loc": "Bemowo",
+   "dist": "5.7 km",
+   "bio": "Two border collies, double the chaos. Training and agility enthusiast.",
+   "dog": {
+    "name": "Bruno",
+    "breed": "Border Collie",
+    "age": 3,
+    "tags": [
+     "Intelligent",
+     "Intense",
+     "Athletic"
+    ]
+   }
+  },
+  "u7": {
+   "name": "Anna K.",
+   "age": 25,
+   "loc": "Białołęka",
+   "dist": "7.3 km",
+   "bio": "Poodle mom. Lily loves the water. Zegrze Lake is our happy place.",
+   "dog": {
+    "name": "Lily",
+    "breed": "Standard Poodle",
+    "age": 4,
+    "tags": [
+     "Elegant",
+     "Smart",
+     "Swimmer"
+    ]
+   }
+  },
+  "u8": {
+   "name": "Piotr L.",
+   "age": 30,
+   "loc": "Targówek",
+   "dist": "2.9 km",
+   "bio": "Husky dad. Thor needs two hours of walking a day. Anyone game for adventures?",
+   "dog": {
+    "name": "Thor",
+    "breed": "Siberian Husky",
+    "age": 3,
+    "tags": [
+     "Vocal",
+     "Dramatic",
+     "Energetic"
+    ]
+   }
+  },
+  "u9": {
+   "name": "Zuzia M.",
+   "age": 24,
+   "loc": "Ochota",
+   "dist": "1.6 km",
+   "bio": "Pom and Maltese mom. Cookie and Teddy are tiny but mighty. Dog-friendly cafés are life.",
+   "dog": {
+    "name": "Cookie",
+    "breed": "Pomeranian",
+    "age": 2,
+    "tags": [
+     "Fluffy",
+     "Sassy",
+     "Social"
+    ]
+   }
+  }
+ },
+ "WALKS": [
+  {
+   "id": "w3",
+   "title": "Pole Mokotowskie Evening",
+   "cat": "Park",
+   "host": "u0",
+   "point": "Pole Mokotowskie — southern gate",
+   "when": "Live now",
+   "whenLong": "Today · 09:15",
+   "status": "live",
+   "day": "today",
+   "max": 10,
+   "parts": [
+    "u0",
+    "u1",
+    "u3",
+    "u7"
+   ],
+   "dist": 0.6,
+   "dur": "1 h",
+   "x": 232,
+   "y": 250,
+   "desc": "Relaxed walk around the meadow. Great spot for dogs to run free."
+  },
+  {
+   "id": "w1",
+   "title": "Morning Walk in Łazienki",
+   "cat": "Park",
+   "host": "u1",
+   "point": "Łazienki Park — main entrance",
+   "when": "In 2 h",
+   "whenLong": "Today · 11:45",
+   "status": "upcoming",
+   "day": "today",
+   "max": 8,
+   "parts": [
+    "u1",
+    "u5",
+    "u9"
+   ],
+   "dist": 0.8,
+   "dur": "1.5 h",
+   "x": 84,
+   "y": 222,
+   "desc": "Start at the main entrance by the Palace on the Water. Dogs love the squirrels here. Bring water for the dogs."
+  },
+  {
+   "id": "w2",
+   "title": "Kabaty Forest Trek",
+   "cat": "Trail",
+   "host": "u2",
+   "point": "Kabaty Metro Station — exit B",
+   "when": "Tomorrow",
+   "whenLong": "Thu 25 Sep · 09:00",
+   "status": "upcoming",
+   "day": "tomorrow",
+   "max": 6,
+   "parts": [
+    "u2",
+    "u4",
+    "u6"
+   ],
+   "dist": 6.2,
+   "dur": "2 h",
+   "x": 300,
+   "y": 380,
+   "desc": "Long forest trail through Kabaty. Off-leash areas available. Bring snacks."
+  },
+  {
+   "id": "w4",
+   "title": "Wilanów Palace Walk",
+   "cat": "Park",
+   "host": "u5",
+   "point": "Wilanów Palace — car park entrance",
+   "when": "Fri",
+   "whenLong": "Fri 26 Sep · 11:30",
+   "status": "upcoming",
+   "day": "later",
+   "max": 12,
+   "parts": [
+    "u5"
+   ],
+   "dist": 5.9,
+   "dur": "1 h",
+   "x": 118,
+   "y": 372,
+   "desc": "A walk around the Wilanów Palace grounds, with some of the best scenery in the city."
+  },
+  {
+   "id": "w5",
+   "title": "Praga Park Meetup",
+   "cat": "Park",
+   "host": "u3",
+   "point": "Praga Park — fountain",
+   "when": "Sat",
+   "whenLong": "Sat 27 Sep · 12:45",
+   "status": "upcoming",
+   "day": "later",
+   "max": 15,
+   "parts": [
+    "u3",
+    "u8"
+   ],
+   "dist": 4.3,
+   "dur": "1 h",
+   "x": 326,
+   "y": 190,
+   "desc": "Social walk for all breeds at Praga Park. Puppies welcome."
+  },
+  {
+   "id": "w6",
+   "title": "City Centre Morning Run",
+   "cat": "City",
+   "host": "u8",
+   "point": "Palace of Culture — steps",
+   "when": "Ended",
+   "whenLong": "Today · 06:40",
+   "status": "ended",
+   "day": "today",
+   "max": 5,
+   "parts": [
+    "u0",
+    "u2",
+    "u8"
+   ],
+   "dist": 2.1,
+   "dur": "45 min",
+   "x": 0,
+   "y": 0,
+   "desc": "Quick morning run through the city centre. Fast-paced, bring energetic dogs."
+  }
+ ],
+ "EVENTS": [
+  {
+   "id": "e4",
+   "title": "Lake Swim Day at Zegrze",
+   "cat": "Lake",
+   "when": "Today",
+   "whenLong": "Today · 10:00–18:00",
+   "status": "live",
+   "point": "Lake Zegrze Beach, Nieporęt",
+   "going": 28,
+   "max": 50,
+   "joined": false,
+   "org": "u7",
+   "x": 196,
+   "y": 172,
+   "photo": "dogs swimming at the lake",
+   "desc": "Swim day at Lake Zegrze. Dogs can swim, owners can relax on the beach. BBQ and refreshments available. 45 minutes by car from Warsaw."
+  },
+  {
+   "id": "e3",
+   "title": "Puppy Playdate Party",
+   "cat": "Playdate",
+   "when": "Fri 26",
+   "whenLong": "Fri 26 Sep · 16:00",
+   "status": "upcoming",
+   "point": "Praga Park",
+   "going": 12,
+   "max": 20,
+   "joined": true,
+   "org": "u3",
+   "x": 310,
+   "y": 286,
+   "photo": "puppies playing on grass",
+   "desc": "Puppies under one year only. Safe, supervised playtime for young dogs to socialise. Bring a vaccination certificate."
+  },
+  {
+   "id": "e1",
+   "title": "WalkMe Community Meetup",
+   "cat": "Meetup",
+   "when": "Sat 27",
+   "whenLong": "Sat 27 Sep · 11:00",
+   "status": "upcoming",
+   "point": "Łazienki Park",
+   "going": 34,
+   "max": 100,
+   "joined": false,
+   "org": "u1",
+   "x": 96,
+   "y": 270,
+   "photo": "a crowd of dogs and owners in the park",
+   "desc": "Our biggest community meetup. Join 50+ dogs and their owners at Łazienki. Food trucks, dog treats, and prizes for the cutest dog."
+  },
+  {
+   "id": "e2",
+   "title": "Dog Frisbee Competition",
+   "cat": "Competition",
+   "when": "Mon 29",
+   "whenLong": "Mon 29 Sep · 14:00",
+   "status": "upcoming",
+   "point": "Ursynów Park",
+   "going": 18,
+   "max": 40,
+   "joined": false,
+   "org": "u6",
+   "x": 160,
+   "y": 420,
+   "photo": "dog catching a frisbee mid-air",
+   "desc": "Show off your dog’s frisbee skills. Open to all breeds. Prizes for distance, style, and accuracy. Register your dog at the event."
+  },
+  {
+   "id": "e6",
+   "title": "Night Walk — City Lights",
+   "cat": "Walk",
+   "when": "Wed 1 Oct",
+   "whenLong": "Wed 1 Oct · 20:00",
+   "status": "upcoming",
+   "point": "Warsaw Old Town",
+   "going": 9,
+   "max": 25,
+   "joined": false,
+   "org": "u2",
+   "x": 262,
+   "y": 440,
+   "photo": "old town street at night",
+   "desc": "Twilight walk through the Old Town and riverside. Lights and reflective gear encouraged."
+  },
+  {
+   "id": "e5",
+   "title": "Dog Yoga (Doga)",
+   "cat": "Wellness",
+   "when": "Tue 23",
+   "whenLong": "Tue 23 Sep · 10:00",
+   "status": "ended",
+   "point": "Pole Mokotowskie",
+   "going": 15,
+   "max": 20,
+   "joined": true,
+   "org": "u9",
+   "x": 0,
+   "y": 0,
+   "photo": "yoga mats on the meadow",
+   "desc": "Yoga session in the park with your dogs. A certified instructor leads a 60-minute session. Mats provided."
+  }
+ ],
+ "PLACES": [
+  {
+   "id": "p1",
+   "name": "Łazienki Park",
+   "cat": "park",
+   "rating": 4.9,
+   "open": true,
+   "note": "Off-leash area · water fountain",
+   "x": 70,
+   "y": 250
+  },
+  {
+   "id": "p2",
+   "name": "Pole Mokotowskie",
+   "cat": "park",
+   "rating": 4.7,
+   "open": true,
+   "note": "Off-leash meadow",
+   "x": 240,
+   "y": 236
+  },
+  {
+   "id": "p3",
+   "name": "PAWSOME Dog Café",
+   "cat": "cafe",
+   "rating": 4.8,
+   "open": true,
+   "note": "Dog menu · water bowls",
+   "x": 150,
+   "y": 196
+  },
+  {
+   "id": "p4",
+   "name": "Happy Paws Vet Clinic",
+   "cat": "vet",
+   "rating": 4.6,
+   "open": true,
+   "note": "24/7 emergency",
+   "x": 200,
+   "y": 360
+  },
+  {
+   "id": "p6",
+   "name": "Kabaty Forest",
+   "cat": "trail",
+   "rating": 4.8,
+   "open": true,
+   "note": "Off-leash forest trails",
+   "x": 312,
+   "y": 400
+  },
+  {
+   "id": "p9",
+   "name": "Dog Bar Pies",
+   "cat": "cafe",
+   "rating": 4.7,
+   "open": false,
+   "note": "Outdoor terrace",
+   "x": 60,
+   "y": 400
+  }
+ ],
+ "MSGS": {
+  "w1": [
+   {
+    "from": "u1",
+    "text": "Hey everyone! So excited for this morning."
+   },
+   {
+    "from": "u5",
+    "text": "Zoe is already doing zoomies just thinking about it."
+   },
+   {
+    "from": "u1",
+    "text": "Meeting at the main entrance. Don’t forget water for the dogs!"
+   },
+   {
+    "from": "u9",
+    "text": "Cookie and Teddy will be there!"
+   },
+   {
+    "from": "u5",
+    "text": "Should we grab coffee after at PAWSOME?"
+   },
+   {
+    "from": "u1",
+    "text": "Yes, 100%."
+   }
+  ],
+  "w3": [
+   {
+    "from": "u0",
+    "text": "Starting in 30 min — the southern gate near the playground."
+   },
+   {
+    "from": "u1",
+    "text": "On my way! Mochi is so excited."
+   },
+   {
+    "from": "u3",
+    "text": "Bella says she’s ready (she’s actually still asleep, but whatever)."
+   },
+   {
+    "from": "u7",
+    "text": "Lily just splashed through every puddle on the way."
+   }
+  ],
+  "m1": [
+   {
+    "from": "u1",
+    "text": "Hi! Saw you at Pole Mokotowskie the other day. Your dog is adorable."
+   },
+   {
+    "from": "u0",
+    "text": "Thank you! That’s Luna — she loves that park. Your golden is gorgeous too."
+   },
+   {
+    "from": "u1",
+    "text": "That’s Mochi! Want to do a park walk together sometime?"
+   },
+   {
+    "from": "u0",
+    "text": "Absolutely. I’m free this weekend. How about Łazienki on Saturday morning?"
+   },
+   {
+    "from": "u1",
+    "text": "Perfect! 10am?"
+   }
+  ],
+  "m2": [
+   {
+    "from": "u5",
+    "text": "Hey! Your dog Luna is a golden? Zoe goes crazy for goldens."
+   },
+   {
+    "from": "u0",
+    "text": "Yes! Luna is very social too. Beagles are the best."
+   },
+   {
+    "from": "u5",
+    "text": "Come to the Wilanów walk this Friday! It’ll be fun."
+   }
+  ],
+  "m3": [
+   {
+    "from": "u9",
+    "text": "Luna looks exactly like my neighbour’s dog. Are goldens just the best or what?"
+   }
+  ]
+ },
+ "LUNA": {
+  "id": "d0",
+  "name": "Luna",
+  "breed": "Golden Retriever",
+  "age": "Adult",
+  "energy": "High",
+  "temps": [
+   "Friendly",
+   "Playful",
+   "Loves fetch"
+  ]
+ }
+}

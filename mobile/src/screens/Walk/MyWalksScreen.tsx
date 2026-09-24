@@ -1,310 +1,120 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
-  ActivityIndicator,
-} from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, Pressable } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
 import { fetchNearbyWalks } from '../../store/slices/walksSlice';
-import { Walk } from '@walkme/shared';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
-import { Icon, IconName } from '../../components/Icon';
+import { fetchEvents } from '../../store/slices/eventsSlice';
+import { Icon, IconName, categoryIcon } from '../../components/Icon';
+import { Hairline, Segmented, useScreenInsets } from '../../ui';
+import { whenLong } from '../Map/mapFormat';
+import { Colors, Ramp } from '../../utils/theme';
 
-type Tab = 'upcoming' | 'hosting' | 'past';
-
-const TABS: { key: Tab; label: string; icon: IconName }[] = [
-  { key: 'upcoming', label: 'Joined', icon: 'calendar' },
-  { key: 'hosting', label: 'Hosting', icon: 'star' },
-  { key: 'past', label: 'Past', icon: 'checkCircle' },
+type Seg = 'upcoming' | 'hosting' | 'past';
+const SEGS: { key: Seg; label: string }[] = [
+  { key: 'upcoming', label: 'Upcoming' },
+  { key: 'hosting', label: 'Hosting' },
+  { key: 'past', label: 'Past' },
 ];
+const DIV = 'rgba(233,233,237,0.16)';
 
-const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-interface WalkCardProps {
-  walk: Walk;
-  userId: string;
-  onPress: () => void;
+interface Row {
+  id: string;
+  icon: IconName;
+  title: string;
+  sub: string;
+  kind: string;
+  live: boolean;
+  at: number;
+  open: () => void;
 }
-
-const WalkCard: React.FC<WalkCardProps> = ({ walk, userId, onPress }) => {
-  const isHost = walk.hostId === userId;
-  const spotsLeft = walk.maxParticipants - (walk.currentParticipants ?? 0);
-  const statusColor =
-    walk.status === 'active'
-      ? Colors.secondary
-      : walk.status === 'completed'
-      ? Colors.textMuted
-      : Colors.primary;
-
-  return (
-    <TouchableOpacity style={card.container} onPress={onPress} activeOpacity={0.8}>
-      {/* Top row: date pill + host badge */}
-      <View style={card.topRow}>
-        <View style={card.datePill}>
-          <Text style={card.dateText}>
-            {formatDate(walk.scheduledAt)} · {formatTime(walk.scheduledAt)}
-          </Text>
-        </View>
-        <View style={[card.statusDot, { backgroundColor: statusColor }]} />
-        {isHost && (
-          <View style={card.hostBadge}>
-            <Text style={card.hostBadgeText}>HOST</Text>
-          </View>
-        )}
-      </View>
-
-      <Text style={card.title} numberOfLines={1}>{walk.title}</Text>
-      <Text style={card.description} numberOfLines={2}>{walk.description}</Text>
-
-      <View style={card.footer}>
-        <Text style={card.footerItem}>{(walk as any).meetingPoint?.address ?? (walk as any).meetingPoint ?? 'TBD'}</Text>
-        <Text style={card.footerSpacer}>·</Text>
-        <Text style={card.footerItem}>
-          {(walk as any).participants?.length ?? walk.currentParticipants ?? 0}/{walk.maxParticipants}
-          {spotsLeft > 0 ? ` (${spotsLeft} left)` : ' Full'}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-};
-
-const card = StyleSheet.create({
-  container: {
-    backgroundColor: Colors.surfaceDark,
-    borderRadius: Radius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    ...Shadow.subtle,
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.sm,
-  },
-  datePill: {
-    backgroundColor: `${Colors.primary}20`,
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: `${Colors.primary}40`,
-    flex: 1,
-  },
-  dateText: { ...Typography.caption, color: Colors.primary },
-  statusDot: { width: 8, height: 8, borderRadius: 4, marginLeft: Spacing.sm },
-  hostBadge: {
-    backgroundColor: `${Colors.secondary}20`,
-    borderRadius: Radius.full,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    marginLeft: Spacing.sm,
-    borderWidth: 1,
-    borderColor: `${Colors.secondary}40`,
-  },
-  hostBadgeText: { ...Typography.overline, color: Colors.secondary },
-  title: { ...Typography.h3, color: Colors.textPrimary, marginBottom: 4 },
-  description: { ...Typography.body, color: Colors.textSecondary, marginBottom: Spacing.sm, lineHeight: 20 },
-  footer: { flexDirection: 'row', alignItems: 'center' },
-  footerItem: { ...Typography.caption, color: Colors.textMuted },
-  footerSpacer: { ...Typography.caption, color: Colors.border, marginHorizontal: 6 },
-});
-
-const EmptyState: React.FC<{ tab: Tab; onDiscover: () => void; onCreate: () => void }> = ({
-  tab,
-  onDiscover,
-  onCreate,
-}) => {
-  const content = {
-    upcoming: {
-      icon: 'map' as IconName,
-      title: 'No Upcoming Walks',
-      subtitle: 'Browse walks near you and join a group walk.',
-      cta: 'Discover Walks',
-      onCta: onDiscover,
-    },
-    hosting: {
-      icon: 'star' as IconName,
-      title: "You're Not Hosting",
-      subtitle: "Create your first walk and invite others.",
-      cta: 'Create a Walk',
-      onCta: onCreate,
-    },
-    past: {
-      icon: 'checkCircle' as IconName,
-      title: 'No Past Walks',
-      subtitle: 'Completed walks will appear here.',
-      cta: 'Discover Walks',
-      onCta: onDiscover,
-    },
-  }[tab];
-
-  return (
-    <View style={empty.container}>
-      <Icon name={content.icon} size={30} color={Colors.primary} />
-      <Text style={empty.title}>{content.title}</Text>
-      <Text style={empty.subtitle}>{content.subtitle}</Text>
-      <TouchableOpacity style={empty.btn} onPress={content.onCta} activeOpacity={0.85}>
-        <Text style={empty.btnText}>{content.cta}</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const empty = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xl },
-  emoji: { fontSize: 56, marginBottom: Spacing.lg },
-  title: { ...Typography.h2, color: Colors.textPrimary, marginBottom: Spacing.sm, textAlign: 'center' },
-  subtitle: { ...Typography.body, color: Colors.textSecondary, textAlign: 'center', marginBottom: Spacing.xl },
-  btn: {
-    backgroundColor: Colors.primary, borderRadius: Radius.xl,
-    paddingHorizontal: Spacing.xl, paddingVertical: Spacing.md,
-  },
-  btnText: { ...Typography.body, color: '#fff', fontWeight: '700' },
-});
 
 export const MyWalksScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { walks, loading } = useSelector((s: RootState) => s.walks);
-  const { user } = useSelector((s: RootState) => s.auth);
-  const [activeTab, setActiveTab] = useState<Tab>('upcoming');
+  const { walks } = useSelector((s: RootState) => s.walks);
+  const { events } = useSelector((s: RootState) => s.events);
+  const user = useSelector((s: RootState) => s.auth.user) as any;
+  const [seg, setSeg] = useState<Seg>('upcoming');
+  useScreenInsets();
 
   useEffect(() => {
-    if (user?.location) {
-      dispatch(fetchNearbyWalks({ lat: user.location.lat, lng: user.location.lng, radius: 10 }));
+    dispatch(fetchNearbyWalks({} as any));
+    dispatch(fetchEvents());
+  }, [dispatch]);
+
+  const rows = useMemo(() => {
+    const uid = user?.id;
+    const walkRow = (w: any): Row => ({
+      id: 'w' + w.id,
+      icon: categoryIcon(w.category) === 'map-pin' ? 'path' : categoryIcon(w.category),
+      title: w.title,
+      sub: [whenLong(w.scheduledAt), w.meetingPoint].filter(Boolean).join(' · '),
+      kind: w.host?.id === uid ? 'Hosting' : 'Walk',
+      live: w.status === 'live',
+      at: new Date(w.scheduledAt).getTime(),
+      open: () => navigation.navigate('WalkDetail', { walkId: w.id }),
+    });
+    const eventRow = (e: any): Row => ({
+      id: 'e' + e.id,
+      icon: categoryIcon(e.category) === 'map-pin' ? 'calendar-blank' : categoryIcon(e.category),
+      title: e.title,
+      sub: [whenLong(e.date), e.location].filter(Boolean).join(' · '),
+      kind: e.organizerId === uid ? 'Organising' : 'Event',
+      live: false,
+      at: new Date(e.date).getTime(),
+      open: () => navigation.navigate('EventDetail', { eventId: e.id }),
+    });
+    const inWalk = (w: any) => w.host?.id === uid || (w.participantIds ?? w.participants?.map((p: any) => p.id) ?? []).includes(uid);
+    let out: Row[];
+    if (seg === 'upcoming') {
+      out = [...walks.filter((w: any) => inWalk(w) && w.status !== 'ended').map(walkRow), ...events.filter((e) => e.isJoined && e.status !== 'ended').map(eventRow)];
+    } else if (seg === 'hosting') {
+      out = [...walks.filter((w: any) => w.host?.id === uid).map(walkRow), ...events.filter((e) => e.organizerId === uid).map(eventRow)];
+    } else {
+      out = [...walks.filter((w: any) => inWalk(w) && w.status === 'ended').map(walkRow), ...events.filter((e) => e.isJoined && e.status === 'ended').map(eventRow)];
     }
-  }, [dispatch, user]);
+    return out;
+  }, [seg, walks, events, user?.id, navigation]);
 
-  const now = new Date();
-  const userWalks = walks.filter((w) =>
-    w.participants?.some((p: any) => (typeof p === 'string' ? p : p.id) === user?.id) ||
-    w.hostId === user?.id
-  );
-
-  const tabData: Record<Tab, Walk[]> = {
-    upcoming: userWalks.filter((w) => new Date(w.scheduledAt) >= now && w.status !== 'completed'),
-    hosting: userWalks.filter((w) => w.hostId === user?.id),
-    past: userWalks.filter((w) => w.status === 'completed' || new Date(w.scheduledAt) < now),
-  };
+  const emptyText = seg === 'hosting' ? 'You haven’t hosted anything yet.' : seg === 'past' ? 'Past walks and events show up here.' : 'Nothing planned yet.';
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.surfaceDark} />
-
-      {/* Header */}
-      <SafeAreaView style={styles.header}>
-        <Text style={styles.headerTitle}>My Walks</Text>
-        <TouchableOpacity
-          style={styles.createBtn}
-          onPress={() => navigation.navigate('CreateWalk')}
-          activeOpacity={0.85}
+    <View style={{ flex: 1, backgroundColor: Colors.backgroundDark }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 4, paddingTop: 52, paddingRight: 16, paddingBottom: 4, paddingLeft: 8 }}>
+        <Pressable
+          onPress={() => navigation.goBack()}
+          accessibilityLabel="Back"
+          style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
         >
-          <Text style={styles.createBtnText}>+ New</Text>
-        </TouchableOpacity>
-      </SafeAreaView>
-
-      {/* Tab bar */}
-      <View style={styles.tabs}>
-        {TABS.map((t) => (
-          <TouchableOpacity
-            key={t.key}
-            style={[styles.tab, activeTab === t.key && styles.tabActive]}
-            onPress={() => setActiveTab(t.key)}
-            activeOpacity={0.7}
-          >
-            <Icon name={t.icon} size={15} color={activeTab === t.key ? Colors.primary : Colors.textSecondary} />
-            <Text style={[styles.tabLabel, activeTab === t.key && styles.tabLabelActive]}>
-              {t.label}
-            </Text>
-            {tabData[t.key].length > 0 && (
-              <View style={styles.tabBadge}>
-                <Text style={styles.tabBadgeText}>{tabData[t.key].length}</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        ))}
+          <Icon name="caret-left" size={20} color={Colors.textPrimary} />
+        </Pressable>
+        <Text style={{ fontSize: 17, fontWeight: '500' }}>Walks & events</Text>
       </View>
-
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator color={Colors.primary} size="large" />
-          <Text style={styles.loadingText}>Loading your walks...</Text>
-        </View>
-      ) : tabData[activeTab].length === 0 ? (
-        <EmptyState
-          tab={activeTab}
-          onDiscover={() => navigation.getParent()?.navigate('MapTab')}
-          onCreate={() => navigation.navigate('CreateWalk')}
-        />
-      ) : (
-        <FlatList
-          data={tabData[activeTab]}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <WalkCard
-              walk={item}
-              userId={user?.id ?? ''}
-              onPress={() => navigation.navigate('WalkDetail', { walkId: item.id })}
-            />
-          )}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <Segmented options={SEGS} value={seg} onChange={setSeg} height={38} style={{ marginTop: 10, marginHorizontal: 20, marginBottom: 4 }} />
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: 4, paddingHorizontal: 20, paddingBottom: 24 }} showsVerticalScrollIndicator={false}>
+        {rows.map((r) => (
+          <Pressable key={r.id} onPress={r.open} style={{ flexDirection: 'row', alignItems: 'center', columnGap: 12, paddingVertical: 12 }}>
+            <View style={{ width: 42, height: 42, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: r.live ? Ramp.accent[900] : Ramp.neutral[900] }}>
+              <Icon name={r.icon} size={18} color={r.live ? Ramp.accent[300] : Ramp.neutral[400]} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 14 }}>{r.title}</Text>
+              <Text style={{ fontSize: 12, color: Ramp.neutral[500] }}>{r.sub}</Text>
+            </View>
+            <View style={{ paddingVertical: 3, paddingHorizontal: 8, borderRadius: 6, borderWidth: 1, borderColor: DIV }}>
+              <Text style={{ fontSize: 11, color: Ramp.neutral[300] }}>{r.kind}</Text>
+            </View>
+            <Hairline style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }} />
+          </Pressable>
+        ))}
+        {rows.length === 0 && (
+          <View style={{ paddingVertical: 28, rowGap: 10, alignItems: 'flex-start' }}>
+            <Text style={{ fontSize: 13, color: Ramp.neutral[500] }}>{emptyText}</Text>
+            <Pressable onPress={() => navigation.navigate('CreateWalk')} style={{ height: 40, paddingHorizontal: 16, borderRadius: 20, borderWidth: 1, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ fontSize: 13, color: Colors.primary }}>Plan a walk</Text>
+            </Pressable>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.backgroundDark },
-  header: {
-    backgroundColor: Colors.surfaceDark,
-    borderBottomWidth: 1, borderColor: Colors.border,
-    flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between',
-    paddingHorizontal: Spacing.lg, paddingBottom: Spacing.sm,
-  },
-  headerTitle: { ...Typography.h2, color: Colors.textPrimary },
-  createBtn: {
-    backgroundColor: Colors.primary, borderRadius: Radius.full,
-    paddingHorizontal: Spacing.md, paddingVertical: 6,
-    ...Shadow.card,
-  },
-  createBtnText: { ...Typography.caption, color: '#fff', fontWeight: '700' },
-  tabs: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surfaceDark,
-    borderBottomWidth: 1, borderColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-  },
-  tab: {
-    flex: 1, flexDirection: 'row',
-    alignItems: 'center', justifyContent: 'center',
-    paddingVertical: Spacing.md, gap: 4,
-    borderBottomWidth: 2, borderColor: 'transparent',
-  },
-  tabActive: { borderColor: Colors.primary },
-  tabEmoji: { fontSize: 14 },
-  tabLabel: { ...Typography.caption, color: Colors.textSecondary },
-  tabLabelActive: { color: Colors.primary, fontWeight: '700' },
-  tabBadge: {
-    minWidth: 18, height: 18, borderRadius: 9,
-    backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-    paddingHorizontal: 4,
-  },
-  tabBadgeText: { fontSize: 10, color: '#fff', fontWeight: '700' },
-  list: { padding: Spacing.lg },
-  loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { ...Typography.body, color: Colors.textSecondary, marginTop: Spacing.sm },
-});

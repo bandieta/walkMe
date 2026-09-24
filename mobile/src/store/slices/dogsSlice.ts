@@ -9,7 +9,15 @@ export interface Dog {
   weight?: number;
   photoUrl?: string;
   ownerId: string;
+  bio?: string;
+  emoji?: string;
+  energy?: 'Calm' | 'Balanced' | 'High';
+  ageGroup?: 'Puppy' | 'Adult' | 'Senior';
+  personality?: string[];
 }
+
+/** What POST /dogs accepts: the required basics plus every optional profile field. */
+export type NewDog = Pick<Dog, 'name' | 'breed' | 'age'> & Partial<Omit<Dog, 'id' | 'ownerId' | 'name' | 'breed' | 'age'>>;
 
 interface DogsState {
   dogs: Dog[];
@@ -37,12 +45,24 @@ export const fetchMyDogs = createAsyncThunk(
 
 export const createDog = createAsyncThunk(
   'dogs/createDog',
-  async (payload: Omit<Dog, 'id' | 'ownerId'>, { rejectWithValue }) => {
+  async (payload: NewDog, { rejectWithValue }) => {
     try {
       const res = await usersApi.createDog(payload);
       return res.data as Dog;
     } catch (err: any) {
       return rejectWithValue(err?.response?.data?.message ?? 'Failed to create dog');
+    }
+  },
+);
+
+export const updateDog = createAsyncThunk(
+  'dogs/updateDog',
+  async ({ dogId, changes }: { dogId: string; changes: Partial<NewDog> }, { rejectWithValue }) => {
+    try {
+      const res = await usersApi.updateDog(dogId, changes);
+      return res.data as Dog;
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.message ?? 'Failed to update dog');
     }
   },
 );
@@ -83,6 +103,9 @@ const dogsSlice = createSlice({
       })
       .addCase(createDog.fulfilled, (state, action: PayloadAction<Dog>) => {
         state.dogs.push(action.payload);
+      })
+      .addCase(updateDog.fulfilled, (state, action: PayloadAction<Dog>) => {
+        state.dogs = state.dogs.map(d => (d.id === action.payload.id ? action.payload : d));
       })
       .addCase(deleteDog.fulfilled, (state, action: PayloadAction<string>) => {
         state.dogs = state.dogs.filter(d => d.id !== action.payload);

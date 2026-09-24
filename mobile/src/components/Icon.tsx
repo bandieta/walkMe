@@ -1,140 +1,203 @@
 import React from 'react';
 import type { Icon as PhosphorIcon, IconProps } from 'phosphor-react-native';
-const Bell: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Bell').Bell;
-const Buildings: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Buildings').Buildings;
-const CalendarBlank: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CalendarBlank').CalendarBlank;
-const Camera: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Camera').Camera;
-const CaretLeft: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CaretLeft').CaretLeft;
-const CaretRight: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CaretRight').CaretRight;
-const ChatCircle: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ChatCircle').ChatCircle;
-const ChatsCircle: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ChatsCircle').ChatsCircle;
-const Check: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Check').Check;
-const CheckCircle: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CheckCircle').CheckCircle;
-const Clock: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Clock').Clock;
-const Coffee: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Coffee').Coffee;
-const Compass: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Compass').Compass;
-const Crosshair: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Crosshair').Crosshair;
-const Dog: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Dog').Dog;
-const DotsThree: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/DotsThree').DotsThree;
-const Eye: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Eye').Eye;
-const EyeSlash: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/EyeSlash').EyeSlash;
-const Fire: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Fire').Fire;
-const FirstAid: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/FirstAid').FirstAid;
-const FlowerLotus: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/FlowerLotus').FlowerLotus;
-const Gear: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Gear').Gear;
-const Heart: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Heart').Heart;
-const Info: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Info').Info;
-const ListBullets: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ListBullets').ListBullets;
-const Lock: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Lock').Lock;
-const MagnifyingGlass: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/MagnifyingGlass').MagnifyingGlass;
-const MapPin: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/MapPin').MapPin;
-const MapTrifold: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/MapTrifold').MapTrifold;
-const Medal: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Medal').Medal;
-const MoonStars: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/MoonStars').MoonStars;
-const NavigationArrow: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/NavigationArrow').NavigationArrow;
-const PaperPlaneTilt: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/PaperPlaneTilt').PaperPlaneTilt;
-const Path: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Path').Path;
-const PawPrint: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/PawPrint').PawPrint;
-const PencilSimple: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/PencilSimple').PencilSimple;
-const PersonSimpleWalk: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/PersonSimpleWalk').PersonSimpleWalk;
-const Plus: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Plus').Plus;
-const Question: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Question').Question;
-const Ruler: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Ruler').Ruler;
-const ShareNetwork: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ShareNetwork').ShareNetwork;
-const Shield: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Shield').Shield;
-const SignOut: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/SignOut').SignOut;
-const Star: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Star').Star;
-const Storefront: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Storefront').Storefront;
-const Trash: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Trash').Trash;
-const Tree: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Tree').Tree;
-const TreeEvergreen: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/TreeEvergreen').TreeEvergreen;
-const Trophy: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Trophy').Trophy;
-const UmbrellaSimple: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/UmbrellaSimple').UmbrellaSimple;
-const User: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/User').User;
-const Users: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Users').Users;
-const UsersThree: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/UsersThree').UsersThree;
-const WarningCircle: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/WarningCircle').WarningCircle;
-const Waves: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Waves').Waves;
-const X: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/X').X;
-const GoogleLogo: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/GoogleLogo').GoogleLogo;
-const FacebookLogo: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/FacebookLogo').FacebookLogo;
-const AppleLogo: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/AppleLogo').AppleLogo;
-const Flask: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Flask').Flask;
-const ArrowRight: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ArrowRight').ArrowRight;
-const CalendarCheck: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CalendarCheck').CalendarCheck;
-const Target: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Target').Target;
-const Sparkle: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Sparkle').Sparkle;
+const AppleLogo: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/AppleLogo').AppleLogoIcon;
+const ArrowLeft: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ArrowLeft').ArrowLeftIcon;
+const ArrowRight: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ArrowRight').ArrowRightIcon;
+const BatteryFull: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/BatteryFull').BatteryFullIcon;
+const Bell: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Bell').BellIcon;
+const BookmarkSimple: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/BookmarkSimple').BookmarkSimpleIcon;
+const Buildings: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Buildings').BuildingsIcon;
+const CalendarBlank: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CalendarBlank').CalendarBlankIcon;
+const CalendarCheck: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CalendarCheck').CalendarCheckIcon;
+const CalendarPlus: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CalendarPlus').CalendarPlusIcon;
+const Camera: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Camera').CameraIcon;
+const CaretLeft: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CaretLeft').CaretLeftIcon;
+const CaretRight: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CaretRight').CaretRightIcon;
+const CellSignalFull: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CellSignalFull').CellSignalFullIcon;
+const ChatCircle: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ChatCircle').ChatCircleIcon;
+const ChatsCircle: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ChatsCircle').ChatsCircleIcon;
+const Check: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Check').CheckIcon;
+const CheckCircle: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CheckCircle').CheckCircleIcon;
+const Clock: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Clock').ClockIcon;
+const CloudSun: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/CloudSun').CloudSunIcon;
+const Coffee: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Coffee').CoffeeIcon;
+const Compass: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Compass').CompassIcon;
+const Crosshair: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Crosshair').CrosshairIcon;
+const Dog: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Dog').DogIcon;
+const DotsThree: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/DotsThree').DotsThreeIcon;
+const Export: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Export').ExportIcon;
+const Eye: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Eye').EyeIcon;
+const EyeSlash: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/EyeSlash').EyeSlashIcon;
+const FacebookLogo: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/FacebookLogo').FacebookLogoIcon;
+const Fire: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Fire').FireIcon;
+const FirstAid: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/FirstAid').FirstAidIcon;
+const Flask: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Flask').FlaskIcon;
+const FlowerLotus: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/FlowerLotus').FlowerLotusIcon;
+const Gear: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Gear').GearIcon;
+const GoogleLogo: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/GoogleLogo').GoogleLogoIcon;
+const Heart: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Heart').HeartIcon;
+const Image: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Image').ImageIcon;
+const Info: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Info').InfoIcon;
+const ListBullets: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ListBullets').ListBulletsIcon;
+const Lock: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Lock').LockIcon;
+const MagnifyingGlass: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/MagnifyingGlass').MagnifyingGlassIcon;
+const MapPin: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/MapPin').MapPinIcon;
+const MapTrifold: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/MapTrifold').MapTrifoldIcon;
+const Medal: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Medal').MedalIcon;
+const Minus: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Minus').MinusIcon;
+const Moon: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Moon').MoonIcon;
+const MoonStars: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/MoonStars').MoonStarsIcon;
+const NavigationArrow: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/NavigationArrow').NavigationArrowIcon;
+const PaperPlaneRight: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/PaperPlaneRight').PaperPlaneRightIcon;
+const PaperPlaneTilt: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/PaperPlaneTilt').PaperPlaneTiltIcon;
+const Path: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Path').PathIcon;
+const PawPrint: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/PawPrint').PawPrintIcon;
+const PencilSimple: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/PencilSimple').PencilSimpleIcon;
+const PersonSimpleWalk: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/PersonSimpleWalk').PersonSimpleWalkIcon;
+const Plus: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Plus').PlusIcon;
+const Question: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Question').QuestionIcon;
+const Ruler: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Ruler').RulerIcon;
+const ShareNetwork: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ShareNetwork').ShareNetworkIcon;
+const Shield: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Shield').ShieldIcon;
+const ShieldCheck: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ShieldCheck').ShieldCheckIcon;
+const SignOut: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/SignOut').SignOutIcon;
+const SlidersHorizontal: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/SlidersHorizontal').SlidersHorizontalIcon;
+const Sparkle: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Sparkle').SparkleIcon;
+const Star: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Star').StarIcon;
+const Storefront: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Storefront').StorefrontIcon;
+const Sun: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Sun').SunIcon;
+const SunDim: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/SunDim').SunDimIcon;
+const SunHorizon: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/SunHorizon').SunHorizonIcon;
+const Target: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Target').TargetIcon;
+const Trash: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Trash').TrashIcon;
+const Tree: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Tree').TreeIcon;
+const TreeEvergreen: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/TreeEvergreen').TreeEvergreenIcon;
+const Trophy: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Trophy').TrophyIcon;
+const UmbrellaSimple: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/UmbrellaSimple').UmbrellaSimpleIcon;
+const User: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/User').UserIcon;
+const Users: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Users').UsersIcon;
+const UsersThree: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/UsersThree').UsersThreeIcon;
+const WarningCircle: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/WarningCircle').WarningCircleIcon;
+const Waves: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Waves').WavesIcon;
+const WifiHigh: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/WifiHigh').WifiHighIcon;
+const X: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/X').XIcon;
 import { Colors } from '../utils/theme';
 
-// Nocturne uses Phosphor throughout. Icons are deep-required one by one so
-// Metro doesn't have to load the whole 3,000-icon library at startup — to add
-// an icon, import it above and give it a name here.
+// The design system uses Phosphor throughout. Icons are deep-required one by one so Metro doesn't load the
+// whole 3,000-icon library at startup. Names are either this app's semantic keys ('paw', 'pin', ...) or the
+// design prototype's own Phosphor names without the "ph-" prefix ('paw-print', 'map-pin', ...). To add an icon,
+// require it above and give it a name here.
 const ICONS = {
-  sparkle: Sparkle,
-  target: Target,
-  calendarCheck: CalendarCheck,
-  arrowRight: ArrowRight,
-  flask: Flask,
+  'apple-logo': AppleLogo,
   appleLogo: AppleLogo,
-  facebookLogo: FacebookLogo,
-  googleLogo: GoogleLogo,
-  compass: Compass,
-  paw: PawPrint,
+  'arrow-left': ArrowLeft,
+  arrowRight: ArrowRight,
+  'battery-full': BatteryFull,
+  beach: UmbrellaSimple,
+  bell: Bell,
+  'bookmark-simple': BookmarkSimple,
+  buildings: Buildings,
+  cafe: Coffee,
   calendar: CalendarBlank,
+  'calendar-blank': CalendarBlank,
+  'calendar-plus': CalendarPlus,
+  calendarCheck: CalendarCheck,
+  camera: Camera,
+  'caret-left': CaretLeft,
+  'caret-right': CaretRight,
+  'cell-signal-full': CellSignalFull,
   chat: ChatCircle,
+  'chat-circle': ChatCircle,
   chats: ChatsCircle,
-  user: User,
-  users: Users,
-  pin: MapPin,
-  clock: Clock,
-  star: Star,
-  heart: Heart,
-  close: X,
-  chevronRight: CaretRight,
+  'chats-circle': ChatsCircle,
+  check: Check,
+  'check-circle': CheckCircle,
+  checkCircle: CheckCircle,
   chevronLeft: CaretLeft,
-  plus: Plus,
+  chevronRight: CaretRight,
+  city: Buildings,
+  clock: Clock,
+  close: X,
+  'cloud-sun': CloudSun,
+  coffee: Coffee,
+  compass: Compass,
+  competition: Trophy,
+  crosshair: Crosshair,
+  dog: Dog,
+  edit: PencilSimple,
+  export: Export,
   eye: Eye,
   eyeOff: EyeSlash,
-  locate: Crosshair,
-  search: MagnifyingGlass,
-  walk: PersonSimpleWalk,
-  send: PaperPlaneTilt,
-  camera: Camera,
-  check: Check,
-  checkCircle: CheckCircle,
-  gear: Gear,
-  signOut: SignOut,
-  lock: Lock,
-  medal: Medal,
-  question: Question,
-  bell: Bell,
-  share: ShareNetwork,
-  dog: Dog,
-  list: ListBullets,
-  map: MapTrifold,
+  'facebook-logo': FacebookLogo,
+  facebookLogo: FacebookLogo,
   fire: Fire,
+  'first-aid': FirstAid,
+  flask: Flask,
+  'flower-lotus': FlowerLotus,
+  gear: Gear,
+  'google-logo': GoogleLogo,
+  googleLogo: GoogleLogo,
+  heart: Heart,
+  image: Image,
   info: Info,
-  warning: WarningCircle,
-  navigate: NavigationArrow,
-  ruler: Ruler,
-  shield: Shield,
-  trash: Trash,
-  edit: PencilSimple,
-  more: DotsThree,
-  path: Path,
-  park: Tree,
-  trail: TreeEvergreen,
   lake: Waves,
-  beach: UmbrellaSimple,
-  cafe: Coffee,
-  city: Buildings,
+  list: ListBullets,
+  locate: Crosshair,
+  lock: Lock,
+  'magnifying-glass': MagnifyingGlass,
+  map: MapTrifold,
+  'map-pin': MapPin,
+  'map-trifold': MapTrifold,
+  medal: Medal,
   meetup: UsersThree,
-  playdate: Dog,
-  competition: Trophy,
-  wellness: FlowerLotus,
+  minus: Minus,
+  moon: Moon,
+  'moon-stars': MoonStars,
+  more: DotsThree,
+  navigate: NavigationArrow,
+  'navigation-arrow': NavigationArrow,
   night: MoonStars,
-  vet: FirstAid,
+  'paper-plane-right': PaperPlaneRight,
+  park: Tree,
+  path: Path,
+  paw: PawPrint,
+  'paw-print': PawPrint,
+  pin: MapPin,
+  playdate: Dog,
+  plus: Plus,
+  question: Question,
+  ruler: Ruler,
+  search: MagnifyingGlass,
+  send: PaperPlaneTilt,
+  share: ShareNetwork,
+  shield: Shield,
+  'shield-check': ShieldCheck,
+  'sign-out': SignOut,
+  signOut: SignOut,
+  'sliders-horizontal': SlidersHorizontal,
+  sparkle: Sparkle,
+  star: Star,
   store: Storefront,
+  sun: Sun,
+  'sun-dim': SunDim,
+  'sun-horizon': SunHorizon,
+  target: Target,
+  trail: TreeEvergreen,
+  trash: Trash,
+  tree: Tree,
+  'tree-evergreen': TreeEvergreen,
+  trophy: Trophy,
+  'umbrella-simple': UmbrellaSimple,
+  user: User,
+  users: Users,
+  'users-three': UsersThree,
+  vet: FirstAid,
+  walk: PersonSimpleWalk,
+  warning: WarningCircle,
+  waves: Waves,
+  wellness: FlowerLotus,
+  'wifi-high': WifiHigh,
+  x: X
 };
 
 export type IconName = keyof typeof ICONS;
@@ -152,9 +215,10 @@ export const Icon: React.FC<Props> = ({ name, size = 20, color = Colors.textSeco
 export function categoryIcon(category?: string): IconName {
   const key = (category ?? '').toLowerCase().replace(/[^a-z]/g, '');
   const map: Record<string, IconName> = {
-    park: 'park', trail: 'trail', lake: 'lake', beach: 'beach', cafe: 'cafe', caf: 'cafe', city: 'city',
-    meetup: 'meetup', playdate: 'playdate', competition: 'competition', wellness: 'wellness', walk: 'night',
-    vet: 'vet', store: 'store', walks: 'walk', parks: 'park', cafes: 'cafe', vets: 'vet', trails: 'trail',
+    park: 'tree', trail: 'tree-evergreen', lake: 'waves', beach: 'umbrella-simple', cafe: 'coffee', caf: 'coffee',
+    city: 'buildings', meetup: 'users-three', playdate: 'dog', competition: 'trophy', wellness: 'flower-lotus',
+    walk: 'moon-stars', vet: 'first-aid', store: 'storefront' as IconName, walks: 'path', parks: 'tree', cafes: 'coffee',
+    vets: 'first-aid', trails: 'tree-evergreen',
   };
-  return map[key] ?? 'pin';
+  return map[key] ?? 'map-pin';
 }

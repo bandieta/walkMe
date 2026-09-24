@@ -1,299 +1,365 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
+  Pressable,
+  Image,
+  Share,
   Alert,
-  StatusBar,
-  SafeAreaView,
-  Dimensions,
+  Platform,
+  ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
+import Svg, { Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../store';
-import { fetchWalkById, joinWalk, leaveWalk } from '../../store/slices/walksSlice';
-import { Colors, Typography, Spacing, Radius, Shadow } from '../../utils/theme';
+import { fetchWalkById, joinWalk, leaveWalk, updateWalkStatus } from '../../store/slices/walksSlice';
 import { Icon, IconName } from '../../components/Icon';
+import { Hairline, Tag, Btn, PrettyText, useScreenInsets } from '../../ui';
+import { Colors, Ramp } from '../../utils/theme';
+import { resolveMediaUrl } from '../../utils/media';
 
-const { width } = Dimensions.get('window');
+const DIVIDER = 'rgba(233,233,237,0.16)';
+// Same reference point the map uses for "x km away" until real device location is wired in.
+const FALLBACK_CENTER = { latitude: 52.2297, longitude: 21.0122 };
 
-const InfoRow: React.FC<{ icon: IconName; label: string; value: string }> = ({ icon, label, value }) => (
-  <View style={styles.infoRow}>
-    <View style={styles.infoIcon}><Icon name={icon} size={18} color={Colors.primary} /></View>
-    <View>
-      <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const pad = (n: number) => String(n).padStart(2, '0');
+/** The prototype's 1.55 line-height snapped to the device pixel grid (RN rounds text boxes up, CSS does not). */
+const lh = (fs: number) => Math.round(fs * 1.55 * 3) / 3;
+
+/** "Today · 11:45" / "Thu 25 Sep · 09:00" — the prototype's `whenLong`. */
+function whenLong(iso: string) {
+  const d = new Date(iso);
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const day = d.toDateString() === new Date().toDateString() ? 'Today' : `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  return `${day} · ${time}`;
+}
+
+function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const a = Math.sin(toRad(lat2 - lat1) / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(toRad(lng2 - lng1) / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+const initials = (name?: string) =>
+  (name ?? '').split(' ').filter(Boolean).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '?';
+const firstName = (name?: string) => (name ?? '').split(' ')[0];
+
+// Category -> icon, as in the prototype (unknown categories fall back to a path).
+const CATEGORY_ICON: Record<string, IconName> = {
+  Park: 'tree', Trail: 'tree-evergreen', Lake: 'waves', Beach: 'umbrella-simple', 'Café': 'coffee', City: 'buildings',
+  Meetup: 'users-three', Playdate: 'dog', Competition: 'trophy', Wellness: 'flower-lotus', Walk: 'moon-stars',
+};
+
+/** Round initials chip (or the person's photo when they have one). */
+const Bubble: React.FC<{ name?: string; uri?: string | null; size: number; fontSize: number; bg: string; fg: string }> = ({ name, uri, size, fontSize, bg, fg }) => {
+  const [failed, setFailed] = useState(false);
+  const source = resolveMediaUrl(uri);
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {source && !failed ? (
+        <Image source={{ uri: source }} style={{ width: size, height: size }} onError={() => setFailed(true)} />
+      ) : (
+        <Text style={{ fontSize, lineHeight: lh(fontSize), fontWeight: '500', color: fg }}>{initials(name)}</Text>
+      )}
     </View>
+  );
+};
+
+/** The 44px round surface buttons floating over the map (a 1px #3f424d ring sits just outside them). */
+const RoundBtn: React.FC<{ icon: IconName; label: string; onPress: () => void; style: object }> = ({ icon, label, onPress, style }) => (
+  <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={[{ position: 'absolute', width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.surfaceDark, alignItems: 'center', justifyContent: 'center' }, style]}>
+    <View pointerEvents="none" style={{ position: 'absolute', top: -1, left: -1, width: 46, height: 46, borderRadius: 23, borderWidth: 1, borderColor: Ramp.neutral[800] }} />
+    <Icon name={icon} size={19} color={Colors.textPrimary} />
+  </Pressable>
+);
+
+/** Stylised map card: a 30px grid, the meeting-point pin with its halo, a mono caption and a fade into the ground. */
+const MapCard: React.FC<{ icon: IconName; width: number }> = ({ icon, width }) => {
+  const H = 250;
+  const cols = Math.ceil(width / 30);
+  const rows = Math.ceil(H / 30);
+  return (
+    <View style={{ height: H, backgroundColor: '#181a28' }}>
+      <Svg width={width} height={H} style={{ position: 'absolute' }}>
+        {Array.from({ length: rows }, (_, i) => <Rect key={`h${i}`} x={0} y={i * 30} width={width} height={1} fill="#e9e9ed" fillOpacity={0.045} />)}
+        {Array.from({ length: cols }, (_, i) => <Rect key={`v${i}`} x={i * 30} y={0} width={1} height={H} fill="#e9e9ed" fillOpacity={0.045} />)}
+      </Svg>
+      {/* pin: 48px disc, 1.5px accent ring, 8px translucent halo */}
+      <View style={{ position: 'absolute', left: width / 2 - 32, top: H * 0.58 - 32, width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(145,132,217,0.14)', alignItems: 'center', justifyContent: 'center' }}>
+        <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: Colors.surfaceDark, borderWidth: 1.5, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center' }}>
+          <Icon name={icon} size={21} color={Colors.primary} />
+        </View>
+      </View>
+      <Text style={{ position: 'absolute', left: 14, bottom: 12, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 10, fontWeight: '500', color: Ramp.neutral[600] }}>
+        map — meeting point
+      </Text>
+      <Svg width={width} height={60} style={{ position: 'absolute', left: 0, bottom: 0 }} pointerEvents="none">
+        <Defs>
+          <LinearGradient id="mapFade" x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor={Colors.backgroundDark} stopOpacity={0} />
+            <Stop offset="1" stopColor={Colors.backgroundDark} stopOpacity={1} />
+          </LinearGradient>
+        </Defs>
+        <Rect x={0} y={0} width={width} height={60} fill="url(#mapFade)" />
+      </Svg>
+    </View>
+  );
+};
+
+/** The prototype's toast (see 18-overlays): 12px radius surface, a 1px #595d6c ring and a soft drop shadow. */
+const Toast: React.FC<{ text: string; top: number }> = ({ text, top }) => (
+  <View
+    pointerEvents="none"
+    style={{
+      position: 'absolute', left: 16, right: 16, top: top - 2, zIndex: 30, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 12,
+      backgroundColor: Colors.surfaceDark, flexDirection: 'row', alignItems: 'center', columnGap: 10,
+      shadowColor: '#000', shadowOpacity: 0.55, shadowRadius: 9, shadowOffset: { width: 0, height: 6 },
+    }}
+  >
+    <View style={{ position: 'absolute', top: -1, left: -1, right: -1, bottom: -1, borderRadius: 13, borderWidth: 1, borderColor: Ramp.neutral[700] }} />
+    <Icon name="check-circle" weight="fill" size={18} color={Colors.primary} />
+    <Text style={{ fontSize: 14, lineHeight: lh(14), flex: 1 }}>{text}</Text>
   </View>
 );
 
 export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
   const { walkId } = route.params;
   const dispatch = useDispatch<AppDispatch>();
-  const { currentWalk, loading } = useSelector((s: RootState) => s.walks);
-  const { user } = useSelector((s: RootState) => s.auth);
-  const [joining, setJoining] = useState(false);
+  const { width } = useWindowDimensions();
+  const { top, bottom } = useScreenInsets();
+  const currentWalk = useSelector((s: RootState) => s.walks.currentWalk) as any;
+  const user = useSelector((s: RootState) => s.auth.user);
+  const userLocation = useSelector((s: RootState) => s.map.userLocation);
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const showToast = useCallback((text: string) => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(text);
+    toastTimer.current = setTimeout(() => setToast(null), 2300);
+  }, []);
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   useEffect(() => {
-    dispatch(fetchWalkById(walkId));
+    setFailed(false);
+    dispatch(fetchWalkById(walkId)).unwrap().catch(() => setFailed(true));
   }, [walkId, dispatch]);
 
-  if (loading || !currentWalk) {
+  // The store keeps one "current" walk; never show a previously opened one while this one loads.
+  const walk = currentWalk?.id === walkId ? currentWalk : null;
+
+  const view = useMemo(() => {
+    if (!walk) return null;
+    const participants: any[] = walk.participants ?? [];
+    const isHost = walk.host?.id === user?.id;
+    const joined = participants.some((p) => p.id === user?.id);
+    const ended = walk.status === 'ended';
+    const live = walk.status === 'live';
+    const full = participants.length >= walk.maxParticipants;
+    const hostDog = walk.host?.dogs?.[0];
+    const from = userLocation ?? FALLBACK_CENTER;
+    const dist = distanceKm(from.latitude, from.longitude, Number(walk.meetingLat), Number(walk.meetingLng));
+    // host first, everyone else in the order the API lists them
+    const ordered = [...participants].sort((a, b) => Number(b.id === walk.host?.id) - Number(a.id === walk.host?.id));
+    return {
+      isHost, joined, ended, live, full,
+      canJoin: !ended && !joined && !full,
+      inside: !ended && joined,
+      blocked: ended || (!joined && full),
+      blockedLabel: ended ? 'This walk has ended' : 'This walk is full',
+      statusLabel: live ? 'Live now' : ended ? 'Ended' : 'Upcoming',
+      icon: CATEGORY_ICON[walk.category ?? ''] ?? ('path' as IconName),
+      when: whenLong(walk.scheduledAt),
+      dur: walk.duration,
+      point: walk.meetingPoint,
+      dist: `${dist.toFixed(1)} km away`,
+      hostName: isHost ? 'you' : walk.host?.displayName,
+      hostIni: initials(isHost ? user?.displayName : walk.host?.displayName),
+      hostDog: hostDog ? `${hostDog.name} · ${hostDog.breed}` : '',
+      people: ordered.map((p) => ({
+        id: p.id, name: p.displayName, photoUrl: p.photoUrl,
+        me: p.id === user?.id,
+        dog: p.id === user?.id ? 'You' : p.dogs?.[0]?.name ?? firstName(p.displayName),
+      })),
+      pct: Math.round((participants.length / (walk.maxParticipants || 1)) * 100),
+    };
+  }, [walk, user, userLocation]);
+
+  const shareLink = useCallback(() => {
+    if (!walk) return;
+    Share.share({ message: `Join "${walk.title}" on WalkMe: https://dogpals.app/walk/${walk.id}` }).catch(() => undefined);
+  }, [walk]);
+
+  const run = async (action: () => Promise<unknown>, okText?: string) => {
+    setBusy(true);
+    try {
+      await action();
+      if (okText) showToast(okText);
+    } catch (e: any) {
+      Alert.alert('Something went wrong', e?.message ?? 'Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  const join = () => run(() => dispatch(joinWalk(walkId)).unwrap(), 'You’re in. The group chat is open.');
+  const leave = () => run(() => dispatch(leaveWalk(walkId)).unwrap(), 'You left the walk');
+  const openChat = () => navigation.navigate('WalkChat', { walkId, walkTitle: walk?.title });
+  const setStatus = (status: 'live' | 'ended') => run(() => dispatch(updateWalkStatus({ id: walkId, status })).unwrap());
+  const confirmEnd = () =>
+    Alert.alert('End this walk?', 'It will move to past walks for everyone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'End walk', style: 'destructive', onPress: () => setStatus('ended') },
+    ]);
+
+  const backBtn = (
+    <RoundBtn icon={Platform.OS === 'ios' ? 'caret-left' : 'arrow-left'} label="Back" onPress={() => navigation.goBack()} style={{ top: top - 4, left: 14 }} />
+  );
+
+  if (!walk || !view) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator color={Colors.primary} size="large" />
-        <Text style={styles.loadingText}>Loading walk...</Text>
+      <View style={{ flex: 1, backgroundColor: Colors.backgroundDark, alignItems: 'center', justifyContent: 'center' }}>
+        {failed ? (
+          <View style={{ alignItems: 'center', rowGap: 14 }}>
+            <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[400] }}>We couldn’t load this walk.</Text>
+            <Btn label="Try again" variant="neutral" onPress={() => { setFailed(false); dispatch(fetchWalkById(walkId)).unwrap().catch(() => setFailed(true)); }} />
+          </View>
+        ) : (
+          <ActivityIndicator color={Colors.primary} />
+        )}
+        {backBtn}
       </View>
     );
   }
 
-  const isParticipant = currentWalk.participants?.some((p: any) => p.id === user?.id);
-  const isHost = currentWalk.host?.id === user?.id;
-  const isFull = currentWalk.participants?.length >= currentWalk.maxParticipants;
-  const spotsLeft = currentWalk.maxParticipants - (currentWalk.participants?.length ?? 0);
-
-  const handleJoinLeave = async () => {
-    setJoining(true);
-    try {
-      if (isParticipant && !isHost) {
-        await dispatch(leaveWalk(walkId));
-      } else if (!isParticipant) {
-        await dispatch(joinWalk(walkId));
-      }
-    } catch {
-      Alert.alert('Error', 'Something went wrong');
-    } finally {
-      setJoining(false);
-    }
-  };
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.backgroundDark} />
-
-      {/* Hero header */}
-      <View style={styles.hero}>
-        <SafeAreaView>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Icon name="chevronLeft" size={20} color={Colors.textPrimary} />
-          </TouchableOpacity>
-        </SafeAreaView>
-        <View style={styles.heroContent}>
-          <View style={[styles.statusBadge,
-            currentWalk.status === 'active' && { backgroundColor: 'rgba(29,209,161,0.2)' },
-            currentWalk.status === 'pending' && { backgroundColor: 'rgba(108,92,231,0.2)' },
-          ]}>
-            <Text style={[styles.statusText,
-              currentWalk.status === 'active' && { color: Colors.success },
-              currentWalk.status === 'pending' && { color: Colors.primary },
-            ]}>
-              {currentWalk.status === 'active' ? '● Active now' : '◌ Upcoming'}
-            </Text>
-          </View>
-          <Text style={styles.heroTitle}>{currentWalk.title}</Text>
-          {currentWalk.description && (
-            <Text style={styles.heroDesc}>{currentWalk.description}</Text>
-          )}
-        </View>
-      </View>
-
-      <ScrollView style={styles.body} showsVerticalScrollIndicator={false}>
-        {/* Info grid */}
-        <View style={styles.card}>
-          <InfoRow
-            icon="calendar"
-            label="Date & Time"
-            value={new Date(currentWalk.scheduledAt).toLocaleString('en-US', {
-              weekday: 'short', month: 'short', day: 'numeric',
-              hour: '2-digit', minute: '2-digit',
-            })}
-          />
-          <View style={styles.divider} />
-          <InfoRow
-            icon="pin"
-            label="Meeting Point"
-            value={`${Number(currentWalk.meetingLat).toFixed(4)}, ${Number(currentWalk.meetingLng).toFixed(4)}`}
-          />
-          <View style={styles.divider} />
-          <InfoRow
-            icon="users"
-            label="Participants"
-            value={`${currentWalk.participants?.length ?? 0} / ${currentWalk.maxParticipants} (${spotsLeft} spots left)`}
-          />
+    <View style={{ flex: 1, backgroundColor: Colors.backgroundDark }}>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} bounces={false}>
+        <View>
+          <MapCard icon={view.icon} width={width} />
+          {backBtn}
+          <RoundBtn icon="export" label="Share" onPress={shareLink} style={{ top: top - 4, right: 14 }} />
         </View>
 
-        {/* Host */}
-        <View style={styles.card}>
-          <Text style={styles.sectionLabel}>Hosted by</Text>
-          <View style={styles.hostRow}>
-            <View style={styles.hostAvatar}>
-              <Text style={styles.hostAvatarText}>
-                {currentWalk.host?.displayName?.[0]?.toUpperCase() ?? '?'}
-              </Text>
+        <View style={{ paddingTop: 4, paddingHorizontal: 20, paddingBottom: 24, rowGap: 18 }}>
+          {/* status + category, title */}
+          <View style={{ rowGap: 8 }}>
+            <View style={{ flexDirection: 'row', columnGap: 6 }}>
+              <Tag label={view.statusLabel} tone={view.live ? 'accent' : 'neutral'} />
+              <Tag label={walk.category ?? 'Walk'} tone="neutral" />
             </View>
-            <View>
-              <Text style={styles.hostName}>{currentWalk.host?.displayName}</Text>
-              {isHost && <Text style={styles.hostBadge}>You are the host</Text>}
+            <PrettyText style={{ fontSize: 26, fontWeight: '500', lineHeight: 29, letterSpacing: -0.39 }}>{walk.title}</PrettyText>
+          </View>
+
+          {/* when / where */}
+          <View style={{ rowGap: 9 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 10 }}>
+              <Icon name="clock" size={17} color={Ramp.neutral[400]} />
+              <Text style={{ fontSize: 14, lineHeight: lh(14) }}>{view.when}</Text>
+              <Text style={{ fontSize: 14, lineHeight: lh(14) }}>·</Text>
+              <Text style={{ fontSize: 14, lineHeight: lh(14) }}>{view.dur}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 10 }}>
+              <Icon name="map-pin" size={17} color={Ramp.neutral[400]} />
+              <Text style={{ fontSize: 14, lineHeight: lh(14), flex: 1 }}>{view.point}</Text>
+              <Text style={{ fontSize: 12, lineHeight: lh(12), color: Ramp.neutral[500] }}>{view.dist}</Text>
             </View>
           </View>
-        </View>
 
-        {/* Participants */}
-        {currentWalk.participants?.length > 0 && (
-          <View style={styles.card}>
-            <Text style={styles.sectionLabel}>Participants</Text>
-            <View style={styles.avatarStack}>
-              {currentWalk.participants.slice(0, 8).map((p: any, i: number) => (
-                <View key={p.id} style={[styles.participantAvatar, { marginLeft: i === 0 ? 0 : -12, zIndex: 10 - i }]}>
-                  <Text style={styles.participantAvatarText}>{p.displayName?.[0]?.toUpperCase()}</Text>
+          {/* host */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 12, padding: 12, borderRadius: 12, backgroundColor: Colors.surfaceDark }}>
+            <Bubble name={view.isHost ? user?.displayName : walk.host?.displayName} uri={view.isHost ? user?.photoUrl : walk.host?.photoUrl} size={40} fontSize={13} bg={Ramp.accent[800]} fg={Ramp.accent[200]} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 14, lineHeight: lh(14) }} numberOfLines={1}>Hosted by {view.hostName}</Text>
+              {!!view.hostDog && <Text style={{ fontSize: 12, lineHeight: lh(12), color: Ramp.neutral[500] }} numberOfLines={1}>{view.hostDog}</Text>}
+            </View>
+          </View>
+
+          {/* going */}
+          <View style={{ rowGap: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500' }}>Going</Text>
+              <Text style={{ fontSize: 13, lineHeight: lh(13), color: Ramp.neutral[400] }}>{view.people.length} of {walk.maxParticipants}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 10, rowGap: 10 }}>
+              {view.people.map((p) => (
+                <View key={p.id} style={{ width: 52, alignItems: 'center', rowGap: 4 }}>
+                  <Bubble
+                    name={p.name} uri={p.photoUrl} size={40} fontSize={12}
+                    bg={p.me ? Ramp.accent[800] : Ramp.neutral[800]} fg={p.me ? Ramp.accent[200] : Ramp.neutral[100]}
+                  />
+                  <Text style={{ fontSize: 11, lineHeight: lh(11), color: Ramp.neutral[400], maxWidth: 52 }} numberOfLines={1}>{p.dog}</Text>
                 </View>
               ))}
-              {currentWalk.participants.length > 8 && (
-                <View style={[styles.participantAvatar, styles.moreAvatar, { marginLeft: -12 }]}>
-                  <Text style={styles.participantAvatarText}>+{currentWalk.participants.length - 8}</Text>
-                </View>
-              )}
+            </View>
+            <View style={{ height: 3, borderRadius: 2, backgroundColor: Ramp.neutral[900] }}>
+              <View style={{ width: `${Math.min(view.pct, 100)}%`, height: 3, borderRadius: 2, backgroundColor: Colors.primary }} />
             </View>
           </View>
-        )}
 
-        <View style={{ height: 120 }} />
+          {/* about */}
+          {!!walk.description && (
+            <View style={{ rowGap: 6 }}>
+              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500' }}>About</Text>
+              <PrettyText style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[300] }}>{walk.description}</PrettyText>
+            </View>
+          )}
+
+          {/* host controls (not part of the prototype's markup: it has no way to start or end a walk) */}
+          {view.isHost && !view.ended && (
+            <Btn
+              label={view.live ? 'End walk' : 'Start walk'}
+              variant={view.live ? 'neutral' : 'accent'}
+              loading={busy}
+              onPress={() => (view.live ? confirmEnd() : setStatus('live'))}
+            />
+          )}
+        </View>
       </ScrollView>
 
-      {/* Bottom action bar */}
-      <View style={styles.actionBar}>
-        {isParticipant && (
-          <TouchableOpacity
-            style={styles.chatBtn}
-            onPress={() => navigation.navigate('WalkChat', { walkId })}
-          >
-            <Icon name="chat" size={16} color={Colors.primary} />
-            <Text style={styles.chatBtnText}>Chat</Text>
-          </TouchableOpacity>
+      {/* action bar */}
+      <View style={{ paddingTop: 12, paddingHorizontal: 20, paddingBottom: bottom + 2, flexDirection: 'row', columnGap: 10 }}>
+        <Hairline tone="divider" style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
+        {view.canJoin && (
+          <Btn label="Join walk" shape="pill" onPress={join} loading={busy} style={{ flex: 1 }} />
         )}
-        {!isHost && (
-          <TouchableOpacity
-            style={[
-              styles.primaryBtn,
-              isParticipant && styles.leaveBtn,
-              (isFull && !isParticipant) && styles.disabledBtn,
-            ]}
-            onPress={handleJoinLeave}
-            disabled={joining || (isFull && !isParticipant)}
-            activeOpacity={0.85}
-          >
-            {joining ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.primaryBtnText}>
-                {isParticipant ? 'Leave Walk' : isFull ? 'Walk Full' : 'Join Walk'}
-              </Text>
-            )}
-          </TouchableOpacity>
+        {view.inside && (
+          <>
+            <Pressable
+              onPress={openChat}
+              style={({ pressed }) => ({
+                flex: 1, height: 50, borderRadius: 25, borderWidth: 1, borderColor: Colors.primary, flexDirection: 'row', alignItems: 'center',
+                justifyContent: 'center', columnGap: 8, backgroundColor: pressed ? 'rgba(145,132,217,0.22)' : 'transparent',
+              })}
+            >
+              <Icon name="chats-circle" size={15} color={Colors.primary} />
+              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500', color: Colors.primary }}>Group chat</Text>
+            </Pressable>
+            <Pressable
+              onPress={view.isHost ? shareLink : leave}
+              disabled={busy}
+              style={({ pressed }) => ({
+                height: 50, paddingHorizontal: 22, borderRadius: 25, borderWidth: 1, borderColor: DIVIDER, alignItems: 'center', justifyContent: 'center',
+                backgroundColor: pressed ? 'rgba(233,233,237,0.14)' : 'transparent', opacity: busy ? 0.45 : 1,
+              })}
+            >
+              <Text style={{ fontSize: 15, lineHeight: lh(15) }}>{view.isHost ? 'Invite' : 'Leave'}</Text>
+            </Pressable>
+          </>
         )}
-        {isHost && (
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => navigation.navigate('WalkChat', { walkId })}
-          >
-            <Text style={styles.primaryBtnText}>Open Chat Room</Text>
-          </TouchableOpacity>
+        {view.blocked && (
+          <View style={{ flex: 1, height: 50, borderRadius: 25, borderWidth: 1, borderColor: DIVIDER, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[400] }}>{view.blockedLabel}</Text>
+          </View>
         )}
       </View>
+
+      {toast && <Toast text={toast} top={top} />}
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.backgroundDark },
-  loadingContainer: { flex: 1, backgroundColor: Colors.backgroundDark, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { ...Typography.body, color: Colors.textSecondary, marginTop: Spacing.md },
-  hero: {
-    backgroundColor: Colors.surfaceDark,
-    paddingBottom: Spacing.xl,
-    borderBottomWidth: 1,
-    borderColor: Colors.border,
-  },
-  backBtn: { margin: Spacing.md, alignSelf: 'flex-start' },
-  backBtnText: { ...Typography.body, color: Colors.primary, fontWeight: '600' },
-  heroContent: { paddingHorizontal: Spacing.lg },
-  statusBadge: {
-    borderRadius: Radius.full,
-    paddingHorizontal: 10, paddingVertical: 4,
-    alignSelf: 'flex-start', marginBottom: Spacing.sm,
-  },
-  statusText: { ...Typography.caption, fontWeight: '700' },
-  heroTitle: { ...Typography.h1, color: Colors.textPrimary, marginBottom: Spacing.sm },
-  heroDesc: { ...Typography.body, color: Colors.textSecondary, lineHeight: 22 },
-  body: { flex: 1, padding: Spacing.lg },
-  card: {
-    backgroundColor: Colors.cardDark,
-    borderRadius: Radius.lg,
-    padding: Spacing.md,
-    marginBottom: Spacing.md,
-    borderWidth: 1, borderColor: Colors.border,
-    ...Shadow.subtle,
-  },
-  infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: Spacing.xs },
-  infoIcon: {
-    width: 36, height: 36, borderRadius: 10,
-    backgroundColor: 'rgba(108,92,231,0.15)',
-    alignItems: 'center', justifyContent: 'center',
-    marginRight: Spacing.md,
-  },
-  infoLabel: { ...Typography.caption, color: Colors.textSecondary },
-  infoValue: { ...Typography.body, color: Colors.textPrimary, fontWeight: '500' },
-  divider: { height: 1, backgroundColor: Colors.border, marginVertical: Spacing.xs },
-  sectionLabel: { ...Typography.overline, color: Colors.textMuted, marginBottom: Spacing.md },
-  hostRow: { flexDirection: 'row', alignItems: 'center' },
-  hostAvatar: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
-    marginRight: Spacing.md,
-    borderWidth: 2, borderColor: Colors.primaryDark,
-  },
-  hostAvatarText: { ...Typography.h3, color: '#fff', fontWeight: '700' },
-  hostName: { ...Typography.body, color: Colors.textPrimary, fontWeight: '600' },
-  hostBadge: { ...Typography.caption, color: Colors.primary },
-  avatarStack: { flexDirection: 'row', alignItems: 'center' },
-  participantAvatar: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: Colors.surfaceDark,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: 2, borderColor: Colors.cardDark,
-  },
-  moreAvatar: { backgroundColor: Colors.primary },
-  participantAvatarText: { ...Typography.caption, color: '#fff', fontWeight: '700' },
-  actionBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: Colors.surfaceDark,
-    borderTopWidth: 1, borderColor: Colors.border,
-    flexDirection: 'row',
-    padding: Spacing.md,
-    paddingBottom: 30,
-    gap: Spacing.md,
-  },
-  chatBtn: {
-    flex: 0,
-    width: 56, height: 52,
-    borderRadius: Radius.md,
-    borderWidth: 1, borderColor: Colors.borderLight,
-    alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.cardDark,
-  },
-  chatBtnText: { fontSize: 20 },
-  primaryBtn: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.md,
-    alignItems: 'center', justifyContent: 'center',
-    height: 52,
-    ...Shadow.card,
-  },
-  leaveBtn: { backgroundColor: Colors.error },
-  disabledBtn: { backgroundColor: Colors.border },
-  primaryBtnText: { ...Typography.bodyLarge, color: '#fff', fontWeight: '700' },
-});

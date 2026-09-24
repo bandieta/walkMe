@@ -6,5 +6,8 @@ export const updateProfileSchema = z.object({
   bio: z.string().max(500).optional(),
   age: z.number().int().min(13).max(120).optional(),
   location: z.string().max(120).optional(),
+  walkTimes: z.array(z.string()).max(8).optional(),
+  radiusKm: z.number().min(0.5).max(50).optional(),
+  onboarded: z.boolean().optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

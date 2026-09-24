@@ -1,299 +1,201 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  View, Text, StyleSheet, SafeAreaView, Animated, PanResponder,
-  Dimensions, TouchableOpacity, ActivityIndicator,
-} from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, Pressable, Animated, PanResponder, Easing, ActivityIndicator, StyleSheet } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
-import { fetchSwipeDeck, swipeRight, swipeLeft, clearLatestMatch, MatchUser, MatchDog } from '../../store/slices/matchesSlice';
-import { Colors, Spacing, Radius, Shadow } from '../../utils/theme';
-import { Avatar, Badge, Button } from '../../components';
-import { Modal } from '../../components';
+import { fetchSwipeDeck, resetSwipes, swipeLeft, swipeRight, clearLatestMatch } from '../../store/slices/matchesSlice';
+import { fetchMyDogs } from '../../store/slices/dogsSlice';
+import { Icon } from '../../components/Icon';
+import { Btn, useScreenInsets } from '../../ui';
+import { Colors, Ramp } from '../../utils/theme';
+import { BackCard, DogCard, DeckUser, CARD_HEIGHT } from './DogCard';
+import { MatchModal } from './MatchModal';
+import { SavedToast } from './SavedToast';
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-const CARD_W = SCREEN_W - Spacing.xl * 2;
-const SWIPE_THRESHOLD = SCREEN_W * 0.28;
+const DIVIDER = 'rgba(233,233,237,0.16)';
+const PRESSED = 'rgba(233,233,237,0.07)';
+const EASE = Easing.bezier(0.2, 0.8, 0.2, 1);
+/** Drag distance (pt) after which a release throws the card away. */
+const THROW_AT = 100;
 
-interface SwipeCardProps {
-  user: MatchUser & { dogs: MatchDog[] };
-  isTop: boolean;
-  position: Animated.ValueXY;
-  panHandlers: any;
-  likeOpacity: Animated.AnimatedInterpolation<string | number>;
-  nopeOpacity: Animated.AnimatedInterpolation<string | number>;
-}
-
-const SwipeCard: React.FC<SwipeCardProps> = ({ user, isTop, position, panHandlers, likeOpacity, nopeOpacity }) => {
-  const dog = user.dogs?.[0];
-  const rotate = position.x.interpolate({ inputRange: [-SCREEN_W, 0, SCREEN_W], outputRange: ['-20deg', '0deg', '20deg'] });
-
-  return (
-    <Animated.View
-      style={[
-        styles.card,
-        isTop && {
-          transform: [{ translateX: position.x }, { translateY: position.y }, { rotate }],
-          zIndex: 10,
-        },
-        !isTop && { transform: [{ scale: 0.95 }], zIndex: 5, top: 10 },
-      ]}
-      {...(isTop ? panHandlers : {})}
-    >
-      {/* Dog icon hero */}
-      <View style={styles.cardHero}>
-        <Ionicons name="paw" size={90} color={Colors.primary} />
-        <View style={styles.heroOverlay}>
-          <View style={styles.distancePill}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Ionicons name="location-outline" size={12} color="#fff" />
-              <Text style={styles.distanceText}>{(user as any).distance ?? '< 1 km'}</Text>
-            </View>
-          </View>
-        </View>
-        {/* LIKE / NOPE overlays */}
-        {isTop && (
-          <>
-            <Animated.View style={[styles.likeStamp, { opacity: likeOpacity }]}>
-              <Text style={styles.likeText}>LIKE</Text>
-            </Animated.View>
-            <Animated.View style={[styles.nopeStamp, { opacity: nopeOpacity }]}>
-              <Text style={styles.nopeText}>NOPE</Text>
-            </Animated.View>
-          </>
-        )}
-      </View>
-
-      {/* Card info */}
-      <View style={styles.cardBody}>
-        <View style={styles.nameRow}>
-          <Text style={styles.userName}>{user.displayName}</Text>
-          {user.age && <Text style={styles.userAge}>{user.age}</Text>}
-        </View>
-        {dog && (
-          <View style={styles.dogRow}>
-            <Text style={styles.dogName}>{dog.name}</Text>
-            <Text style={styles.dogBreedSep}> · </Text>
-            <Text style={styles.dogBreed}>{dog.breed}, {dog.age}y</Text>
-          </View>
-        )}
-        {dog?.personality && (
-          <View style={styles.tagsRow}>
-            {dog.personality.slice(0, 3).map(tag => (
-              <Badge key={tag} label={tag} variant="primary" size="sm" />
-            ))}
-          </View>
-        )}
-        <Text style={styles.bio} numberOfLines={2}>{user.bio ?? ''}</Text>
-      </View>
-    </Animated.View>
-  );
-};
-
-export const DiscoverScreen: React.FC = () => {
+export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const { top } = useScreenInsets();
   const { swipeDeck, swipeLoading, latestMatch } = useSelector((s: RootState) => s.matches);
+  const me = useSelector((s: RootState) => s.auth.user);
+  const myDogs = useSelector((s: RootState) => s.dogs.dogs) as any[];
+
+  // Cards whose swipe is on its way to the server: hidden at once so the next card shows without waiting.
+  const [pending, setPending] = useState<string[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
+  const deck = useMemo(
+    () => (swipeDeck as DeckUser[]).filter((u) => (u.dogs?.length ?? 0) > 0 && !pending.includes(u.id)),
+    [swipeDeck, pending],
+  );
+  const current = deck[0];
+  const next = deck[1];
+
+  useFocusEffect(useCallback(() => { dispatch(fetchSwipeDeck()); }, [dispatch]));
+  useEffect(() => { dispatch(fetchMyDogs()); }, [dispatch]);
+
+  const radius = me?.radiusKm ?? 2;
+  const radiusLabel = `${Number.isInteger(radius) ? radius : radius.toFixed(1)} km`;
+
+  // ── swipe: drag / buttons share one Animated.ValueXY ──────────────────────────────────────────────
   const position = useRef(new Animated.ValueXY()).current;
-  const [isSwiping, setIsSwiping] = useState(false);
+  const busy = useRef(false);
+  const currentRef = useRef<DeckUser | undefined>(current);
+  currentRef.current = current;
 
-  useEffect(() => { dispatch(fetchSwipeDeck()); }, []);
-
-  const likeOpacity = position.x.interpolate({ inputRange: [0, 80], outputRange: [0, 1], extrapolate: 'clamp' });
-  const nopeOpacity = position.x.interpolate({ inputRange: [-80, 0], outputRange: [1, 0], extrapolate: 'clamp' });
-
-  const resetPosition = () => {
-    Animated.spring(position, { toValue: { x: 0, y: 0 }, useNativeDriver: true, tension: 80, friction: 8 }).start();
+  const commit = (dir: 1 | -1, user: DeckUser) => {
+    setPending((p) => [...p, user.id]);
+    position.setValue({ x: 0, y: 0 });
+    dispatch(dir > 0 ? swipeRight(user.id) : swipeLeft(user.id)).finally(() => setPending((p) => p.filter((id) => id !== user.id)));
   };
-
-  const animateSwipe = (direction: 'left' | 'right', onDone: () => void) => {
-    const toX = direction === 'right' ? SCREEN_W * 1.5 : -SCREEN_W * 1.5;
-    Animated.timing(position, { toValue: { x: toX, y: 0 }, duration: 280, useNativeDriver: true }).start(() => {
-      position.setValue({ x: 0, y: 0 });
-      onDone();
+  const fly = (dir: 1 | -1) => {
+    const user = currentRef.current;
+    if (!user || busy.current) return;
+    busy.current = true;
+    Animated.timing(position, { toValue: { x: dir * 520, y: 30 }, duration: 260, easing: EASE, useNativeDriver: true }).start(() => {
+      commit(dir, user);
+      busy.current = false;
     });
   };
-
-  const handleSwipeRight = () => {
-    if (isSwiping || swipeDeck.length === 0) return;
-    setIsSwiping(true);
-    const topUser = swipeDeck[0];
-    animateSwipe('right', () => {
-      dispatch(swipeRight(topUser.id)).finally(() => setIsSwiping(false));
-    });
-  };
-
-  const handleSwipeLeft = () => {
-    if (isSwiping || swipeDeck.length === 0) return;
-    setIsSwiping(true);
-    const topUser = swipeDeck[0];
-    animateSwipe('left', () => {
-      dispatch(swipeLeft(topUser.id)).finally(() => setIsSwiping(false));
-    });
-  };
+  const snapBack = () => Animated.timing(position, { toValue: { x: 0, y: 0 }, duration: 300, easing: EASE, useNativeDriver: true }).start();
+  const flyRef = useRef(fly);
+  flyRef.current = fly;
+  const snapRef = useRef(snapBack);
+  snapRef.current = snapBack;
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dx) > 5,
-      onPanResponderMove: (_, gs) => position.setValue({ x: gs.dx, y: gs.dy * 0.3 }),
-      onPanResponderRelease: (_, gs) => {
-        if (gs.dx > SWIPE_THRESHOLD) handleSwipeRight();
-        else if (gs.dx < -SWIPE_THRESHOLD) handleSwipeLeft();
-        else resetPosition();
+      onStartShouldSetPanResponder: () => !busy.current,
+      onPanResponderGrant: () => position.stopAnimation(),
+      onPanResponderMove: (_, g) => position.setValue({ x: g.dx, y: g.dy * 0.3 }),
+      onPanResponderRelease: (_, g) => {
+        if (g.dx > THROW_AT) flyRef.current(1);
+        else if (g.dx < -THROW_AT) flyRef.current(-1);
+        else snapRef.current();
       },
+      onPanResponderTerminate: () => snapRef.current(),
     }),
   ).current;
 
-  const topUser = swipeDeck[0];
-  const nextUser = swipeDeck[1];
+  const rotate = position.x.interpolate({ inputRange: [-360, 360], outputRange: ['-20deg', '20deg'] });
+  const likeOpacity = position.x.interpolate({ inputRange: [0, 90], outputRange: [0, 1], extrapolate: 'clamp' });
+  const nopeOpacity = position.x.interpolate({ inputRange: [-90, 0], outputRange: [1, 0], extrapolate: 'clamp' });
+  const backScale = position.x.interpolate({ inputRange: [-150, 0, 150], outputRange: [1, 0.94, 1], extrapolate: 'clamp' });
+  const backY = position.x.interpolate({ inputRange: [-150, 0, 150], outputRange: [0, 14, 0], extrapolate: 'clamp' });
+
+  const save = () => {
+    if (!current || busy.current) return;
+    // There is no shortlist on the server yet: like the prototype, remember it with a toast and move on to the next dog.
+    setToast(`${current.dogs[0]?.name ?? 'Dog'} saved to your shortlist`);
+    fly(-1);
+  };
+
+  // ── match modal ───────────────────────────────────────────────────────────────────────────────────
+  const matchUser = latestMatch?.user as (DeckUser | undefined);
+  const sayHi = () => {
+    if (!latestMatch) return;
+    const { match, user } = latestMatch;
+    dispatch(clearLatestMatch());
+    navigation.navigate('ChatTab', { screen: 'DirectMessage', params: { matchId: match.id, userName: user.displayName }, initial: false });
+  };
+
+  const empty = !current && !swipeLoading;
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Ionicons name="paw" size={26} color={Colors.primary} />
-          <Text style={styles.headerTitle}>DogPals</Text>
+    <View style={styles.screen}>
+      {/* header */}
+      <View style={[styles.header, { paddingTop: top }]}>
+        <View>
+          <Text style={{ fontSize: 24, fontWeight: '500', letterSpacing: -0.36 }}>Discover</Text>
+          <Text style={{ fontSize: 12, color: Ramp.neutral[500] }}>Dogs within {radiusLabel} · {deck.length} left today</Text>
         </View>
-        <Text style={styles.headerSub}>Discover nearby dogs</Text>
+        <Pressable
+          accessibilityLabel="Preferences"
+          onPress={() => navigation.navigate('ProfileTab', { screen: 'Rhythm', initial: false })}
+          style={({ pressed }) => [styles.roundBtn44, pressed && { backgroundColor: PRESSED }]}
+        >
+          <Icon name="sliders-horizontal" size={18} color={Colors.textPrimary} />
+        </Pressable>
       </View>
 
-      {/* Cards area */}
-      <View style={styles.deckArea}>
-        {swipeLoading ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loadingText}>Finding dogs nearby…</Text>
+      {/* deck */}
+      <View style={styles.deck}>
+        {swipeLoading && !current && (
+          <View style={{ position: 'absolute', left: 0, right: 0, top: 120, alignItems: 'center' }}>
+            <ActivityIndicator color={Colors.primary} />
           </View>
-        ) : swipeDeck.length === 0 ? (
-          <View style={styles.emptyBox}>
-            <Ionicons name="paw-outline" size={64} color={Colors.textMuted} style={{ marginBottom: Spacing.md }} />
-            <Text style={styles.emptyTitle}>You've seen everyone!</Text>
-            <Text style={styles.emptySub}>Check back tomorrow for new dogs in your area.</Text>
+        )}
+        {!!next && <Animated.View pointerEvents="none" style={[styles.cardSlot, { transform: [{ scale: backScale }, { translateY: backY }] }]}><BackCard key="back" /></Animated.View>}
+        {!!current && (
+          <Animated.View
+            key={current.id}
+            {...panResponder.panHandlers}
+            style={[styles.cardSlot, { transform: [{ translateX: position.x }, { translateY: position.y }, { rotate }] }]}
+          >
+            <DogCard user={current} likeOpacity={likeOpacity} nopeOpacity={nopeOpacity} />
+          </Animated.View>
+        )}
+        {empty && (
+          <View style={styles.empty}>
+            <Icon name="paw-print" size={34} color={Ramp.neutral[600]} />
+            <Text style={{ fontSize: 22, fontWeight: '500' }}>You've seen everyone nearby</Text>
+            <Text style={{ fontSize: 14, color: Ramp.neutral[400] }}>
+              New walkers join every day. Widen your distance to see more, or check the map for walks happening now.
+            </Text>
+            <View style={{ flexDirection: 'row', columnGap: 8, marginTop: 8 }}>
+              <Btn label="Start over" shape="pill" height={44} fontSize={14} paddingHorizontal={18} onPress={() => dispatch(resetSwipes())} />
+              <Btn label="Open map" variant="neutral" shape="pill" height={44} fontSize={14} paddingHorizontal={18} onPress={() => navigation.navigate('MapTab')} />
+            </View>
           </View>
-        ) : (
-          <>
-            {nextUser && (
-              <SwipeCard
-                user={nextUser}
-                isTop={false}
-                position={position}
-                panHandlers={panResponder.panHandlers}
-                likeOpacity={likeOpacity}
-                nopeOpacity={nopeOpacity}
-              />
-            )}
-            <SwipeCard
-              user={topUser}
-              isTop={true}
-              position={position}
-              panHandlers={panResponder.panHandlers}
-              likeOpacity={likeOpacity}
-              nopeOpacity={nopeOpacity}
-            />
-          </>
         )}
       </View>
 
-      {/* Action buttons */}
-      {swipeDeck.length > 0 && !swipeLoading && (
+      {/* actions */}
+      {!!current && (
         <View style={styles.actions}>
-          <TouchableOpacity style={[styles.actionBtn, styles.nopeBtn]} onPress={handleSwipeLeft}>
-            <Ionicons name="close" size={28} color={Colors.error} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.superLikeBtn]}>
-            <Ionicons name="star" size={24} color={Colors.warning} />
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.likeBtn]} onPress={handleSwipeRight}>
-            <Ionicons name="heart" size={28} color={Colors.success} />
-          </TouchableOpacity>
+          <Pressable accessibilityLabel="Pass" onPress={() => fly(-1)} style={({ pressed }) => [styles.roundBtn54, pressed && { backgroundColor: PRESSED }]}>
+            <Icon name="x" size={21} color={Ramp.neutral[300]} />
+          </Pressable>
+          <Pressable
+            onPress={() => fly(1)}
+            style={({ pressed }) => [styles.walkBtn, pressed && { backgroundColor: 'rgba(145,132,217,0.12)' }]}
+          >
+            <Icon name="paw-print" size={15} color={Colors.primary} weight="fill" />
+            <Text style={{ fontSize: 15, fontWeight: '500', color: Colors.primary, marginLeft: 8 }}>Walk together</Text>
+          </Pressable>
+          <Pressable accessibilityLabel="Save" onPress={save} style={({ pressed }) => [styles.roundBtn54, pressed && { backgroundColor: PRESSED }]}>
+            <Icon name="bookmark-simple" size={21} color={Ramp.neutral[300]} />
+          </Pressable>
         </View>
       )}
 
-      {/* Match modal */}
-      <Modal
+      <SavedToast text={toast} onDone={() => setToast(null)} top={top - 2} />
+
+      <MatchModal
         visible={!!latestMatch}
+        me={me ?? undefined}
+        other={matchUser}
+        myDogName={myDogs[0]?.name}
+        theirDogName={matchUser?.dogs?.[0]?.name}
+        onMessage={sayHi}
         onClose={() => dispatch(clearLatestMatch())}
-        title={undefined}
-      >
-        <View style={styles.matchModal}>
-          <Ionicons name="heart-circle" size={56} color={Colors.primary} style={{ marginBottom: Spacing.sm }} />
-          <Text style={styles.matchTitle}>It's a Match!</Text>
-          <Text style={styles.matchSub}>
-            You and <Text style={{ color: Colors.primary }}>{latestMatch?.user?.displayName}</Text> both liked each other's dogs!
-          </Text>
-          <Button
-            label="Send a message"
-            onPress={() => dispatch(clearLatestMatch())}
-            style={{ marginTop: Spacing.lg }}
-            fullWidth
-          />
-          <Button
-            label="Keep swiping"
-            variant="ghost"
-            onPress={() => dispatch(clearLatestMatch())}
-            style={{ marginTop: Spacing.sm }}
-            fullWidth
-          />
-        </View>
-      </Modal>
-    </SafeAreaView>
+      />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.surfaceDark },
-  header: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.lg, paddingBottom: Spacing.sm, alignItems: 'center' },
-  headerTitle: { fontSize: 26, fontWeight: '800', color: Colors.textPrimary, letterSpacing: -0.5 },
-  headerSub: { fontSize: 13, color: Colors.textMuted, marginTop: 2 },
-  deckArea: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.xl },
-  card: {
-    position: 'absolute',
-    width: CARD_W,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.surfaceDark,
-    overflow: 'hidden',
-    ...Shadow.modal,
-  },
-  cardHero: {
-    height: SCREEN_H * 0.32,
-    backgroundColor: Colors.surfaceDark,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  dogEmoji: { fontSize: 100 },
-  heroOverlay: { position: 'absolute', bottom: 12, left: 12, right: 12, flexDirection: 'row', justifyContent: 'flex-end' },
-  distancePill: { backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: Radius.full, paddingVertical: 4, paddingHorizontal: 10 },
-  distanceText: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  likeStamp: { position: 'absolute', top: 24, left: 24, borderWidth: 3, borderColor: Colors.success, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, transform: [{ rotate: '-20deg' }] },
-  likeText: { color: Colors.success, fontSize: 28, fontWeight: '900', letterSpacing: 2 },
-  nopeStamp: { position: 'absolute', top: 24, right: 24, borderWidth: 3, borderColor: Colors.error, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4, transform: [{ rotate: '20deg' }] },
-  nopeText: { color: Colors.error, fontSize: 28, fontWeight: '900', letterSpacing: 2 },
-  cardBody: { padding: Spacing.lg },
-  nameRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 4 },
-  userName: { fontSize: 22, fontWeight: '800', color: Colors.textPrimary },
-  userAge: { fontSize: 20, color: Colors.textSecondary, marginLeft: 8 },
-  dogRow: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.sm },
-  dogName: { fontSize: 15, fontWeight: '700', color: Colors.primary },
-  dogBreedSep: { color: Colors.textMuted },
-  dogBreed: { fontSize: 14, color: Colors.textSecondary },
-  tagsRow: { flexDirection: 'row', gap: 6, marginBottom: Spacing.sm, flexWrap: 'wrap' },
-  bio: { fontSize: 14, color: Colors.textSecondary, lineHeight: 20 },
-  actions: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingBottom: Spacing.xl, gap: Spacing.lg },
-  actionBtn: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', ...Shadow.card },
-  nopeBtn: { backgroundColor: Colors.surfaceDark, borderWidth: 2, borderColor: Colors.error },
-  superLikeBtn: { width: 52, height: 52, borderRadius: 26, backgroundColor: Colors.surfaceDark, borderWidth: 2, borderColor: Colors.warning },
-  likeBtn: { backgroundColor: Colors.surfaceDark, borderWidth: 2, borderColor: Colors.success },
-  actionEmoji: { fontSize: 24 },
-  loadingBox: { alignItems: 'center', gap: Spacing.md },
-  loadingText: { color: Colors.textMuted, fontSize: 15 },
-  emptyBox: { alignItems: 'center', paddingHorizontal: Spacing.xl },
-  emptyEmoji: { fontSize: 64, marginBottom: Spacing.md },
-  emptyTitle: { fontSize: 22, fontWeight: '800', color: Colors.textPrimary, textAlign: 'center' },
-  emptySub: { fontSize: 14, color: Colors.textMuted, textAlign: 'center', marginTop: Spacing.sm },
-  matchModal: { alignItems: 'center', paddingVertical: Spacing.md },
-  matchEmoji: { fontSize: 56, marginBottom: Spacing.sm },
-  matchTitle: { fontSize: 28, fontWeight: '900', color: Colors.textPrimary, marginBottom: Spacing.sm },
-  matchSub: { fontSize: 15, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
+  screen: { flex: 1, backgroundColor: Colors.backgroundDark },
+  header: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: 20, paddingBottom: 12 },
+  roundBtn44: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: DIVIDER, alignItems: 'center', justifyContent: 'center' },
+  deck: { flex: 1, marginTop: 4, marginHorizontal: 16 },
+  cardSlot: { position: 'absolute', left: 0, right: 0, top: 0, height: CARD_HEIGHT },
+  empty: { position: 'absolute', left: 4, right: 4, top: 120, rowGap: 10, alignItems: 'flex-start' },
+  actions: { flexDirection: 'row', alignItems: 'center', columnGap: 12, paddingHorizontal: 24, paddingBottom: 112 },
+  roundBtn54: { width: 54, height: 54, borderRadius: 27, borderWidth: 1, borderColor: DIVIDER, alignItems: 'center', justifyContent: 'center' },
+  walkBtn: { flex: 1, height: 54, borderRadius: 27, borderWidth: 1, borderColor: Colors.primary, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
 });

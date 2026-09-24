@@ -109,3 +109,17 @@ matchesRouter.post(
     res.json({ success: true });
   }),
 );
+
+/**
+ * @openapi
+ * /discover/reset:
+ *   post:
+ *     summary: Clear the current user's swipes so every candidate shows up again.
+ *     tags: [Discover]
+ */
+matchesRouter.post(
+  '/discover/reset',
+  asyncHandler(async (req, res) => {
+    res.json(await matchesService.resetSwipes(req.userId!));
+  }),
+);

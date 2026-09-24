@@ -23,9 +23,36 @@ export async function getMatchesForUser(userId: string) {
     orderBy: { lastMessageAt: 'desc' },
   });
   const otherIds = matches.map((m) => otherUserId(m, userId));
-  const otherUsers = await prisma.user.findMany({ where: { id: { in: otherIds } } });
+  const [viewer, otherUsers] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { lat: true, lng: true } }),
+    prisma.user.findMany({ where: { id: { in: otherIds } }, include: { dogs: true } }),
+  ]);
   const byId = new Map(otherUsers.map((u) => [u.id, u]));
-  return matches.map((m) => toMatchDto(m, userId, byId.get(otherUserId(m, userId))!));
+  // Additive: who wrote each thread's last message, so the chat list can prefix "You: ".
+  const lastSenders = matches.length
+    ? await prisma.message.findMany({
+        where: { roomId: { in: matches.map((m) => m.id) } },
+        orderBy: { createdAt: 'desc' },
+        distinct: ['roomId'],
+        select: { roomId: true, senderId: true },
+      })
+    : [];
+  const lastSenderOf = new Map(lastSenders.map((s) => [s.roomId, s.senderId]));
+  return matches.map((m) => {
+    const other = byId.get(otherUserId(m, userId))!;
+    const hasGeo = viewer?.lat != null && viewer.lng != null && other.lat != null && other.lng != null;
+    const dto = toMatchDto(m, userId, other);
+    // Additive: the thread header / chat list show the other person's dog and how far away they live.
+    return {
+      ...dto,
+      ...(lastSenderOf.has(m.id) ? { lastMessageSenderId: lastSenderOf.get(m.id) } : {}),
+      user: {
+        ...dto.user,
+        dogs: other.dogs.map(toDogDto),
+        ...(hasGeo ? { distanceKm: Math.round(haversineKm(viewer!.lat!, viewer!.lng!, other.lat!, other.lng!) * 10) / 10 } : {}),
+      },
+    };
+  });
 }
 
 export async function getMatchMessages(matchId: string, viewerId: string) {
@@ -71,16 +98,42 @@ export async function markMatchRead(matchId: string, viewerId: string) {
   });
 }
 
+/** Great-circle distance in km. */
+function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const h =
+    Math.sin(rad(bLat - aLat) / 2) ** 2 +
+    Math.cos(rad(aLat)) * Math.cos(rad(bLat)) * Math.sin(rad(bLng - aLng) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(h));
+}
+
 export async function getSwipeDeck(userId: string) {
-  const swiped = await prisma.swipe.findMany({ where: { fromUserId: userId }, select: { toUserId: true } });
+  const [viewer, swiped] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { lat: true, lng: true } }),
+    prisma.swipe.findMany({ where: { fromUserId: userId }, select: { toUserId: true } }),
+  ]);
   const swipedIds = new Set(swiped.map((s) => s.toUserId));
   const candidates = await prisma.user.findMany({
-    where: { id: { not: userId, notIn: [...swipedIds] } },
+    where: { id: { not: userId, notIn: [...swipedIds] }, provider: { not: 'filler' } },
     include: { dogs: true },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: 'asc' },
     take: 50,
   });
-  return candidates.map((c) => ({ ...toPublicUser(c), dogs: c.dogs.map(toDogDto) }));
+  return candidates.map((c) => {
+    const hasGeo = viewer?.lat != null && viewer.lng != null && c.lat != null && c.lng != null;
+    return {
+      ...toPublicUser(c),
+      dogs: c.dogs.map(toDogDto),
+      // Only present when both people have a home area; rounded to 0.1 km.
+      ...(hasGeo ? { distanceKm: Math.round(haversineKm(viewer!.lat!, viewer!.lng!, c.lat!, c.lng!) * 10) / 10 } : {}),
+    };
+  });
+}
+
+/** Forget every swipe the viewer made, so the whole deck comes back ("Start over"). Existing matches are kept. */
+export async function resetSwipes(userId: string) {
+  const { count } = await prisma.swipe.deleteMany({ where: { fromUserId: userId } });
+  return { success: true, reset: count };
 }
 
 export async function swipe(fromUserId: string, toUserId: string, direction: 'left' | 'right') {

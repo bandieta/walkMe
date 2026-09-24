@@ -19,6 +19,10 @@ export async function getRoomsForUser(userId: string) {
         walkTitle: walk.title,
         type: 'group' as const,
         unreadCount: 0,
+        // Additive: the chat list shows an icon by category and "Live now" / "In 2 h" by status, and hides ended walks.
+        walkStatus: walk.status,
+        walkCategory: walk.category,
+        scheduledAt: walk.scheduledAt.toISOString(),
         lastMessage: lastMessage ? toMessageDto(lastMessage) : null,
       };
     }),

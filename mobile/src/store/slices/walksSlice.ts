@@ -10,8 +10,20 @@ interface Walk {
   status: string;
   maxParticipants: number;
   scheduledAt: string;
-  host: { id: string; displayName: string; photoUrl?: string };
-  participants: { id: string; displayName: string }[];
+  host: { id: string; displayName: string; photoUrl?: string; dogs?: WalkDog[] };
+  participants: { id: string; displayName: string; photoUrl?: string; dogs?: WalkDog[] }[];
+  // Fields the API returns beyond the original shape (all optional so older payloads still type-check).
+  category?: string;
+  meetingPoint?: string;
+  duration?: string;
+  participantIds?: string[];
+}
+
+interface WalkDog {
+  id: string;
+  name: string;
+  breed: string;
+  photoUrl?: string;
 }
 
 interface WalksState {
@@ -51,6 +63,18 @@ export const leaveWalk = createAsyncThunk('walks/leave', async (id: string) => {
   return response.data;
 });
 
+/** Host only: move a walk between 'upcoming' | 'live' | 'ended'. */
+export const updateWalkStatus = createAsyncThunk('walks/updateStatus', async (args: { id: string; status: string }) => {
+  const response = await walksApi.updateStatus(args.id, args.status);
+  return response.data;
+});
+
+/** Keeps the list copy of a walk in step with a fresh copy of it from the API (join, leave, status change...). */
+const syncInList = (state: WalksState, walk: Walk) => {
+  const i = state.walks.findIndex((w) => w.id === walk.id);
+  if (i >= 0) state.walks[i] = walk;
+};
+
 const walksSlice = createSlice({
   name: 'walks',
   initialState,
@@ -75,12 +99,19 @@ const walksSlice = createSlice({
       })
       .addCase(fetchWalkById.fulfilled, (state, action) => {
         state.currentWalk = action.payload;
+        syncInList(state, action.payload);
       })
       .addCase(joinWalk.fulfilled, (state, action) => {
         state.currentWalk = action.payload;
+        syncInList(state, action.payload);
       })
       .addCase(leaveWalk.fulfilled, (state, action) => {
         state.currentWalk = action.payload;
+        syncInList(state, action.payload);
+      })
+      .addCase(updateWalkStatus.fulfilled, (state, action) => {
+        state.currentWalk = action.payload;
+        syncInList(state, action.payload);
       });
   },
 });

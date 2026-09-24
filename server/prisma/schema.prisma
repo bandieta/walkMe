@@ -26,6 +26,11 @@ model User {
   bio             String?
   age             Int?
   location        String?
+  walkTimes       String? // JSON string[] of preferred walking times (onboarding)
+  radiusKm        Float?
+  onboardedAt     DateTime?
+  lat             Float? // home area, used to compute distances in Discover
+  lng             Float?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -59,6 +64,9 @@ model Dog {
   weight      Float?
   bio         String?
   emoji       String?
+  energy      String? // Calm | Balanced | High
+  ageGroup    String? // Puppy | Adult | Senior
+  photoUrl    String?
   personality String // JSON-encoded string[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -108,6 +116,7 @@ model Event {
   status          String   @default("upcoming") // "upcoming" | "live" | "ended"
   category        String   @default("Meetup")
   emoji           String?  @default("🎉")
+  photoCaption    String? // describes the event photo (shown in the header stand-in)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

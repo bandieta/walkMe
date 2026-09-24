@@ -1,10 +1,15 @@
-import { Walk, User, WalkParticipant } from '@prisma/client';
+import { Walk, User, Dog, WalkParticipant } from '@prisma/client';
 import { toPublicUser } from '../users/serialize';
+import { toDogDto } from '../dogs/serialize';
 
+type UserWithDogs = User & { dogs?: Dog[] };
 type WalkWithRelations = Walk & {
-  host: User;
-  participants: (WalkParticipant & { user: User })[];
+  host: UserWithDogs;
+  participants: (WalkParticipant & { user: UserWithDogs })[];
 };
+
+// A walk's people carry their dogs so clients can show "Mochi · Golden Retriever" without an extra request per person.
+const withDogs = (user: UserWithDogs) => ({ ...toPublicUser(user), dogs: (user.dogs ?? []).map(toDogDto) });
 
 export function toWalkDto(walk: WalkWithRelations) {
   return {
@@ -13,14 +18,14 @@ export function toWalkDto(walk: WalkWithRelations) {
     description: walk.description ?? undefined,
     category: walk.category,
     hostId: walk.hostId,
-    host: toPublicUser(walk.host),
+    host: withDogs(walk.host),
     meetingLat: walk.meetingLat,
     meetingLng: walk.meetingLng,
     meetingPoint: walk.meetingPoint,
     scheduledAt: walk.scheduledAt.toISOString(),
     maxParticipants: walk.maxParticipants,
     participantIds: walk.participants.map((p) => p.userId),
-    participants: walk.participants.map((p) => toPublicUser(p.user)),
+    participants: walk.participants.map((p) => withDogs(p.user)),
     status: walk.status,
     duration: walk.duration,
     createdAt: walk.createdAt.toISOString(),
@@ -29,6 +34,6 @@ export function toWalkDto(walk: WalkWithRelations) {
 }
 
 export const walkInclude = {
-  host: true,
-  participants: { include: { user: true } },
+  host: { include: { dogs: true } },
+  participants: { include: { user: { include: { dogs: true } } } },
 } as const;

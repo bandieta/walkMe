@@ -14,6 +14,7 @@ export const authApi = {
 
 export const usersApi = {
   getMe: () => apiClient.get('/users/me'),
+  getStats: () => apiClient.get('/users/me/stats'),
   getProfile: async (userId: string) => {
     const [user, dogs] = await Promise.all([
       apiClient.get(`/users/${userId}`),
@@ -61,6 +62,7 @@ export const matchesApi = {
   getSwipeDeck: () => apiClient.get('/discover/deck'),
   swipeRight: (userId: string) => apiClient.post(`/discover/${userId}/swipe-right`),
   swipeLeft: (userId: string) => apiClient.post(`/discover/${userId}/swipe-left`),
+  resetSwipes: () => apiClient.post('/discover/reset'),
 };
 
 export const placesApi = {

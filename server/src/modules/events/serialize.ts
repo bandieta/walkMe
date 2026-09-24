@@ -23,6 +23,7 @@ export function toEventDto(event: EventWithRelations, viewerId?: string) {
     status: event.status,
     category: event.category,
     emoji: event.emoji ?? undefined,
+    photoCaption: event.photoCaption ?? undefined,
     createdAt: event.createdAt.toISOString(),
     updatedAt: event.updatedAt.toISOString(),
   };

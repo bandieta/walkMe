@@ -1,4 +1,5 @@
 import { User } from '@prisma/client';
+import { fromJsonArray } from '../../lib/json';
 
 export function toPublicUser(user: User) {
   return {
@@ -9,6 +10,9 @@ export function toPublicUser(user: User) {
     bio: user.bio ?? undefined,
     age: user.age ?? undefined,
     location: user.location ?? undefined,
+    walkTimes: user.walkTimes ? fromJsonArray(user.walkTimes) : undefined,
+    radiusKm: user.radiusKm ?? undefined,
+    onboarded: user.onboardedAt != null,
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };

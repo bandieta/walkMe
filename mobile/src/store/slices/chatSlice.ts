@@ -9,13 +9,21 @@ export interface ChatMessage {
   senderAvatarUrl?: string;
   content: string;
   createdAt: string;
+  roomId?: string;
+  type?: string;
+  /** Optimistic message that the server has not confirmed yet. */
+  pending?: boolean;
 }
 
 export interface ChatRoom {
   walkId: string;
   walkTitle: string;
-  lastMessage?: ChatMessage;
+  lastMessage?: ChatMessage | null;
   unreadCount: number;
+  /** "upcoming" | "live" | "ended", the walk's category and start time (the chat list shows an icon and "Live now" / "In 2 h"). */
+  walkStatus?: string;
+  walkCategory?: string;
+  scheduledAt?: string;
 }
 
 interface ChatState {
@@ -58,6 +66,33 @@ export const fetchMessages = createAsyncThunk(
   },
 );
 
+/**
+ * Sends a walk group message over REST (the server also broadcasts it to the socket room). Pass `sender` to append it
+ * optimistically right away; the confirmed message replaces the pending one.
+ */
+export const sendWalkMessage = createAsyncThunk(
+  'chat/sendMessage',
+  async (
+    { walkId, content }: { walkId: string; content: string; sender?: { id: string; name: string } },
+    { rejectWithValue },
+  ) => {
+    try {
+      const res = await chatApi.sendMessage(walkId, content);
+      return { walkId, message: res.data as ChatMessage };
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.message ?? err?.message ?? 'Failed to send message');
+    }
+  },
+);
+
+/** Adds a confirmed message once: ignores one already present, and swaps in for our own matching pending one. */
+function addIncoming(list: ChatMessage[], msg: ChatMessage) {
+  if (list.some((m) => m.id === msg.id)) return;
+  const pending = list.findIndex((m) => m.pending && m.senderId === msg.senderId && m.content === msg.content);
+  if (pending >= 0) list[pending] = msg;
+  else list.push(msg);
+}
+
 const chatSlice = createSlice({
   name: 'chat',
   initialState,
@@ -67,15 +102,16 @@ const chatSlice = createSlice({
     },
     receiveMessage(state, action: PayloadAction<ChatMessage>) {
       const msg = action.payload;
-      if (!state.messages[msg.walkId]) {
-        state.messages[msg.walkId] = [];
+      const walkId = msg.walkId ?? msg.roomId ?? '';
+      if (!state.messages[walkId]) {
+        state.messages[walkId] = [];
       }
-      state.messages[msg.walkId].push(msg);
+      addIncoming(state.messages[walkId], { ...msg, walkId });
 
-      const room = state.rooms.find(r => r.walkId === msg.walkId);
+      const room = state.rooms.find(r => r.walkId === walkId);
       if (room) {
         room.lastMessage = msg;
-        if (state.activeRoomId !== msg.walkId) {
+        if (state.activeRoomId !== walkId) {
           room.unreadCount += 1;
         }
       }
@@ -108,11 +144,41 @@ const chatSlice = createSlice({
       })
       .addCase(fetchMessages.fulfilled, (state, action) => {
         state.loading = false;
-        state.messages[action.payload.walkId] = action.payload.messages;
+        const { walkId, messages } = action.payload;
+        // Keep what arrived while the history was loading (an optimistic send, a socket message newer than the history).
+        const ids = new Set(messages.map((m) => m.id));
+        const newest = messages.length ? messages[messages.length - 1].createdAt : '';
+        const extra = (state.messages[walkId] ?? []).filter((m) => !ids.has(m.id) && (m.pending || m.createdAt > newest));
+        state.messages[walkId] = [...messages, ...extra];
       })
       .addCase(fetchMessages.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      .addCase(sendWalkMessage.pending, (state, action) => {
+        const { walkId, content, sender } = action.meta.arg;
+        if (!sender) return;
+        if (!state.messages[walkId]) state.messages[walkId] = [];
+        state.messages[walkId].push({
+          id: `pending-${action.meta.requestId}`, walkId, senderId: sender.id, senderName: sender.name, content,
+          createdAt: new Date().toISOString(), pending: true,
+        });
+      })
+      .addCase(sendWalkMessage.fulfilled, (state, action) => {
+        const { walkId, message } = action.payload;
+        const list = state.messages[walkId] ?? (state.messages[walkId] = []);
+        const at = list.findIndex((m) => m.id === `pending-${action.meta.requestId}`);
+        if (list.some((m) => m.id === message.id)) {
+          // The socket echo already delivered it.
+          if (at >= 0) list.splice(at, 1);
+        } else if (at >= 0) list[at] = { ...message, walkId };
+        else list.push({ ...message, walkId });
+        const room = state.rooms.find((r) => r.walkId === walkId);
+        if (room) room.lastMessage = message;
+      })
+      .addCase(sendWalkMessage.rejected, (state, action) => {
+        const { walkId } = action.meta.arg;
+        state.messages[walkId] = (state.messages[walkId] ?? []).filter((m) => m.id !== `pending-${action.meta.requestId}`);
       });
   },
 });

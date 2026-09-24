@@ -3,11 +3,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi, usersApi } from '../../services/api';
 
 interface AuthState {
-  user: { id: string; email?: string; displayName: string; photoUrl?: string } | null;
+  user: { id: string; email?: string; displayName: string; photoUrl?: string; bio?: string; location?: string; walkTimes?: string[]; radiusKm?: number; onboarded?: boolean } | null;
   token: string | null;
   refreshToken: string | null;
   loading: boolean;
   error: string | null;
+  /** Answers collected on onboarding step 2 (walking rhythm); step 3 sends them with the location and finishes onboarding. */
+  onboardingDraft: { walkTimes: string[]; radiusKm: number } | null;
 }
 
 const initialState: AuthState = {
@@ -16,6 +18,7 @@ const initialState: AuthState = {
   refreshToken: null,
   loading: false,
   error: null,
+  onboardingDraft: null,
 };
 
 async function persistSession(data: { token: string; refreshToken: string }) {
@@ -94,6 +97,14 @@ const authSlice = createSlice({
       state.refreshToken = null;
       AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
     },
+    /** Merge fresh profile fields (e.g. after finishing onboarding or editing the profile). */
+    userUpdated(state, action: PayloadAction<Partial<NonNullable<AuthState['user']>>>) {
+      if (state.user) state.user = { ...state.user, ...action.payload };
+    },
+    /** Remember the walking-rhythm answers between onboarding step 2 and 3 (null clears them). */
+    onboardingDraftSet(state, action: PayloadAction<AuthState['onboardingDraft']>) {
+      state.onboardingDraft = action.payload;
+    },
   },
   extraReducers: (builder) => {
     const handlePending = (state: AuthState) => {
@@ -123,9 +134,10 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.refreshToken = null;
+        state.onboardingDraft = null;
       });
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, userUpdated, onboardingDraftSet } = authSlice.actions;
 export default authSlice.reducer;

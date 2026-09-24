@@ -1,157 +1,92 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '../../store';
+import { walksApi } from '../../services/api';
 import {
-  View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, SafeAreaView, StatusBar, ActivityIndicator,
-} from 'react-native';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../store';
-import { chatApi } from '../../services/api';
-import { Colors, Typography, Spacing, Radius } from '../../utils/theme';
-import { Icon } from '../../components/Icon';
+  fetchMessages, sendWalkMessage, receiveMessage, setActiveRoom, markRoomRead, ChatMessage,
+} from '../../store/slices/chatSlice';
+import { categoryIcon, IconName } from '../../components/Icon';
+import { ThreadView } from './ThreadView';
+import { useChatRoom } from './useChatRoom';
+import { walkWhen } from './threadFormat';
 
-const formatTime = (iso: string) =>
-  new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+const NO_MESSAGES: ChatMessage[] = [];
 
-interface Msg { id: string; senderId: string; senderName: string; content: string; createdAt: string; }
+interface WalkInfo {
+  title: string;
+  category?: string;
+  status?: string;
+  scheduledAt?: string;
+  participantIds?: string[];
+  participants?: { id: string }[];
+}
 
-const Bubble: React.FC<{ msg: Msg; isMine: boolean }> = ({ msg, isMine }) => (
-  <View style={[bS.row, isMine && bS.rowMine]}>
-    {!isMine && (
-      <View style={bS.avatar}>
-        <Text style={bS.avatarText}>{msg.senderName?.[0]?.toUpperCase() ?? '?'}</Text>
-      </View>
-    )}
-    <View style={[bS.bubble, isMine ? bS.mine : bS.theirs]}>
-      {!isMine && <Text style={bS.sender}>{msg.senderName}</Text>}
-      <Text style={[bS.text, isMine && bS.textMine]}>{msg.content}</Text>
-      <Text style={[bS.time, isMine && bS.timeMine]}>{formatTime(msg.createdAt)}</Text>
-    </View>
-  </View>
-);
-
-const bS = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-end', marginVertical: 3, paddingHorizontal: Spacing.md },
-  rowMine: { justifyContent: 'flex-end' },
-  avatar: { width: 28, height: 28, borderRadius: 14, backgroundColor: Colors.surfaceDark, alignItems: 'center', justifyContent: 'center', marginRight: 6 },
-  avatarText: { ...Typography.caption, color: Colors.textSecondary, fontWeight: '700' },
-  bubble: { maxWidth: '72%', paddingHorizontal: 12, paddingVertical: 8, borderRadius: Radius.lg },
-  theirs: { backgroundColor: Colors.cardDark, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: Colors.border },
-  mine: { backgroundColor: Colors.primary, borderBottomRightRadius: 4 },
-  sender: { fontSize: 12, color: Colors.primary, fontWeight: '600', marginBottom: 2 },
-  text: { fontSize: 15, color: Colors.textPrimary, lineHeight: 20 },
-  textMine: { color: '#fff' },
-  time: { fontSize: 11, color: Colors.textSecondary, marginTop: 2, alignSelf: 'flex-end' },
-  timeMine: { color: 'rgba(255,255,255,0.6)' },
-});
-
+/** Group chat of a walk. Reached from the walk detail, the chat list or the profile's walks. */
 export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
   const { walkId, walkTitle } = route.params as { walkId: string; walkTitle?: string };
-  const { user } = useSelector((s: RootState) => s.auth);
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const dispatch = useDispatch<AppDispatch>();
+  const user = useSelector((s: RootState) => s.auth.user);
+  const messages = useSelector((s: RootState) => s.chat.messages[walkId]) ?? NO_MESSAGES;
+  const [walk, setWalk] = useState<WalkInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [input, setInput] = useState('');
-  const [sending, setSending] = useState(false);
-  const listRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    chatApi.getMessages(walkId).then(res => {
-      setMessages(res.data as Msg[]);
-      setLoading(false);
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 100);
-    }).catch(() => setLoading(false));
-  }, [walkId]);
+    let alive = true;
+    dispatch(setActiveRoom(walkId));
+    dispatch(markRoomRead(walkId));
+    dispatch(fetchMessages(walkId)).finally(() => alive && setLoading(false));
+    walksApi.getById(walkId).then((res) => alive && setWalk(res.data as WalkInfo)).catch(() => undefined);
+    return () => {
+      alive = false;
+      dispatch(setActiveRoom(null));
+    };
+  }, [walkId, dispatch]);
 
-  const handleSend = async () => {
-    if (!input.trim() || sending) return;
-    const text = input.trim();
-    setInput('');
-    setSending(true);
-    try {
-      const res = await chatApi.sendMessage(walkId, text);
-      setMessages(prev => [...prev, res.data as Msg]);
-      setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
-    } finally {
-      setSending(false);
-    }
+  // Messages from the other walkers arrive over the socket (our own come back through it too; the slice dedupes).
+  useChatRoom(walkId, (msg) => dispatch(receiveMessage({ ...msg, walkId })));
+
+  const title = walk?.title ?? walkTitle ?? '';
+  const going = walk ? (walk.participantIds ?? walk.participants ?? []).length : 0;
+  const when = walk ? walkWhen(walk.scheduledAt, walk.status) : '';
+  const subtitle = walk ? [`${going} going`, when].filter(Boolean).join(' · ') : '';
+  const icon = categoryIcon(walk?.category);
+
+  const goBack = () => {
+    if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate(navigation.getState().routeNames[0]);
+  };
+
+  // "Walk" opens the walk detail: straight back when we came from it, otherwise onto the map stack (the chat tab has none).
+  const openWalk = () => {
+    const state = navigation.getState();
+    const previous = state.routes[state.index - 1];
+    if (previous?.name === 'WalkDetail' && previous.params?.walkId === walkId) navigation.goBack();
+    else if (state.routeNames.includes('WalkDetail')) navigation.navigate('WalkDetail', { walkId });
+    else navigation.navigate('MapTab', { screen: 'WalkDetail', params: { walkId } });
+  };
+
+  const send = async (content: string) => {
+    if (!user) return false;
+    const result = await dispatch(sendWalkMessage({ walkId, content, sender: { id: user.id, name: user.displayName } }));
+    return !sendWalkMessage.rejected.match(result);
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
-      <SafeAreaView style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Icon name="chevronLeft" size={22} color={Colors.textPrimary} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle} numberOfLines={1}>{walkTitle ?? 'Walk Chat'}</Text>
-          <View style={styles.liveRow}>
-            <View style={styles.liveDot} />
-            <Text style={styles.liveTxt}>Group Chat</Text>
-          </View>
-        </View>
-      </SafeAreaView>
-
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={Colors.primary} />
-          </View>
-        ) : messages.length === 0 ? (
-          <View style={styles.center}>
-            <Icon name="chat" size={30} color={Colors.primary} />
-            <Text style={styles.emptyTitle}>No messages yet</Text>
-            <Text style={styles.emptySub}>Be the first to say hi!</Text>
-          </View>
-        ) : (
-          <FlatList
-            ref={listRef}
-            data={messages}
-            keyExtractor={m => m.id}
-            renderItem={({ item }) => <Bubble msg={item} isMine={item.senderId === user?.id} />}
-            contentContainerStyle={{ paddingVertical: Spacing.md }}
-            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-
-        <View style={styles.inputRow}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Type a message…"
-            placeholderTextColor={Colors.textMuted}
-            multiline
-            maxLength={1000}
-          />
-          <TouchableOpacity
-            style={[styles.sendBtn, (!input.trim() || sending) && styles.sendBtnOff]}
-            onPress={handleSend}
-            disabled={!input.trim() || sending}
-          >
-            {sending ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.sendIcon}>↑</Text>}
-          </TouchableOpacity>
-        </View>
-      </KeyboardAvoidingView>
-    </View>
+    <ThreadView
+      kind="group"
+      title={title}
+      subtitle={subtitle}
+      avatarIcon={(icon === 'map-pin' ? 'path' : icon) as IconName}
+      actionLabel="Walk"
+      actionIcon="info"
+      onAction={openWalk}
+      onBack={goBack}
+      messages={messages}
+      myId={user?.id}
+      loading={loading}
+      emptyTitle="Group chat is open"
+      emptyBody={`Everyone who joins ${title || 'this walk'} can read and post here.`}
+      onSend={send}
+    />
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.backgroundDark },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm, borderBottomWidth: 1, borderBottomColor: Colors.border, backgroundColor: Colors.surfaceDark },
-  backBtn: { padding: Spacing.sm, marginRight: Spacing.sm },
-  backText: { fontSize: 22, color: Colors.textPrimary },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
-  liveRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.success },
-  liveTxt: { fontSize: 12, color: Colors.textMuted },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  emptyTitle: { fontSize: 17, fontWeight: '700', color: Colors.textPrimary },
-  emptySub: { fontSize: 14, color: Colors.textMuted, marginTop: 4 },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', padding: Spacing.md, gap: Spacing.sm, borderTopWidth: 1, borderTopColor: Colors.border, backgroundColor: Colors.surfaceDark },
-  input: { flex: 1, backgroundColor: Colors.backgroundDark, borderRadius: Radius.full, paddingHorizontal: Spacing.md, paddingVertical: 10, color: Colors.textPrimary, fontSize: 15, maxHeight: 100, borderWidth: 1, borderColor: Colors.border },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: Colors.primary, alignItems: 'center', justifyContent: 'center' },
-  sendBtnOff: { backgroundColor: Colors.border },
-  sendIcon: { color: '#fff', fontSize: 18, fontWeight: '700' },
-});

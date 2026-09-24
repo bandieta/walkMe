@@ -44,6 +44,13 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<!-- App deep links (walkme://...), used by React Navigation linking. -->
+				<string>walkme</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
 				<string>fb943705752145111</string>
 			</array>
 		</dict>

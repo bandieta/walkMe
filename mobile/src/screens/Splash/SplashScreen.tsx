@@ -1,76 +1,60 @@
 import React, { useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Animated,
-  Dimensions,
-  StatusBar,
-} from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors, Typography, Spacing, Ramp } from '../../utils/theme';
+import { Colors, Ramp } from '../../utils/theme';
 import { Icon } from '../../components/Icon';
+import { useScreenInsets } from '../../ui';
 
-const { width } = Dimensions.get('window');
+/** The prototype holds the splash for 1.7 s: a 0.4 s fade-in, the 1.5 s progress bar (ease-out) and a short beat. */
+const HOLD_MS = 1700;
+const BAR_MS = 1500;
+const BAR_WIDTH = 120;
 
 interface SplashScreenProps {
   onFinish: (isAuthenticated: boolean) => void;
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const logoScale = useRef(new Animated.Value(0.95)).current;
-  const barOpacity = useRef(new Animated.Value(0)).current;
-  const barWidth = useRef(new Animated.Value(0)).current;
-  const screenOpacity = useRef(new Animated.Value(1)).current;
-  const glowOpacity = useRef(new Animated.Value(0)).current;
+  const { bottom } = useScreenInsets();
+  const fade = useRef(new Animated.Value(0)).current;
+  const bar = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    let token: string | null = null;
+    let alive = true;
+    let hold: ReturnType<typeof setTimeout> | undefined;
 
-    const animationPromise = new Promise<void>(resolve => {
-      Animated.sequence([
-        Animated.parallel([
-          Animated.timing(logoOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
-          Animated.timing(logoScale, { toValue: 1, duration: 700, useNativeDriver: true }),
-          Animated.timing(glowOpacity, { toValue: 0.6, duration: 700, useNativeDriver: true }),
-        ]),
-        Animated.parallel([
-          Animated.timing(barOpacity, { toValue: 1, duration: 300, useNativeDriver: false }),
-          Animated.timing(barWidth, { toValue: width * 0.6, duration: 1200, useNativeDriver: false }),
-        ]),
-        Animated.timing(screenOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
-      ]).start(() => resolve());
+    Animated.timing(fade, { toValue: 1, duration: 400, easing: Easing.bezier(0, 0, 0.58, 1), useNativeDriver: true }).start();
+    Animated.timing(bar, { toValue: BAR_WIDTH, duration: BAR_MS, easing: Easing.bezier(0, 0, 0.58, 1), useNativeDriver: false }).start();
+
+    const held = new Promise<void>((resolve) => {
+      hold = setTimeout(resolve, HOLD_MS);
+    });
+    const tokenPromise = AsyncStorage.getItem('accessToken').catch(() => null);
+
+    Promise.all([held, tokenPromise]).then(([, token]) => {
+      if (alive) onFinish(!!token);
     });
 
-    const tokenPromise = AsyncStorage.getItem('accessToken').then(t => { token = t; });
-
-    Promise.all([animationPromise, tokenPromise]).then(() => {
-      onFinish(!!token);
-    });
+    return () => {
+      alive = false;
+      if (hold) clearTimeout(hold);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
-    <Animated.View style={[styles.container, { opacity: screenOpacity }]}>
+    <Animated.View style={[styles.container, { opacity: fade, paddingBottom: bottom + 96 }]}>
       <StatusBar barStyle="light-content" backgroundColor={Colors.backgroundDark} />
 
-      {/* Radial glow */}
-      <Animated.View style={[styles.glow, { opacity: glowOpacity }]} />
-
-      {/* Icon + wordmark */}
-      <Animated.View style={[styles.logoContainer, { opacity: logoOpacity, transform: [{ scale: logoScale }] }]}>
-        <View style={styles.iconWrapper}>
-          <View style={styles.iconGradient}>
-            <Icon name="walk" size={44} color={Colors.primary} />
-          </View>
-        </View>
-        <Text style={styles.wordmark}>WalkMe</Text>
-      </Animated.View>
-
-      {/* Progress bar */}
-      <Animated.View style={[styles.progressContainer, { opacity: barOpacity }]}>
-        <Animated.View style={[styles.progressBar, { width: barWidth }]} />
-      </Animated.View>
+      {/* 56px glyph tile: the accent glow is an outer shadow only (the tile itself stays ground-coloured). */}
+      <View style={styles.tile}>
+        <Icon name="paw-print" size={28} color={Colors.primary} weight="fill" />
+      </View>
+      <Text style={styles.wordmark}>WalkMe</Text>
+      <Text style={styles.tagline}>Walks with neighbours and their dogs.</Text>
+      <View style={styles.barTrack}>
+        <Animated.View style={[styles.barFill, { width: bar }]} />
+      </View>
     </Animated.View>
   );
 };
@@ -79,54 +63,28 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.backgroundDark,
-    alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 32,
+    rowGap: 14,
   },
-  glow: {
-    position: 'absolute',
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: Ramp.accent[900],
-    opacity: 0,
-    // Simulate radial glow via scale + blur (approximated)
-    transform: [{ scale: 1.5 }],
-  },
-  logoContainer: {
-    alignItems: 'center',
-  },
-  iconWrapper: {
-    marginBottom: Spacing.md,
-  },
-  iconGradient: {
-    width: 96,
-    height: 96,
+  tile: {
+    width: 56,
+    height: 56,
     borderRadius: 14,
-    backgroundColor: Colors.surfaceDark, borderWidth: 1, borderColor: Colors.primary,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.backgroundDark,
     alignItems: 'center',
     justifyContent: 'center',
-    ...require('../../utils/theme').Shadow.card,
+    // box-shadow: 0 0 48px rgba(145,132,217,.28)
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.28,
+    shadowRadius: 24,
   },
-  iconEmoji: {
-    fontSize: 48,
-  },
-  wordmark: {
-    ...Typography.display,
-    color: Colors.textPrimary,
-    letterSpacing: -0.02 * 40,
-  },
-  progressContainer: {
-    position: 'absolute',
-    bottom: 120,
-    height: 3,
-    width: width * 0.6,
-    backgroundColor: Colors.border,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    borderRadius: 2,
-    backgroundColor: Colors.primary,
-  },
+  // measured against the reference: the tile sits 1px lower than a 1.55 line box (55.8) would place it
+  wordmark: { fontSize: 36, lineHeight: 54.8, fontWeight: '500', letterSpacing: -0.9 },
+  tagline: { fontSize: 14, color: Ramp.neutral[400] },
+  barTrack: { width: BAR_WIDTH, height: 2, backgroundColor: Ramp.neutral[900], marginTop: 26, overflow: 'hidden' },
+  barFill: { height: 2, backgroundColor: Colors.primary },
 });

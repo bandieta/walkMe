@@ -17,6 +17,9 @@ export interface Event {
   status: 'upcoming' | 'live' | 'ended';
   category?: string;
   emoji?: string;
+  /** Describes the event photo; the header shows it on the striped stand-in ("event photo — …"). */
+  photoCaption?: string;
+  photoUrl?: string;
 }
 
 interface EventsState {
