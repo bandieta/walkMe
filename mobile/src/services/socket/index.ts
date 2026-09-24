@@ -35,6 +35,14 @@ export const leaveWalkRoom = (walkId: string) => {
   socket?.emit(SOCKET_EVENTS.LEAVE_WALK_ROOM, { walkId });
 };
 
+export const sendTypingStart = (roomId: string) => {
+  socket?.emit('chat:typing:start', { roomId });
+};
+
+export const sendTypingStop = (roomId: string) => {
+  socket?.emit('chat:typing:stop', { roomId });
+};
+
 export const sendMessage = (
   walkId: string,
   senderId: string,

@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { store } from './src/store';
 import { AppNavigator } from './src/navigation/AppNavigator';
+import { GlobalChatNotifier } from './src/components/GlobalChatNotifier';
 import { restoreLanguage } from './src/i18n';
 
 const App: React.FC = () => {
@@ -18,6 +19,7 @@ const App: React.FC = () => {
       <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
       <Provider store={store}>
         <AppNavigator />
+        <GlobalChatNotifier />
       </Provider>
     </SafeAreaProvider>
   );

@@ -3,10 +3,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { RootState, AppDispatch } from '../../store';
 import {
-  fetchMatches, fetchMatchMessages, sendMatchMessage, markMatchRead, receiveMatchMessage, MatchMessage,
+  fetchMatches, fetchMatchMessages, sendMatchMessage, markMatchRead, receiveMatchMessage, setActiveMatch, MatchMessage,
 } from '../../store/slices/matchesSlice';
 import { ThreadView } from './ThreadView';
 import { useChatRoom } from './useChatRoom';
+import { useTypingIndicator } from './useTypingIndicator';
 import { firstName, formatKm, initials } from './threadFormat';
 
 const NO_MESSAGES: MatchMessage[] = [];
@@ -24,9 +25,13 @@ export const DirectMessageScreen: React.FC<{ route: any; navigation: any }> = ({
 
   useEffect(() => {
     let alive = true;
+    dispatch(setActiveMatch(matchId));
     dispatch(markMatchRead(matchId));
     dispatch(fetchMatchMessages(matchId)).finally(() => alive && setLoading(false));
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+      dispatch(setActiveMatch(null));
+    };
   }, [matchId, dispatch]);
 
   // Opened by link (or before the list ever loaded): the header needs the match's person and dog.
@@ -39,6 +44,7 @@ export const DirectMessageScreen: React.FC<{ route: any; navigation: any }> = ({
     dispatch(receiveMatchMessage(msg));
     if (msg.senderId !== me?.id) dispatch(markMatchRead(matchId));
   });
+  const { remoteTyping, notifyTyping, notifyStoppedTyping } = useTypingIndicator(matchId);
 
   const other = match?.user;
   const name = other?.displayName ?? userName ?? '';
@@ -86,6 +92,9 @@ export const DirectMessageScreen: React.FC<{ route: any; navigation: any }> = ({
       emptyTitle={name ? t('chat.direct.sayHelloTo', { name: firstName(name) }) : ''}
       emptyBody={name ? emptyBody : ''}
       onSend={send}
+      otherTyping={remoteTyping}
+      onTyping={notifyTyping}
+      onStoppedTyping={notifyStoppedTyping}
     />
   );
 };

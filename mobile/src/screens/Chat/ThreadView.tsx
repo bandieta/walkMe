@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
 import { Hairline, PrettyText, useScreenInsets } from '../../ui';
+import { TypingDots } from './TypingDots';
 
 /**
  * The chat thread from the prototype ("07 chat thread"): one layout for the walk group chat and a direct message.
@@ -39,6 +40,11 @@ interface Props {
   emptyBody: string;
   /** Resolve false when sending failed: the text goes back into the composer. */
   onSend: (text: string) => Promise<boolean | void> | void;
+  /** Whether the other person in this thread is typing right now — shows the bouncing three dots. */
+  otherTyping?: boolean;
+  /** Called on every keystroke and once more when the composer empties or blurs, to drive the other side's dots. */
+  onTyping?: () => void;
+  onStoppedTyping?: () => void;
 }
 
 const DIV = 'rgba(233,233,237,0.16)';
@@ -74,7 +80,7 @@ const Bubble: React.FC<{ msg: ThreadMessage; mine: boolean; showName: boolean; c
 
 export const ThreadView: React.FC<Props> = ({
   kind, title, subtitle, avatarIcon, avatarText, actionLabel, actionIcon, onAction, onBack,
-  messages, myId, loading, emptyTitle, emptyBody, onSend,
+  messages, myId, loading, emptyTitle, emptyBody, onSend, otherTyping, onTyping, onStoppedTyping,
 }) => {
   const { t } = useTranslation();
   const { top, bottom } = useScreenInsets();
@@ -92,11 +98,13 @@ export const ThreadView: React.FC<Props> = ({
   }, []);
 
   const scrollToEnd = useCallback(() => scrollRef.current?.scrollToEnd({ animated: false }), []);
+  useEffect(() => { if (otherTyping) scrollToEnd(); }, [otherTyping, scrollToEnd]);
 
   const send = async () => {
     const text = draft.trim();
     if (!text) return;
     setDraft('');
+    onStoppedTyping?.();
     const ok = await onSend(text);
     if (ok === false) setDraft((cur) => cur || text);
   };
@@ -172,15 +180,16 @@ export const ThreadView: React.FC<Props> = ({
           const cont = !!prev && prev.type !== 'system' && prev.senderId === m.senderId;
           return <Bubble key={m.id} msg={m} mine={mine} cont={cont} showName={kind === 'group' && !mine && !cont} />;
         })}
+        {otherTyping && <TypingDots />}
       </ScrollView>
 
       {/* Composer: padding 8 12 34, gap 8. */}
       <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 8, paddingTop: 8, paddingHorizontal: 12, paddingBottom: keyboardUp ? 8 : bottom }}>
         <TextInput
           value={draft}
-          onChangeText={setDraft}
+          onChangeText={(text) => { setDraft(text); if (text.trim()) onTyping?.(); else onStoppedTyping?.(); }}
           onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
+          onBlur={() => { setFocused(false); onStoppedTyping?.(); }}
           onSubmitEditing={send}
           returnKeyType="send"
           blurOnSubmit={false}

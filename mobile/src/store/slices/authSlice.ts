@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi, usersApi } from '../../services/api';
+import { disconnectSocket } from '../../services/socket';
 
 interface AuthState {
   user: { id: string; email?: string; displayName: string; photoUrl?: string; bio?: string; location?: string; lat?: number; lng?: number; walkTimes?: string[]; radiusKm?: number; onboarded?: boolean } | null;
@@ -112,6 +113,7 @@ export const logoutAndInvalidate = createAsyncThunk('auth/logout', async (_, { g
     await authApi.logout(state.auth.refreshToken).catch(() => undefined);
   }
   await AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
+  disconnectSocket();
 });
 
 const authSlice = createSlice({
