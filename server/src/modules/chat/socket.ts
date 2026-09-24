@@ -6,7 +6,12 @@ interface AuthedSocket extends Socket {
   data: { userId: string };
 }
 
-export function registerChatGateway(io: Server) {
+// Matches the mobile client and KNOWLEDGE.md: clients connect to `<host>/chat`.
+export const CHAT_NAMESPACE = '/chat';
+
+export function registerChatGateway(server: Server) {
+  const io = server.of(CHAT_NAMESPACE);
+
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token as string | undefined;
     if (!token) return next(new Error('Missing auth token'));
