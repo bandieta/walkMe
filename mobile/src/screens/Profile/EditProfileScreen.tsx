@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, ScrollView, Pressable, Alert, Platform, KeyboardAvoidingView } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { AppDispatch, RootState } from '../../store';
 import { userUpdated } from '../../store/slices/authSlice';
 import { usersApi, storageApi } from '../../services/api';
@@ -8,6 +9,7 @@ import { useScreenInsets } from '../../ui';
 import { cssText } from '../../ui/cssLine';
 import { Colors, Ramp } from '../../utils/theme';
 import { ProfileAvatar } from './ProfileAvatar';
+import { LocationField } from '../../components/LocationField';
 
 // Prototype 14 "Edit profile": Cancel / title / Save header, avatar + "Change photo", Name, Neighbourhood, About you (160).
 
@@ -52,13 +54,20 @@ const TextBox: React.FC<{
   );
 };
 
-export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const EditProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const { top } = useScreenInsets();
   const user = useSelector((s: RootState) => s.auth.user);
 
   const [name, setName] = useState(user?.displayName ?? '');
   const [loc, setLoc] = useState(user?.location ?? '');
+  // Set when the neighbourhood is (or already was) an exact map pick, kept in lockstep with `loc` so the two can
+  // never disagree — mirrors CreateWalk/CreateEventScreen's LocationField wiring. Typing again ("Change") clears
+  // both; the server keeps whatever coordinates it already had, since lat/lng are simply left out of the save.
+  const [locCoords, setLocCoords] = useState<{ lat: number; lng: number } | null>(
+    user?.lat != null && user?.lng != null ? { lat: user.lat, lng: user.lng } : null,
+  );
   const [bio, setBio] = useState(user?.bio ?? '');
   const [bioFocused, setBioFocused] = useState(false);
   const [photo, setPhoto] = useState<Photo | null>(null);
@@ -68,12 +77,22 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
 
   const close = () => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('ProfileHome'));
 
+  // A pick returned from PickLocationScreen (`navigation.navigate({ name: 'EditProfile', params: { pickedLocation } })`).
+  useEffect(() => {
+    const picked = route?.params?.pickedLocation;
+    if (!picked) return;
+    setLoc(picked.name);
+    setLocCoords({ lat: picked.lat, lng: picked.lng });
+    navigation.setParams({ pickedLocation: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params?.pickedLocation]);
+
   const pickPhoto = async () => {
     let picker: any;
     try {
       picker = require('react-native-image-picker');
     } catch {
-      Alert.alert('Photos unavailable', 'Photo picking is not available in this build.');
+      Alert.alert(t('dogs.form.photosUnavailableTitle'), t('dogs.form.photosUnavailableBody'));
       return;
     }
     try {
@@ -81,7 +100,7 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
       const asset = res?.assets?.[0];
       if (asset?.uri) setPhoto({ uri: asset.uri, name: asset.fileName ?? `profile-${Date.now()}.jpg`, type: asset.type ?? 'image/jpeg' });
     } catch {
-      Alert.alert('Could not open photos', 'Please try again.');
+      Alert.alert(t('dogs.form.couldNotOpenPhotosTitle'), t('common.connectionError'));
     }
   };
 
@@ -99,6 +118,7 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
         location: loc.trim(),
         bio: bio.trim(),
         ...(photoUrl ? { photoUrl } : {}),
+        ...(locCoords ? { lat: locCoords.lat, lng: locCoords.lng } : {}),
       });
       const saved = res?.data ?? {};
       dispatch(userUpdated({
@@ -106,10 +126,11 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
         location: saved.location ?? loc.trim(),
         bio: saved.bio ?? bio.trim(),
         ...(saved.photoUrl || photoUrl ? { photoUrl: saved.photoUrl ?? photoUrl } : {}),
+        ...(locCoords ? { lat: saved.lat ?? locCoords.lat, lng: saved.lng ?? locCoords.lng } : {}),
       }));
-      navigation.navigate({ name: 'ProfileHome', params: { toast: 'Profile saved' }, merge: true });
+      navigation.navigate({ name: 'ProfileHome', params: { toast: t('profile.editProfile.saved') }, merge: true });
     } catch (e: any) {
-      Alert.alert('Could not save your profile', e?.response?.data?.error?.message ?? 'Please check your connection and try again.');
+      Alert.alert(t('profile.editProfile.couldNotSave'), e?.response?.data?.error?.message ?? t('common.connectionError'));
     } finally {
       setSaving(false);
     }
@@ -119,16 +140,16 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: Colors.backgroundDark }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: top - 4, paddingHorizontal: 12, paddingBottom: 8 }}>
         <Pressable onPress={close} accessibilityRole="button" style={{ height: 44, paddingHorizontal: 10, justifyContent: 'center' }}>
-          <Text style={cssText(15, { color: Ramp.neutral[400] })}>Cancel</Text>
+          <Text style={cssText(15, { color: Ramp.neutral[400] })}>{t('common.cancel')}</Text>
         </Pressable>
-        <Text accessibilityRole="header" style={cssText(17, { fontWeight: '500' })}>Edit profile</Text>
+        <Text accessibilityRole="header" style={cssText(17, { fontWeight: '500' })}>{t('profile.editProfile.title')}</Text>
         <Pressable
           onPress={save}
           disabled={invalid || saving}
           accessibilityRole="button"
           style={{ height: 44, paddingHorizontal: 10, justifyContent: 'center', opacity: invalid ? 0.45 : saving ? 0.6 : 1 }}
         >
-          <Text style={cssText(15, { fontWeight: '500', color: Colors.primary })}>Save</Text>
+          <Text style={cssText(15, { fontWeight: '500', color: Colors.primary })}>{t('common.save')}</Text>
         </Pressable>
       </View>
 
@@ -149,23 +170,29 @@ export const EditProfileScreen: React.FC<{ navigation: any }> = ({ navigation })
               alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent',
             })}
           >
-            <Text style={cssText(13)}>Change photo</Text>
+            <Text style={cssText(13)}>{t('profile.editProfile.changePhoto')}</Text>
           </Pressable>
         </View>
 
         <View style={{ rowGap: 6 }}>
-          <Label>Name</Label>
+          <Label>{t('dogs.form.name')}</Label>
           <TextBox value={name} onChangeText={setName} />
         </View>
 
-        <View style={{ rowGap: 6 }}>
-          <Label>Neighbourhood</Label>
-          <TextBox value={loc} onChangeText={setLoc} maxLength={120} />
-        </View>
+        <LocationField
+          label={t('profile.editProfile.neighbourhood')}
+          value={loc}
+          onChangeText={setLoc}
+          placeholder={t('profile.editProfile.neighbourhoodPlaceholder')}
+          maxLength={120}
+          locked={!!locCoords}
+          onPickFromMap={() => navigation.navigate('PickLocation', { initialLat: locCoords?.lat, initialLng: locCoords?.lng, returnTo: 'EditProfile' })}
+          onChangeMode={() => setLocCoords(null)}
+        />
 
         <View style={{ rowGap: 6 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Label>About you</Label>
+            <Label>{t('profile.editProfile.aboutYou')}</Label>
             <Label>{`${bio.length}/${BIO_MAX}`}</Label>
           </View>
           <View style={{

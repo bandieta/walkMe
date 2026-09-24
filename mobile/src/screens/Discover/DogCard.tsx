@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { View, Text, Animated, Image, Platform, StyleSheet } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '../../components/Icon';
 import { Placeholder, Tag } from '../../ui';
 import { resolveMediaUrl } from '../../utils/media';
 import { Colors, Ramp } from '../../utils/theme';
+import { temperamentLabel } from '../../utils/dogLabels';
 import type { MatchUser, MatchDog } from '../../store/slices/matchesSlice';
 
 export type DeckUser = MatchUser & { dogs: MatchDog[] };
@@ -55,6 +57,7 @@ export const DogCard: React.FC<{
   likeOpacity?: Animated.AnimatedInterpolation<number> | number;
   nopeOpacity?: Animated.AnimatedInterpolation<number> | number;
 }> = ({ user, likeOpacity = 0, nopeOpacity = 0 }) => {
+  const { t } = useTranslation();
   const dog = user.dogs[0];
   const dist = formatDistance(user.distanceKm);
   const photo = resolveMediaUrl((dog as any)?.photoUrl);
@@ -68,7 +71,7 @@ export const DogCard: React.FC<{
         {photo ? (
           <Image source={{ uri: photo }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
         ) : (
-          <Text style={styles.photoLabel}>photo — {dog?.name} with {firstName(user.displayName)}</Text>
+          <Text style={styles.photoLabel}>photo — {dog?.name} {t('discover.card.withPerson', { name: firstName(user.displayName) })}</Text>
         )}
 
         {!!dist && (
@@ -79,25 +82,27 @@ export const DogCard: React.FC<{
         )}
 
         <Animated.View pointerEvents="none" style={[styles.stamp, { left: 22, borderColor: Colors.primary, opacity: likeOpacity as any, transform: [{ rotate: '-12deg' }] }]}>
-          <Text style={[styles.stampText, { color: Colors.primary }]}>WALK</Text>
+          <Text style={[styles.stampText, { color: Colors.primary }]}>{t('discover.card.stampWalk')}</Text>
         </Animated.View>
         <Animated.View pointerEvents="none" style={[styles.stamp, { right: 22, borderColor: Ramp.neutral[300], opacity: nopeOpacity as any, transform: [{ rotate: '12deg' }] }]}>
-          <Text style={[styles.stampText, { color: Ramp.neutral[300] }]}>PASS</Text>
+          <Text style={[styles.stampText, { color: Ramp.neutral[300] }]}>{t('discover.card.stampPass')}</Text>
         </Animated.View>
 
         <View style={styles.info}>
           <FadeToBg />
           <View style={{ flexDirection: 'row', alignItems: 'baseline', columnGap: 8 }}>
             <Text style={{ fontSize: 28, fontWeight: '500', letterSpacing: -0.56 }}>{dog?.name}</Text>
-            <Text style={{ fontSize: 14, color: Ramp.neutral[300] }}>{dog ? `${dog.breed}, ${dog.age}` : ''}</Text>
+            <Text style={{ fontSize: 14, color: Ramp.neutral[300] }}>{dog ? t('discover.card.breedAge', { breed: dog.breed, age: dog.age }) : ''}</Text>
           </View>
           <Text style={{ fontSize: 13, color: Ramp.accent[300] }}>
-            {`with ${firstName(user.displayName)}${user.age ? `, ${user.age}` : ''}${loc ? ` · ${loc}` : ''}`}
+            {(user.age
+              ? t('discover.card.withPersonAge', { name: firstName(user.displayName), age: user.age })
+              : t('discover.card.withPerson', { name: firstName(user.displayName) })) + (loc ? ` · ${loc}` : '')}
           </Text>
           {!!dog?.personality?.length && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 5, rowGap: 5 }}>
-              {dog.personality.map((t) => (
-                <Tag key={t} label={t} tone="neutral" />
+              {dog.personality.map((p) => (
+                <Tag key={p} label={temperamentLabel(t, p)} tone="neutral" />
               ))}
             </View>
           )}

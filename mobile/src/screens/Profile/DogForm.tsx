@@ -3,9 +3,11 @@ import {
   View, Text, TextInput, ScrollView, Pressable, Image, Alert, Platform, KeyboardAvoidingView, ViewStyle,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { AppDispatch } from '../../store';
 import { createDog, updateDog, fetchMyDogs, Dog, NewDog } from '../../store/slices/dogsSlice';
 import { resolveMediaUrl } from '../../utils/media';
+import { ageGroupLabel, energyLabel, temperamentLabel } from '../../utils/dogLabels';
 import { storageApi } from '../../services/api';
 import { Icon } from '../../components/Icon';
 import { Btn, Placeholder, useScreenInsets } from '../../ui';
@@ -16,18 +18,13 @@ import { Colors, Ramp } from '../../utils/theme';
 export type DogFormMode = 'onboarding' | 'add' | 'edit';
 
 const DIV = 'rgba(233,233,237,0.16)';
+// Fixed wire-format values (sent to the server as-is) — see utils/dogLabels.ts for their display translations.
 const AGES = ['Puppy', 'Adult', 'Senior'] as const;
 const ENERGIES = ['Calm', 'Balanced', 'High'] as const;
 const TEMPS = ['Friendly', 'Playful', 'Calm', 'Shy with big dogs', 'Loves fetch', 'Pulls on leash', 'Swimmer'];
 // The API stores an integer age next to the design's Puppy / Adult / Senior group; these keep the two consistent
 // (the profile screens fall back to <1 = Puppy, >8 = Senior when a dog has no ageGroup).
 const AGE_YEARS: Record<(typeof AGES)[number], number> = { Puppy: 0, Adult: 3, Senior: 9 };
-
-const COPY = {
-  onboarding: { title: 'Tell us about your dog', body: 'Matches start with your dog, then you.', cta: 'Continue' },
-  add: { title: 'Another dog in the family', body: 'Each dog gets their own card in Discover.', cta: 'Save dog' },
-  edit: { title: 'Edit dog profile', body: 'Changes show up on their card right away.', cta: 'Save changes' },
-};
 
 type Photo = { uri: string; name: string; type: string; remoteUrl?: string };
 
@@ -65,8 +62,8 @@ const TextBox: React.FC<{
 };
 
 /** The prototype's option row: one 1px divider frame, equal buttons, the picked one gets an inset 1px accent ring (no separators). */
-function OptionRow<K extends string>({ label, options, value, onChange }: {
-  label: string; options: readonly K[]; value: K; onChange: (k: K) => void;
+function OptionRow<K extends string>({ label, options, value, onChange, labelOf }: {
+  label: string; options: readonly K[]; value: K; onChange: (k: K) => void; labelOf: (k: K) => string;
 }) {
   return (
     <View>
@@ -77,7 +74,10 @@ function OptionRow<K extends string>({ label, options, value, onChange }: {
           return (
             <Pressable key={o} onPress={() => onChange(o)} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               {on && <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 1, borderColor: Colors.primary }} />}
-              <Text style={{ fontSize: 13, color: on ? Colors.primary : Colors.textPrimary }}>{o}</Text>
+              {/* Equal-width segments: a longer translated label shrinks rather than wrapping or clipping. */}
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: 13, color: on ? Colors.primary : Colors.textPrimary, paddingHorizontal: 2 }}>
+                {labelOf(o)}
+              </Text>
             </Pressable>
           );
         })}
@@ -108,8 +108,14 @@ export const DogForm: React.FC<{
   /** edit mode: the dog being edited, used to pre-fill every field */
   initialDog?: Dog;
 }> = ({ mode, onBack, onSaved, onSkip, initialDog }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const { top, bottom } = useScreenInsets();
+  const COPY = {
+    onboarding: { title: t('dogs.form.onboarding.title'), body: t('dogs.form.onboarding.body'), cta: t('common.next') },
+    add: { title: t('dogs.form.add.title'), body: t('dogs.form.add.body'), cta: t('dogs.form.add.cta') },
+    edit: { title: t('dogs.form.edit.title'), body: t('dogs.form.edit.body'), cta: t('dogs.form.edit.cta') },
+  };
   const copy = COPY[mode];
 
   const [name, setName] = useState(initialDog?.name ?? '');
@@ -135,7 +141,7 @@ export const DogForm: React.FC<{
     try {
       picker = require('react-native-image-picker');
     } catch {
-      Alert.alert('Photos unavailable', 'Photo picking is not available in this build.');
+      Alert.alert(t('dogs.form.photosUnavailableTitle'), t('dogs.form.photosUnavailableBody'));
       return;
     }
     try {
@@ -145,20 +151,20 @@ export const DogForm: React.FC<{
         setPhoto({ uri: asset.uri, name: asset.fileName ?? `dog-${Date.now()}.jpg`, type: asset.type ?? 'image/jpeg' });
       }
     } catch {
-      Alert.alert('Could not open photos', 'Please try again.');
+      Alert.alert(t('dogs.form.couldNotOpenPhotosTitle'), t('common.connectionError'));
     }
   };
 
   const onPhotoPress = () => {
     if (!photo) return pickPhoto();
-    Alert.alert('Dog photo', undefined, [
-      { text: 'Choose another', onPress: pickPhoto },
-      { text: 'Remove photo', style: 'destructive', onPress: () => setPhoto(null) },
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('dogs.form.dogPhoto'), undefined, [
+      { text: t('dogs.form.chooseAnother'), onPress: pickPhoto },
+      { text: t('dogs.form.removePhoto'), style: 'destructive', onPress: () => setPhoto(null) },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
-  const toggleTemp = (t: string) => setTemps((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
+  const toggleTemp = (temp: string) => setTemps((cur) => (cur.includes(temp) ? cur.filter((x) => x !== temp) : [...cur, temp]));
 
   const submit = async () => {
     if (invalid || saving) return;
@@ -172,7 +178,7 @@ export const DogForm: React.FC<{
       }
       const body: NewDog = {
         name: name.trim(),
-        breed: breed.trim() || 'Mixed breed',
+        breed: breed.trim() || t('dogs.form.mixedBreed'),
         age: AGE_YEARS[age],
         ageGroup: age,
         energy,
@@ -188,7 +194,7 @@ export const DogForm: React.FC<{
       dispatch(fetchMyDogs());
       onSaved();
     } catch (e: any) {
-      Alert.alert('Could not save your dog', typeof e === 'string' ? e : 'Please check your connection and try again.');
+      Alert.alert(t('dogs.form.couldNotSaveTitle'), typeof e === 'string' ? e : t('common.connectionError'));
     } finally {
       setSaving(false);
     }
@@ -198,7 +204,7 @@ export const DogForm: React.FC<{
   const backBtn = (extra?: ViewStyle) => (
     <Pressable
       onPress={onBack}
-      accessibilityLabel="Back"
+      accessibilityLabel={t('common.back')}
       style={({ pressed }) => [
         { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
         pressed && { backgroundColor: 'rgba(233,233,237,0.07)' },
@@ -218,13 +224,13 @@ export const DogForm: React.FC<{
             <View style={{ flex: 1, height: 2, marginLeft: 10, backgroundColor: Ramp.neutral[900] }}>
               <View style={{ width: '33%', height: 2, backgroundColor: Colors.primary }} />
             </View>
-            <Text style={{ fontSize: 12, color: Ramp.neutral[500], marginLeft: 10 }}>1 of 3</Text>
+            <Text style={{ fontSize: 12, color: Ramp.neutral[500], marginLeft: 10 }}>{t('onboarding.stepOf', { step: 1, total: 3 })}</Text>
           </View>
         </View>
       ) : (
         <View style={{ flexDirection: 'row', alignItems: 'center', paddingTop: top - 4, paddingBottom: 4, paddingLeft: 8, paddingRight: 16 }}>
           {backBtn()}
-          <Text style={{ fontSize: 17, fontWeight: '500', marginLeft: 4 }}>{mode === 'edit' ? 'Edit dog' : 'Add a dog'}</Text>
+          <Text style={{ fontSize: 17, fontWeight: '500', marginLeft: 4 }}>{mode === 'edit' ? t('dogs.form.editDog') : t('dogs.form.addDog')}</Text>
         </View>
       )}
 
@@ -240,7 +246,7 @@ export const DogForm: React.FC<{
         </View>
 
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <Pressable onPress={onPhotoPress} accessibilityLabel="Dog photo" style={{ width: 76, height: 76 }}>
+          <Pressable onPress={onPhotoPress} accessibilityLabel={t('dogs.form.dogPhoto')} style={{ width: 76, height: 76 }}>
             {photo ? (
               <Image source={{ uri: photo.uri }} style={{ width: 76, height: 76, borderRadius: 38 }} />
             ) : (
@@ -258,21 +264,23 @@ export const DogForm: React.FC<{
               <Icon name={photo ? 'check' : 'plus'} size={14} color={Colors.primary} />
             </View>
           </Pressable>
-          <Text style={{ fontSize: 12, color: Ramp.neutral[400], lineHeight: 12 * 1.45, marginLeft: 14 }}>{'A clear, well-lit photo\ngets more walk requests.'}</Text>
+          <Text style={{ fontSize: 12, color: Ramp.neutral[400], lineHeight: 12 * 1.45, marginLeft: 14 }}>{t('dogs.form.photoHint')}</Text>
         </View>
 
         <View style={{ flexDirection: 'row', columnGap: 10 }}>
-          <TextBox label="Name" value={name} onChangeText={setName} placeholder="Luna" />
-          <TextBox label="Breed" value={breed} onChangeText={setBreed} placeholder="Golden Retriever" />
+          <TextBox label={t('dogs.form.name')} value={name} onChangeText={setName} placeholder={t('dogs.form.namePlaceholder')} />
+          <TextBox label={t('dogs.form.breed')} value={breed} onChangeText={setBreed} placeholder={t('dogs.form.breedPlaceholder')} />
         </View>
 
-        <OptionRow label="Age" options={AGES} value={age} onChange={setAge} />
-        <OptionRow label="Energy" options={ENERGIES} value={energy} onChange={setEnergy} />
+        <OptionRow label={t('dogs.form.age')} options={AGES} value={age} onChange={setAge} labelOf={(o) => ageGroupLabel(t, o)} />
+        <OptionRow label={t('dogs.form.energy')} options={ENERGIES} value={energy} onChange={setEnergy} labelOf={(o) => energyLabel(t, o)} />
 
         <View>
-          <Label>Temperament</Label>
+          <Label>{t('dogs.form.temperament')}</Label>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-            {TEMPS.map((t) => <Chip key={t} label={t} on={temps.includes(t)} onPress={() => toggleTemp(t)} />)}
+            {TEMPS.map((temp) => (
+              <Chip key={temp} label={temperamentLabel(t, temp)} on={temps.includes(temp)} onPress={() => toggleTemp(temp)} />
+            ))}
           </View>
         </View>
       </ScrollView>
@@ -281,7 +289,7 @@ export const DogForm: React.FC<{
         {showSkip && (
           // Not in the prototype: a quiet escape hatch floating in the empty space above the CTA (does not affect layout).
           <Pressable onPress={onSkip} hitSlop={8} style={{ position: 'absolute', top: -34, left: 0, right: 0, height: 34, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 13, color: Ramp.neutral[500] }}>Skip for now</Text>
+            <Text style={{ fontSize: 13, color: Ramp.neutral[500] }}>{t('dogs.form.skipForNow')}</Text>
           </Pressable>
         )}
         <Btn label={copy.cta} shape="pill" height={52} fontSize={16} onPress={submit} disabled={invalid} loading={saving} />

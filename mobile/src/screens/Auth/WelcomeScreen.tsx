@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Animated, Easing, StyleSheet, StatusBar, Platform, Settings } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { AppDispatch } from '../../store';
 import { socialLogin } from '../../store/slices/authSlice';
 import { signInWithGoogle } from '../../services/auth/google';
@@ -12,14 +13,8 @@ import { Btn, Placeholder, useScreenInsets } from '../../ui';
 import { useToast } from '../../components/Toast';
 import { SignInSheet, Provider, SheetMode } from './SignInSheet';
 
-// Copy of the prototype's three onboarding slides (static design copy).
-const SLIDES = [
-  { title: 'Every good walk starts nearby.', body: 'See who’s out with their dog right now, and join them.', img: 'full-bleed photo — dog mid-stride, park at night' },
-  { title: 'Match on the\ndogs first.', body: 'Browse dogs nearby. When you both want to walk, start a chat.', img: 'photo — two dogs greeting on a path' },
-  { title: 'Plan the walk in a minute.', body: 'Pick a park, a time and how many can come. Neighbours join from the map.', img: 'photo — small group walking at dusk' },
-];
 const SLIDE_MS = 4500 * 1000; // TEMP-MEASURE revert to 4500
-const PROVIDER_NAME: Record<Provider, string> = { google: 'Google', facebook: 'Facebook', apple: 'Apple' };
+const PROVIDER_NAME: Partial<Record<Provider, string>> = { google: 'Google', facebook: 'Facebook', apple: 'Apple' };
 
 /** Progress mark: 22px accent bar for the current slide, 8px neutral-700 bars for the others (animates like `transition: all .25s`). */
 const Dot: React.FC<{ active: boolean; onPress: () => void }> = ({ active, onPress }) => {
@@ -40,7 +35,8 @@ const Dot: React.FC<{ active: boolean; onPress: () => void }> = ({ active, onPre
   );
 };
 
-export const WelcomeScreen: React.FC = () => {
+export const WelcomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const { bottom } = useScreenInsets();
   const { show: showToast, element: toast } = useToast();
@@ -62,16 +58,32 @@ export const WelcomeScreen: React.FC = () => {
     };
   }, [fade]);
 
+  const SLIDES = [
+    { title: t('auth.slides.1.title'), body: t('auth.slides.1.body'), img: 'full-bleed photo — dog mid-stride, park at night' },
+    { title: t('auth.slides.2.title'), body: t('auth.slides.2.body'), img: 'photo — two dogs greeting on a path' },
+    { title: t('auth.slides.3.title'), body: t('auth.slides.3.body'), img: 'photo — small group walking at dusk' },
+  ];
+
   // Slides advance on their own every 4.5 s while no sheet is open; any manual change restarts the clock.
   useEffect(() => {
     if (sheet) return undefined;
-    const t = setTimeout(() => setSlide((s) => (s + 1) % SLIDES.length), SLIDE_MS);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setSlide((s) => (s + 1) % SLIDES.length), SLIDE_MS);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slide, sheet]);
 
   const closeSheet = useCallback(() => setSheet(null), []);
 
   const handleProvider = async (provider: Provider) => {
+    if (provider === 'email') {
+      // Email has its own two-screen flow (address, then the code) rather than a native SDK call — hand off
+      // to it directly instead of going through the pending/spinner state below, which is social-only.
+      const mode = sheet ?? 'new';
+      setSheet(null);
+      navigation.navigate('EmailAuth', { mode });
+      return;
+    }
+
     setPending(provider);
     try {
       let token: string | null = null;
@@ -91,12 +103,12 @@ export const WelcomeScreen: React.FC = () => {
 
       const result = await dispatch(socialLogin({ provider, token, displayName }));
       if (socialLogin.rejected.match(result)) {
-        showToast(String(result.payload ?? 'Sign-in failed. Please try again.'), 'error');
+        showToast(String(result.payload ?? t('auth.signInFailed')), 'error');
       }
     } catch (err: any) {
       // Apple reports a dismissed sheet as error 1001 - that is not a failure worth a toast.
       const cancelled = err?.code === '1001' || err?.code === 'ERR_CANCELED' || /cancel/i.test(String(err?.message ?? ''));
-      if (!cancelled) showToast(err?.message ?? `Could not sign in with ${PROVIDER_NAME[provider]}.`, 'error');
+      if (!cancelled) showToast(err?.message ?? t('auth.signInFailedWith', { provider: PROVIDER_NAME[provider] }), 'error');
     } finally {
       if (alive.current) setPending(null);
     }
@@ -134,10 +146,10 @@ export const WelcomeScreen: React.FC = () => {
             <Dot key={i} active={i === slide} onPress={() => setSlide(i)} />
           ))}
         </View>
-        <Btn label="Get started" shape="pill" height={52} fontSize={16} onPress={() => setSheet('new')} />
+        <Btn label={t('auth.getStarted')} shape="pill" height={52} fontSize={16} onPress={() => setSheet('new')} />
         <Pressable onPress={() => setSheet('existing')} style={styles.existing}>
           {({ pressed }) => (
-            <Text style={{ fontSize: 14, color: pressed ? Colors.textPrimary : Ramp.neutral[300] }}>I already have an account</Text>
+            <Text style={{ fontSize: 14, color: pressed ? Colors.textPrimary : Ramp.neutral[300] }}>{t('auth.alreadyHaveAccount')}</Text>
           )}
         </Pressable>
       </View>

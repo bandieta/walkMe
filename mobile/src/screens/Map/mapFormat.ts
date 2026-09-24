@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import type { IconName } from '../../components/Icon';
 
 /**
@@ -19,8 +20,10 @@ export function distanceKm(a: LatLng, lat: number, lng: number): number {
   return 6371 * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
 }
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const MONTH_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const weekday = (t: TFunction, d: Date) => t(`common.weekdaysShort.${WEEKDAY_KEYS[d.getDay()]}`);
+const month = (t: TFunction, d: Date) => t(`common.monthsShort.${MONTH_KEYS[d.getMonth()]}`);
 
 const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
@@ -30,35 +33,35 @@ export const isToday = (iso: string) => sameDay(new Date(iso), new Date());
 const hhmm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
 /** "Today · 09:15" / "Thu 25 Sep · 09:00" — the preview card's long form. */
-export function whenLong(iso: string): string {
+export function whenLong(t: TFunction, iso: string): string {
   const d = new Date(iso);
-  return sameDay(d, new Date()) ? `Today · ${hhmm(d)}` : `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]} · ${hhmm(d)}`;
+  return sameDay(d, new Date()) ? `${t('common.today')} · ${hhmm(d)}` : `${weekday(t, d)} ${d.getDate()} ${month(t, d)} · ${hhmm(d)}`;
 }
 
 /** Walk rows: "Live now", "In 2 h", "Tomorrow", "Fri". */
-export function walkWhen(iso: string, status?: string): string {
-  if (status === 'live') return 'Live now';
-  if (status === 'ended') return 'Ended';
+export function walkWhen(t: TFunction, iso: string, status?: string): string {
+  if (status === 'live') return t('common.liveNow');
+  if (status === 'ended') return t('common.ended');
   const now = new Date();
   const d = new Date(iso);
   if (sameDay(d, now)) {
     const mins = (d.getTime() - now.getTime()) / 60000;
-    if (mins <= 0) return 'Today';
-    return mins < 60 ? `In ${Math.max(1, Math.round(mins))} min` : `In ${Math.round(mins / 60)} h`;
+    if (mins <= 0) return t('common.today');
+    return mins < 60 ? t('common.inMinutes', { count: Math.max(1, Math.round(mins)) }) : t('common.inHours', { count: Math.round(mins / 60) });
   }
   const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  if (sameDay(d, tomorrow)) return 'Tomorrow';
+  if (sameDay(d, tomorrow)) return t('common.tomorrow');
   const days = (d.getTime() - now.getTime()) / 86400000;
-  return days < 7 ? DAYS[d.getDay()] : `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  return days < 7 ? weekday(t, d) : `${d.getDate()} ${month(t, d)}`;
 }
 
 /** Event rows: "Today", "Fri 26", "Wed 1 Oct" (month only when it isn't the current one). */
-export function eventWhen(iso: string, status?: string): string {
+export function eventWhen(t: TFunction, iso: string, status?: string): string {
   const now = new Date();
   const d = new Date(iso);
-  if (status === 'live' || sameDay(d, now)) return 'Today';
-  const month = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() ? '' : ` ${MONTHS[d.getMonth()]}`;
-  return `${DAYS[d.getDay()]} ${d.getDate()}${month}`;
+  if (status === 'live' || sameDay(d, now)) return t('common.today');
+  const monthPart = d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() ? '' : ` ${month(t, d)}`;
+  return `${weekday(t, d)} ${d.getDate()}${monthPart}`;
 }
 
 const CATEGORY_ICON: Record<string, IconName> = {

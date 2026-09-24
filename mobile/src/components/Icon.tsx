@@ -26,9 +26,12 @@ const Crosshair: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icon
 const Dog: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Dog').DogIcon;
 const DotsThree: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/DotsThree').DotsThreeIcon;
 const Export: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Export').ExportIcon;
+const Envelope: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Envelope').EnvelopeIcon;
+const EnvelopeSimple: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/EnvelopeSimple').EnvelopeSimpleIcon;
 const Eye: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Eye').EyeIcon;
 const EyeSlash: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/EyeSlash').EyeSlashIcon;
 const FacebookLogo: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/FacebookLogo').FacebookLogoIcon;
+const Globe: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Globe').GlobeIcon;
 const Fire: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Fire').FireIcon;
 const FirstAid: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/FirstAid').FirstAidIcon;
 const Flask: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Flask').FlaskIcon;
@@ -125,6 +128,8 @@ const ICONS = {
   crosshair: Crosshair,
   dog: Dog,
   edit: PencilSimple,
+  envelope: Envelope,
+  'envelope-simple': EnvelopeSimple,
   export: Export,
   eye: Eye,
   eyeOff: EyeSlash,
@@ -135,6 +140,7 @@ const ICONS = {
   flask: Flask,
   'flower-lotus': FlowerLotus,
   gear: Gear,
+  globe: Globe,
   'google-logo': GoogleLogo,
   googleLogo: GoogleLogo,
   heart: Heart,

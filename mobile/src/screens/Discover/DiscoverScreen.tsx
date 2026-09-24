@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, Pressable, Animated, PanResponder, Easing, ActivityIndicator, StyleSheet } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { RootState, AppDispatch } from '../../store';
 import { fetchSwipeDeck, resetSwipes, swipeLeft, swipeRight, clearLatestMatch } from '../../store/slices/matchesSlice';
 import { fetchMyDogs } from '../../store/slices/dogsSlice';
@@ -19,6 +20,7 @@ const EASE = Easing.bezier(0.2, 0.8, 0.2, 1);
 const THROW_AT = 100;
 
 export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const { top } = useScreenInsets();
   const { swipeDeck, swipeLoading, latestMatch } = useSelector((s: RootState) => s.matches);
@@ -90,7 +92,7 @@ export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   const save = () => {
     if (!current || busy.current) return;
     // There is no shortlist on the server yet: like the prototype, remember it with a toast and move on to the next dog.
-    setToast(`${current.dogs[0]?.name ?? 'Dog'} saved to your shortlist`);
+    setToast(t('discover.savedToShortlist', { name: current.dogs[0]?.name ?? t('discover.defaultDogName') }));
     fly(-1);
   };
 
@@ -110,11 +112,11 @@ export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       {/* header */}
       <View style={[styles.header, { paddingTop: top }]}>
         <View>
-          <Text style={{ fontSize: 24, fontWeight: '500', letterSpacing: -0.36 }}>Discover</Text>
-          <Text style={{ fontSize: 12, color: Ramp.neutral[500] }}>Dogs within {radiusLabel} · {deck.length} left today</Text>
+          <Text style={{ fontSize: 24, fontWeight: '500', letterSpacing: -0.36 }}>{t('discover.title')}</Text>
+          <Text style={{ fontSize: 12, color: Ramp.neutral[500] }}>{t('discover.dogsWithin', { radius: radiusLabel, count: deck.length })}</Text>
         </View>
         <Pressable
-          accessibilityLabel="Preferences"
+          accessibilityLabel={t('discover.preferences')}
           onPress={() => navigation.navigate('ProfileTab', { screen: 'Rhythm', initial: false })}
           style={({ pressed }) => [styles.roundBtn44, pressed && { backgroundColor: PRESSED }]}
         >
@@ -142,13 +144,13 @@ export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
         {empty && (
           <View style={styles.empty}>
             <Icon name="paw-print" size={34} color={Ramp.neutral[600]} />
-            <Text style={{ fontSize: 22, fontWeight: '500' }}>You've seen everyone nearby</Text>
+            <Text style={{ fontSize: 22, fontWeight: '500' }}>{t('discover.emptyTitle')}</Text>
             <Text style={{ fontSize: 14, color: Ramp.neutral[400] }}>
-              New walkers join every day. Widen your distance to see more, or check the map for walks happening now.
+              {t('discover.emptyBody')}
             </Text>
             <View style={{ flexDirection: 'row', columnGap: 8, marginTop: 8 }}>
-              <Btn label="Start over" shape="pill" height={44} fontSize={14} paddingHorizontal={18} onPress={() => dispatch(resetSwipes())} />
-              <Btn label="Open map" variant="neutral" shape="pill" height={44} fontSize={14} paddingHorizontal={18} onPress={() => navigation.navigate('MapTab')} />
+              <Btn label={t('discover.startOver')} shape="pill" height={44} fontSize={14} paddingHorizontal={18} onPress={() => dispatch(resetSwipes())} />
+              <Btn label={t('discover.openMap')} variant="neutral" shape="pill" height={44} fontSize={14} paddingHorizontal={18} onPress={() => navigation.navigate('MapTab')} />
             </View>
           </View>
         )}
@@ -157,7 +159,7 @@ export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
       {/* actions */}
       {!!current && (
         <View style={styles.actions}>
-          <Pressable accessibilityLabel="Pass" onPress={() => fly(-1)} style={({ pressed }) => [styles.roundBtn54, pressed && { backgroundColor: PRESSED }]}>
+          <Pressable accessibilityLabel={t('discover.pass')} onPress={() => fly(-1)} style={({ pressed }) => [styles.roundBtn54, pressed && { backgroundColor: PRESSED }]}>
             <Icon name="x" size={21} color={Ramp.neutral[300]} />
           </Pressable>
           <Pressable
@@ -165,9 +167,9 @@ export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             style={({ pressed }) => [styles.walkBtn, pressed && { backgroundColor: 'rgba(145,132,217,0.12)' }]}
           >
             <Icon name="paw-print" size={15} color={Colors.primary} weight="fill" />
-            <Text style={{ fontSize: 15, fontWeight: '500', color: Colors.primary, marginLeft: 8 }}>Walk together</Text>
+            <Text style={{ fontSize: 15, fontWeight: '500', color: Colors.primary, marginLeft: 8 }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{t('discover.walkTogether')}</Text>
           </Pressable>
-          <Pressable accessibilityLabel="Save" onPress={save} style={({ pressed }) => [styles.roundBtn54, pressed && { backgroundColor: PRESSED }]}>
+          <Pressable accessibilityLabel={t('discover.save')} onPress={save} style={({ pressed }) => [styles.roundBtn54, pressed && { backgroundColor: PRESSED }]}>
             <Icon name="bookmark-simple" size={21} color={Ramp.neutral[300]} />
           </Pressable>
         </View>

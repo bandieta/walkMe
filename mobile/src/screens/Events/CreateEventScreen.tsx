@@ -3,12 +3,16 @@ import {
   View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Keyboard, Platform, StatusBar, Alert, TextInputProps,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { AppDispatch } from '../../store';
 import { createEvent } from '../../store/slices/eventsSlice';
 import { placesApi } from '../../services/api';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
 import { Hairline, Placeholder, useScreenInsets } from '../../ui';
+import { LocationField } from '../../components/LocationField';
+import { eventCategoryLabel } from '../../utils/categoryLabels';
 
 /**
  * "Create event" from the prototype: Cancel / New event header, cover-photo stand-in, type chips, name, location,
@@ -27,20 +31,20 @@ const CATEGORIES: { label: string; icon: IconName; emoji: string }[] = [
 ];
 const TIMES = ['10:00', '12:00', '16:00', '19:00'];
 const DEFAULT_TIME = '11:00';
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const MONTH_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 // Warsaw centre: used when the typed location is not one of the known places (no geocoder yet).
 const FALLBACK_COORDS = { lat: 52.2297, lng: 21.0122 };
 
 /** The next four weekend days ("Sat 27", "Sun 28", "Sat 4 Oct", "Sun 5 Oct"); the month shows only when it is not the current one. */
-function weekendOptions(now: Date) {
+function weekendOptions(t: TFunction, now: Date) {
   const out: { key: string; label: string; date: Date }[] = [];
   const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   while (out.length < 4) {
     if (d.getDay() === 6 || d.getDay() === 0) {
       const date = new Date(d);
-      const month = date.getMonth() !== now.getMonth() ? ` ${MONTHS[date.getMonth()]}` : '';
-      out.push({ key: date.toDateString(), label: `${WEEKDAYS[date.getDay()]} ${date.getDate()}${month}`, date });
+      const month = date.getMonth() !== now.getMonth() ? ` ${t(`common.monthsShort.${MONTH_KEYS[date.getMonth()]}`)}` : '';
+      out.push({ key: date.toDateString(), label: `${t(`common.weekdaysShort.${WEEKDAY_KEYS[date.getDay()]}`)} ${date.getDate()}${month}`, date });
     }
     d.setDate(d.getDate() + 1);
   }
@@ -97,14 +101,18 @@ const Box: React.FC<TextInputProps & { left?: number; multiline?: boolean }> = (
   );
 };
 
-export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const { top, bottom } = useScreenInsets();
-  const days = useMemo(() => weekendOptions(new Date()), []);
+  const days = useMemo(() => weekendOptions(t, new Date()), [t]);
 
   const [cat, setCat] = useState(CATEGORIES[0].label);
   const [title, setTitle] = useState('');
   const [point, setPoint] = useState('');
+  // Set once a location is picked on the map: the exact coordinates under the pin, kept in lockstep with `point`
+  // so the two can never disagree. Typing again ("Change") clears both, falling back to the known-places match below.
+  const [pointCoords, setPointCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dayKey, setDayKey] = useState(days[0].key);
   const [time, setTime] = useState(DEFAULT_TIME);
   const [max, setMax] = useState(20);
@@ -130,6 +138,16 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
     return () => { alive = false; };
   }, []);
 
+  // A pick returned from PickLocationScreen (`navigation.navigate({ name: 'CreateEvent', params: { pickedLocation } })`).
+  useEffect(() => {
+    const picked = route?.params?.pickedLocation;
+    if (!picked) return;
+    setPoint(picked.name);
+    setPointCoords({ lat: picked.lat, lng: picked.lng });
+    navigation.setParams({ pickedLocation: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params?.pickedLocation]);
+
   const invalid = title.trim().length < 3 || point.trim().length < 3;
 
   const trackY = (key: string) => (e: { nativeEvent: { layout: { y: number } } }) => { fieldY.current[key] = e.nativeEvent.layout.y; };
@@ -139,6 +157,7 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
   };
 
   const resolveCoords = (text: string) => {
+    if (pointCoords) return pointCoords;
     const q = text.trim().toLowerCase();
     const hit = places.find((p) => {
       const n = p.name.toLowerCase();
@@ -153,7 +172,7 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
     const [hh, mm] = time.split(':').map(Number);
     const when = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate(), hh, mm);
     if (when.getTime() <= Date.now()) {
-      Alert.alert('Pick a later time', 'That start time has already passed. Choose another day or time.');
+      Alert.alert(t('events.create.pastTimeTitle'), t('events.create.pastTimeMessage'));
       return;
     }
     Keyboard.dismiss();
@@ -173,7 +192,7 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
     if (createEvent.fulfilled.match(res)) {
       navigation.replace('EventDetail', { eventId: res.payload.id });
     } else {
-      Alert.alert('Could not publish the event', typeof res.payload === 'string' ? res.payload : 'Please try again.');
+      Alert.alert(t('events.create.couldNotPublishTitle'), typeof res.payload === 'string' ? res.payload : t('events.create.couldNotPublishMessage'));
     }
   };
 
@@ -183,10 +202,10 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
 
       {/* Header: padding 52 12 8, Cancel (44px tap target, neutral-400) / title 17 / 66px spacer. */}
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: top - 4, paddingHorizontal: 12, paddingBottom: 8 }}>
-        <Pressable onPress={() => navigation.goBack()} accessibilityLabel="Cancel" style={{ height: 44, paddingHorizontal: 10, justifyContent: 'center' }}>
-          <Text style={{ fontSize: 15, color: Ramp.neutral[400] }}>Cancel</Text>
+        <Pressable onPress={() => navigation.goBack()} accessibilityLabel={t('events.create.cancel')} style={{ height: 44, paddingHorizontal: 10, justifyContent: 'center' }}>
+          <Text style={{ fontSize: 15, color: Ramp.neutral[400] }}>{t('events.create.cancel')}</Text>
         </Pressable>
-        <Text style={{ fontSize: 17, fontWeight: '500' }}>New event</Text>
+        <Text style={{ fontSize: 17, fontWeight: '500' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t('events.create.title')}</Text>
         <View style={{ width: 66 }} />
       </View>
 
@@ -207,7 +226,7 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
                 <Icon name={photo ? 'check' : 'image'} size={22} color={Ramp.neutral[400]} />
               </View>
               <Text style={{ fontFamily: MONO, fontWeight: '500', fontSize: 10, lineHeight: 15.5, color: Ramp.neutral[400], transform: [{ translateY: 0.5 }] }}>
-                {photo ? 'cover photo added — tap to remove' : 'add a cover photo'}
+                {photo ? t('events.create.photoAdded') : t('events.create.addPhoto')}
               </Text>
             </View>
           </Placeholder>
@@ -216,34 +235,40 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
 
         {/* Type */}
         <View style={{ rowGap: 8 }}>
-          <Text style={{ fontSize: 11, letterSpacing: 1.1, textTransform: 'uppercase', color: Ramp.neutral[500], transform: [{ translateY: -0.8 }] }}>Type</Text>
+          <Text style={{ fontSize: 11, letterSpacing: 1.1, textTransform: 'uppercase', color: Ramp.neutral[500], transform: [{ translateY: -0.8 }] }}>{t('events.create.type')}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 6, rowGap: 6 }}>
             {CATEGORIES.map((c) => (
-              <Chip key={c.label} label={c.label} icon={c.icon} on={cat === c.label} onPress={() => setCat(c.label)} radius={18} paddingHorizontal={12} />
+              <Chip key={c.label} label={eventCategoryLabel(t, c.label)} icon={c.icon} on={cat === c.label} onPress={() => setCat(c.label)} radius={18} paddingHorizontal={12} />
             ))}
           </View>
         </View>
 
         {/* Event name */}
         <View style={{ rowGap: 6 }} onLayout={trackY('title')}>
-          <Label>Event name</Label>
-          <Box value={title} onChangeText={setTitle} onFocus={reveal('title')} placeholder="Saturday puppy social" autoCapitalize="sentences" returnKeyType="next" maxLength={120} />
+          <Label>{t('events.create.eventName')}</Label>
+          <Box value={title} onChangeText={setTitle} onFocus={reveal('title')} placeholder={t('events.create.eventNamePlaceholder')} autoCapitalize="sentences" returnKeyType="next" maxLength={120} />
         </View>
 
         {/* Location */}
-        <View style={{ rowGap: 6 }} onLayout={trackY('point')}>
-          <Label>Location</Label>
-          <View>
-            <Box value={point} onChangeText={setPoint} onFocus={reveal('point')} placeholder="Park, café or address" left={36} autoCapitalize="words" returnKeyType="done" maxLength={200} />
-            <View pointerEvents="none" style={{ position: 'absolute', left: 12, top: 13.5 }}>
-              <Icon name="map-pin" size={17} color={Ramp.neutral[500]} />
-            </View>
-          </View>
+        <View onLayout={trackY('point')}>
+          <LocationField
+            label={t('events.create.location')}
+            value={point}
+            onChangeText={setPoint}
+            placeholder={t('events.create.locationPlaceholder')}
+            maxLength={200}
+            locked={!!pointCoords}
+            onPickFromMap={() => {
+              Keyboard.dismiss();
+              navigation.navigate('PickLocation', { initialLat: pointCoords?.lat, initialLng: pointCoords?.lng, returnTo: 'CreateEvent' });
+            }}
+            onChangeMode={() => setPointCoords(null)}
+          />
         </View>
 
         {/* Date */}
         <View style={{ rowGap: 8 }}>
-          <Label>Date</Label>
+          <Label>{t('events.create.date')}</Label>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ columnGap: 6 }}>
             {days.map((d) => (
               <Chip key={d.key} label={d.label} on={dayKey === d.key} onPress={() => setDayKey(d.key)} radius={8} paddingHorizontal={13} />
@@ -253,10 +278,10 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
 
         {/* Start time */}
         <View style={{ rowGap: 8 }}>
-          <Label>Start time</Label>
+          <Label>{t('events.create.startTime')}</Label>
           <View style={{ flexDirection: 'row', columnGap: 6 }}>
-            {TIMES.map((t) => (
-              <Chip key={t} label={t} on={time === t} onPress={() => setTime(t)} radius={8} paddingHorizontal={13} />
+            {TIMES.map((tm) => (
+              <Chip key={tm} label={tm} on={time === tm} onPress={() => setTime(tm)} radius={8} paddingHorizontal={13} />
             ))}
           </View>
         </View>
@@ -264,13 +289,13 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
         {/* Capacity */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View>
-            <Text style={{ fontSize: 14 }}>Capacity</Text>
-            <Text style={{ fontSize: 12, color: Ramp.neutral[500] }}>Dogs and owners</Text>
+            <Text style={{ fontSize: 14 }}>{t('events.create.capacity')}</Text>
+            <Text style={{ fontSize: 12, color: Ramp.neutral[500] }}>{t('events.create.capacitySub')}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', height: 44, borderWidth: 1, borderColor: DIV, borderRadius: 8 }}>
             <Pressable
               onPress={() => setMax((m) => Math.max(2, m - 5))}
-              accessibilityLabel="Fewer"
+              accessibilityLabel={t('events.create.fewer')}
               style={({ pressed }) => ({ width: 44, height: 42, alignItems: 'center', justifyContent: 'center', borderTopLeftRadius: 7, borderBottomLeftRadius: 7, backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
             >
               <Icon name="minus" size={16} color={Colors.textPrimary} />
@@ -278,7 +303,7 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
             <Text style={{ width: 34, textAlign: 'center', fontSize: 15 }}>{max}</Text>
             <Pressable
               onPress={() => setMax((m) => Math.min(200, m + 5))}
-              accessibilityLabel="More"
+              accessibilityLabel={t('events.create.more')}
               style={({ pressed }) => ({ width: 44, height: 42, alignItems: 'center', justifyContent: 'center', borderTopRightRadius: 7, borderBottomRightRadius: 7, backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
             >
               <Icon name="plus" size={16} color={Colors.textPrimary} />
@@ -288,8 +313,8 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
 
         {/* Description */}
         <View style={{ rowGap: 6 }} onLayout={trackY('desc')}>
-          <Label>Description</Label>
-          <Box value={desc} onChangeText={setDesc} onFocus={reveal('desc')} placeholder="What happens, who it's for, what to bring" multiline maxLength={1000} />
+          <Label>{t('events.create.description')}</Label>
+          <Box value={desc} onChangeText={setDesc} onFocus={reveal('desc')} placeholder={t('events.create.descriptionPlaceholder')} multiline maxLength={1000} />
         </View>
       </ScrollView>
 
@@ -300,13 +325,13 @@ export const CreateEventScreen: React.FC<{ navigation: any }> = ({ navigation })
           onPress={publish}
           disabled={invalid || saving}
           accessibilityRole="button"
-          accessibilityLabel="Publish event"
+          accessibilityLabel={t('events.create.publish')}
           style={({ pressed }) => ({
             height: 52, borderRadius: 26, borderWidth: 1, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center',
             backgroundColor: pressed ? ACCENT_TINT : 'transparent', opacity: invalid || saving ? 0.45 : 1,
           })}
         >
-          <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.primary }}>{saving ? 'Publishing…' : 'Publish event'}</Text>
+          <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.primary }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{saving ? t('events.create.publishing') : t('events.create.publish')}</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

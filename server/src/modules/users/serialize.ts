@@ -10,6 +10,8 @@ export function toPublicUser(user: User) {
     bio: user.bio ?? undefined,
     age: user.age ?? undefined,
     location: user.location ?? undefined,
+    lat: user.lat ?? undefined,
+    lng: user.lng ?? undefined,
     walkTimes: user.walkTimes ? fromJsonArray(user.walkTimes) : undefined,
     radiusKm: user.radiusKm ?? undefined,
     onboarded: user.onboardedAt != null,

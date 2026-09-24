@@ -1,12 +1,18 @@
+import { randomInt } from 'crypto';
 import { prisma } from '../../lib/prisma';
 import { generateRefreshToken, hashToken, refreshTokenExpiryDate, signAccessToken } from '../../lib/jwt';
 import { HttpError } from '../../middleware/errorHandler';
+import { sendVerificationEmail } from '../../lib/email';
 import { toPublicUser } from '../users/serialize';
 import { verifyGoogleToken } from './verifiers/google';
 import { verifyFacebookToken } from './verifiers/facebook';
 import { verifyAppleToken } from './verifiers/apple';
 import { saveRemoteImage } from '../../lib/remoteImage';
 import type { VerifiedProfile } from './verifiers/google';
+
+const CODE_TTL_MS = 10 * 60 * 1000;
+const RESEND_COOLDOWN_MS = 30 * 1000;
+const MAX_ATTEMPTS = 5;
 
 async function issueTokenPair(userId: string) {
   const accessToken = signAccessToken(userId);
@@ -64,6 +70,55 @@ export async function devLogin(displayName: string, email?: string) {
     where: { provider_providerId: { provider: 'dev', providerId } },
     update: {},
     create: { provider: 'dev', providerId, displayName, email },
+  });
+  const tokens = await issueTokenPair(user.id);
+  return { user: toPublicUser(user), ...tokens };
+}
+
+/** Step 1 of email sign-in: mint a 6-digit code, store its hash, email it (or log it in dev — see lib/email.ts). */
+export async function startEmailAuth(emailInput: string) {
+  const email = emailInput.trim().toLowerCase();
+
+  const recent = await prisma.emailVerification.findFirst({ where: { email }, orderBy: { createdAt: 'desc' } });
+  if (recent && Date.now() - recent.createdAt.getTime() < RESEND_COOLDOWN_MS) {
+    throw new HttpError(429, 'TOO_SOON', 'Please wait a moment before requesting another code');
+  }
+
+  const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+  // Only one code is ever valid at a time — an earlier unused one for this email stops working.
+  await prisma.emailVerification.deleteMany({ where: { email } });
+  await prisma.emailVerification.create({
+    data: { email, codeHash: hashToken(code), expiresAt: new Date(Date.now() + CODE_TTL_MS) },
+  });
+
+  const { sent } = await sendVerificationEmail(email, code);
+  // Only when the code truly wasn't emailed (no RESEND_API_KEY configured) — see lib/email.ts.
+  // Never populated once real sending is configured, so this can't leak in a production deploy.
+  return { success: true, ...(sent ? {} : { devCode: code }) };
+}
+
+/** Step 2: check the code, then create-or-reuse a `provider: "email"` account exactly like social/dev login do. */
+export async function verifyEmailCode(emailInput: string, code: string, displayName?: string) {
+  const email = emailInput.trim().toLowerCase();
+  const verification = await prisma.emailVerification.findFirst({ where: { email }, orderBy: { createdAt: 'desc' } });
+
+  if (!verification || verification.expiresAt < new Date()) {
+    throw new HttpError(400, 'CODE_EXPIRED', 'That code has expired — request a new one');
+  }
+  if (verification.attempts >= MAX_ATTEMPTS) {
+    throw new HttpError(429, 'TOO_MANY_ATTEMPTS', 'Too many incorrect attempts — request a new code');
+  }
+  if (verification.codeHash !== hashToken(code)) {
+    await prisma.emailVerification.update({ where: { id: verification.id }, data: { attempts: { increment: 1 } } });
+    throw new HttpError(400, 'INVALID_CODE', 'That code is incorrect');
+  }
+
+  await prisma.emailVerification.deleteMany({ where: { email } });
+
+  const user = await prisma.user.upsert({
+    where: { provider_providerId: { provider: 'email', providerId: email } },
+    update: {},
+    create: { provider: 'email', providerId: email, email, displayName: displayName?.trim() || email.split('@')[0] },
   });
   const tokens = await issueTokenPair(user.id);
   return { user: toPublicUser(user), ...tokens };

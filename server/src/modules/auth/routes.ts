@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler, HttpError } from '../../middleware/errorHandler';
 import { env } from '../../config/env';
-import { devLoginSchema, logoutSchema, refreshSchema, socialLoginSchema } from './schema';
+import { devLoginSchema, emailStartSchema, emailVerifySchema, logoutSchema, refreshSchema, socialLoginSchema } from './schema';
 import * as authService from './service';
 
 export const authRouter = Router();
@@ -37,6 +37,38 @@ authRouter.post(
     }
     const body = devLoginSchema.parse(req.body ?? {});
     const result = await authService.devLogin(body.displayName, body.email);
+    res.json(result);
+  }),
+);
+
+/**
+ * @openapi
+ * /auth/email/start:
+ *   post:
+ *     summary: Send a 6-digit sign-in code to an email address (works for both new and returning users).
+ *     tags: [Auth]
+ */
+authRouter.post(
+  '/email/start',
+  asyncHandler(async (req, res) => {
+    const body = emailStartSchema.parse(req.body);
+    const result = await authService.startEmailAuth(body.email);
+    res.json(result);
+  }),
+);
+
+/**
+ * @openapi
+ * /auth/email/verify:
+ *   post:
+ *     summary: Verify the code from /auth/email/start and log in, creating the account on first use.
+ *     tags: [Auth]
+ */
+authRouter.post(
+  '/email/verify',
+  asyncHandler(async (req, res) => {
+    const body = emailVerifySchema.parse(req.body);
+    const result = await authService.verifyEmailCode(body.email, body.code, body.displayName);
     res.json(result);
   }),
 );

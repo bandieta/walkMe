@@ -11,6 +11,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { AppDispatch, RootState } from '../../store';
 import { fetchNearbyWalks } from '../../store/slices/walksSlice';
 import { placesApi, walksApi } from '../../services/api';
@@ -18,6 +19,10 @@ import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
 import { Btn, Hairline, useScreenInsets } from '../../ui';
 import { useToast } from '../../components/Toast';
+import { LocationField } from '../../components/LocationField';
+import { PickedLocation } from '../Location/PickLocationScreen';
+import { walkCategoryLabel } from '../../utils/categoryLabels';
+import type { TFunction } from 'i18next';
 
 /**
  * "New walk" from the prototype (08 create walk): Cancel / title header, a scrolling form (type, title, meeting
@@ -39,18 +44,21 @@ const CATEGORIES: { label: string; icon: IconName }[] = [
 ];
 const TIMES = ['07:00', '08:30', '12:00', '17:30', '19:00'];
 const DURATIONS = ['30 min', '1 h', '1.5 h', '2 h', '2 h+'];
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// Server-parsed (ProfileScreen stats regex expects "<number> min|h"), so the stored value stays this format
+// regardless of language — only DURATIONS' Chip *labels* would need translating, and "30 min"/"1 h" read fine
+// as-is in all three languages, so they're left alone rather than risking that parser.
+const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const DAY_COUNT = 7;
 const MIN_LEN = 3;
 
 const startOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
 /** Today, Tomorrow, then "Fri 26"-style chips for the rest of the week. */
-function buildDays() {
+function buildDays(t: TFunction) {
   const today = startOf(new Date());
   return Array.from({ length: DAY_COUNT }, (_, i) => {
     const date = new Date(today.getFullYear(), today.getMonth(), today.getDate() + i);
-    const label = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : `${WEEKDAYS[date.getDay()]} ${date.getDate()}`;
+    const label = i === 0 ? t('common.today') : i === 1 ? t('common.tomorrow') : `${t(`common.weekdaysShort.${WEEKDAY_KEYS[date.getDay()]}`)} ${date.getDate()}`;
     return { label, date };
   });
 }
@@ -139,26 +147,43 @@ const Input: React.FC<{
 };
 
 /** Optional prefill, as the prototype does for "Plan a walk here" (place + type) and "Plan walk" (title). */
-export interface CreateWalkParams { title?: string; point?: string; category?: string; description?: string }
+export interface CreateWalkParams { title?: string; point?: string; category?: string; description?: string; pickedLocation?: PickedLocation }
 
 export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: CreateWalkParams } }> = ({ navigation, route }) => {
+  const { t } = useTranslation();
   const prefill = route?.params;
   const { top, bottom } = useScreenInsets();
   const dispatch = useDispatch<AppDispatch>();
   const userLocation = useSelector((s: RootState) => s.map.userLocation);
   const { show: showToast, element: toast } = useToast();
 
-  const days = useMemo(buildDays, []);
+  const days = useMemo(() => buildDays(t), [t]);
   // Today's 17:30 may already be gone: then the form opens on Tomorrow instead of a start time in the past.
   const [dayIdx, setDayIdx] = useState(() => (startAt(days[0].date, '17:30').getTime() > Date.now() ? 0 : 1));
   const [category, setCategory] = useState(() => CATEGORIES.find((c) => c.label === prefill?.category)?.label ?? 'Park');
   const [title, setTitle] = useState(prefill?.title ?? '');
-  const [point, setPoint] = useState(prefill?.point ?? '');
+  const [point, setPoint] = useState(prefill?.point ?? prefill?.pickedLocation?.name ?? '');
+  // Set once a meeting point is picked on the map (or the screen opened from "Plan a walk here"): the exact
+  // coordinates under the pin, kept in lockstep with `point` so the two can never disagree. Typing again ("Change")
+  // clears both, falling back to the known-places name match below.
+  const [pointCoords, setPointCoords] = useState<{ lat: number; lng: number } | null>(
+    prefill?.pickedLocation ? { lat: prefill.pickedLocation.lat, lng: prefill.pickedLocation.lng } : null,
+  );
   const [time, setTime] = useState('17:30');
   const [duration, setDuration] = useState('1 h');
   const [max, setMax] = useState(8);
   const [desc, setDesc] = useState(prefill?.description ?? '');
   const [busy, setBusy] = useState(false);
+
+  // A pick returned from PickLocationScreen (`navigation.navigate({ name: 'CreateWalk', params: { pickedLocation } })`).
+  useEffect(() => {
+    const picked = route?.params?.pickedLocation;
+    if (!picked) return;
+    setPoint(picked.name);
+    setPointCoords({ lat: picked.lat, lng: picked.lng });
+    navigation.setParams({ pickedLocation: undefined });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route?.params?.pickedLocation]);
 
   const trimmedTitle = title.trim();
   const titleErr = trimmedTitle.length > 0 && trimmedTitle.length < MIN_LEN;
@@ -202,7 +227,6 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
   const onBlurField = (key: string) => () => { if (focusedKey.current === key) focusedKey.current = null; };
   const measure = (key: string) => (e: any) => { fieldY.current[key] = e.nativeEvent.layout.y; };
 
-  const pointRef = useRef<TextInput>(null);
   const descRef = useRef<TextInput>(null);
 
   const create = async () => {
@@ -210,12 +234,16 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
     Keyboard.dismiss();
     const scheduledAt = startAt(days[dayIdx].date, time);
     if (scheduledAt.getTime() <= Date.now()) {
-      showToast('That start time has already passed. Pick a later one.', 'warning');
+      showToast(t('walks.create.pastTimeWarning'), 'warning');
       return;
     }
     const name = point.trim();
     const known = places.current.find((p) => p.name.trim().toLowerCase() === name.toLowerCase());
-    const where = known ? { latitude: known.lat, longitude: known.lng } : userLocation ?? WARSAW;
+    const where = pointCoords
+      ? { latitude: pointCoords.lat, longitude: pointCoords.lng }
+      : known
+        ? { latitude: known.lat, longitude: known.lng }
+        : userLocation ?? WARSAW;
     setBusy(true);
     try {
       const res = await walksApi.create({
@@ -235,7 +263,7 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
       else navigation.goBack();
     } catch (err: any) {
       setBusy(false);
-      showToast(err?.response?.data?.error?.message ?? err?.message ?? 'Could not create the walk. Please try again.', 'error');
+      showToast(err?.response?.data?.error?.message ?? err?.message ?? t('walks.create.couldNotCreate'), 'error');
     }
   };
 
@@ -248,12 +276,12 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
         <Pressable
           onPress={() => navigation.goBack()}
           accessibilityRole="button"
-          accessibilityLabel="Cancel"
+          accessibilityLabel={t('common.cancel')}
           style={{ height: 44, paddingHorizontal: 10, justifyContent: 'center' }}
         >
-          <Text style={{ fontSize: 15, color: Ramp.neutral[400] }}>Cancel</Text>
+          <Text style={{ fontSize: 15, color: Ramp.neutral[400] }}>{t('common.cancel')}</Text>
         </Pressable>
-        <Text style={{ fontSize: 17, fontWeight: '500' }}>New walk</Text>
+        <Text style={{ fontSize: 17, fontWeight: '500' }}>{t('walks.create.title')}</Text>
         <View style={{ width: 66 }} />
       </View>
 
@@ -267,48 +295,51 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
         keyboardDismissMode="on-drag"
       >
         <View style={{ rowGap: 8 }}>
-          <Text style={{ fontSize: 11, lineHeight: 17, letterSpacing: 1.1, textTransform: 'uppercase', color: Ramp.neutral[500], transform: [{ translateY: -1 }] }}>Type</Text>
+          <Text style={{ fontSize: 11, lineHeight: 17, letterSpacing: 1.1, textTransform: 'uppercase', color: Ramp.neutral[500], transform: [{ translateY: -1 }] }}>{t('walks.create.type')}</Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {CATEGORIES.map((c) => (
-              <Chip key={c.label} label={c.label} icon={c.icon} on={category === c.label} onPress={() => setCategory(c.label)} radius={18} paddingH={12} />
+              <Chip key={c.label} label={walkCategoryLabel(t, c.label)} icon={c.icon} on={category === c.label} onPress={() => setCategory(c.label)} radius={18} paddingH={12} />
             ))}
           </View>
         </View>
 
         <View style={{ rowGap: 6 }} onLayout={measure('title')}>
-          <Label>Title</Label>
+          <Label>{t('walks.create.titleLabel')}</Label>
           <Input
             value={title}
             onChangeText={setTitle}
-            placeholder="Morning park walk"
+            placeholder={t('walks.create.titlePlaceholder')}
             error={titleErr}
             maxLength={80}
-            returnKeyType="next"
-            onSubmitEditing={() => pointRef.current?.focus()}
+            returnKeyType="done"
             onFocus={onFocusField('title')}
             onBlur={onBlurField('title')}
           />
-          {titleErr && <Text style={{ fontSize: 12, color: Ramp.accent[300] }}>At least 3 characters.</Text>}
+          {titleErr && <Text style={{ fontSize: 12, color: Ramp.accent[300] }}>{t('walks.create.titleTooShort')}</Text>}
         </View>
 
-        <View style={{ rowGap: 6 }} onLayout={measure('point')}>
-          <Label>Meeting point</Label>
-          <Input
-            inputRef={pointRef}
+        <View onLayout={measure('point')}>
+          <LocationField
+            label={t('walks.create.meetingPoint')}
             value={point}
             onChangeText={setPoint}
-            placeholder="Park entrance, landmark or address"
-            leftIcon="map-pin"
+            placeholder={t('walks.create.meetingPointPlaceholder')}
             maxLength={120}
-            returnKeyType="next"
-            onSubmitEditing={() => descRef.current?.focus()}
-            onFocus={onFocusField('point')}
-            onBlur={onBlurField('point')}
+            locked={!!pointCoords}
+            onPickFromMap={() => {
+              Keyboard.dismiss();
+              navigation.navigate('PickLocation', {
+                initialLat: pointCoords?.lat ?? userLocation?.latitude,
+                initialLng: pointCoords?.lng ?? userLocation?.longitude,
+                returnTo: 'CreateWalk',
+              });
+            }}
+            onChangeMode={() => setPointCoords(null)}
           />
         </View>
 
         <View style={{ rowGap: 8 }}>
-          <Label>Day</Label>
+          <Label>{t('walks.create.day')}</Label>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ columnGap: 6 }}>
             {days.map((d, i) => (
               <Chip key={d.label} label={d.label} on={dayIdx === i} onPress={() => setDayIdx(i)} fixed />
@@ -317,16 +348,16 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
         </View>
 
         <View style={{ rowGap: 8 }}>
-          <Label>Start time</Label>
+          <Label>{t('walks.create.startTime')}</Label>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ columnGap: 6 }}>
-            {TIMES.map((t) => (
-              <Chip key={t} label={t} on={time === t} onPress={() => setTime(t)} fixed />
+            {TIMES.map((tm) => (
+              <Chip key={tm} label={tm} on={time === tm} onPress={() => setTime(tm)} fixed />
             ))}
           </ScrollView>
         </View>
 
         <View style={{ rowGap: 8 }}>
-          <Label>Duration</Label>
+          <Label>{t('walks.create.duration')}</Label>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
             {DURATIONS.map((d) => (
               <Chip key={d} label={d} on={duration === d} onPress={() => setDuration(d)} />
@@ -336,14 +367,14 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View>
-            <Text style={{ fontSize: 14 }}>Max people</Text>
-            <Text style={{ fontSize: 12, color: Ramp.neutral[500] }}>Including you</Text>
+            <Text style={{ fontSize: 14 }}>{t('walks.create.maxPeople')}</Text>
+            <Text style={{ fontSize: 12, color: Ramp.neutral[500] }}>{t('walks.create.includingYou')}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', height: 44, borderWidth: 1, borderColor: DIV, borderRadius: 8 }}>
             <Pressable
               onPress={() => setMax((m) => Math.max(2, m - 1))}
               accessibilityRole="button"
-              accessibilityLabel="Fewer"
+              accessibilityLabel={t('walks.create.fewer')}
               style={({ pressed }) => ({ width: 44, height: 42, alignItems: 'center', justifyContent: 'center', borderTopLeftRadius: 7, borderBottomLeftRadius: 7, backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
             >
               <Icon name="minus" size={16} color={Colors.textPrimary} />
@@ -352,7 +383,7 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
             <Pressable
               onPress={() => setMax((m) => Math.min(30, m + 1))}
               accessibilityRole="button"
-              accessibilityLabel="More"
+              accessibilityLabel={t('walks.create.more')}
               style={({ pressed }) => ({ width: 44, height: 42, alignItems: 'center', justifyContent: 'center', borderTopRightRadius: 7, borderBottomRightRadius: 7, backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
             >
               <Icon name="plus" size={16} color={Colors.textPrimary} />
@@ -361,12 +392,12 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
         </View>
 
         <View style={{ rowGap: 6 }} onLayout={measure('desc')}>
-          <Label>Description</Label>
+          <Label>{t('walks.create.description')}</Label>
           <Input
             inputRef={descRef}
             value={desc}
             onChangeText={setDesc}
-            placeholder="Route, pace, what to bring"
+            placeholder={t('walks.create.descriptionPlaceholder')}
             multiline
             maxLength={1000}
             onFocus={onFocusField('desc')}
@@ -378,7 +409,7 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
       {/* Footer: hairline on top (fading over 48px at each end), padding 12 20 36, 52px pill button. */}
       <View style={{ paddingTop: 12, paddingHorizontal: 20, paddingBottom: kb ? 12 : bottom + 2 }}>
         <FooterRule />
-        <Btn label="Create walk" shape="pill" height={52} fontSize={16} onPress={create} disabled={invalid} loading={busy} />
+        <Btn label={t('walks.create.cta')} shape="pill" height={52} fontSize={16} onPress={create} disabled={invalid} loading={busy} />
       </View>
 
       {toast}

@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authApi, usersApi } from '../../services/api';
 
 interface AuthState {
-  user: { id: string; email?: string; displayName: string; photoUrl?: string; bio?: string; location?: string; walkTimes?: string[]; radiusKm?: number; onboarded?: boolean } | null;
+  user: { id: string; email?: string; displayName: string; photoUrl?: string; bio?: string; location?: string; lat?: number; lng?: number; walkTimes?: string[]; radiusKm?: number; onboarded?: boolean } | null;
   token: string | null;
   refreshToken: string | null;
   loading: boolean;
@@ -56,6 +56,33 @@ export const devLogin = createAsyncThunk(
       return { user: response.data.user, token: response.data.accessToken, refreshToken: response.data.refreshToken };
     } catch (err: any) {
       return rejectWithValue(err?.response?.data?.error?.message ?? 'Dev login failed');
+    }
+  },
+);
+
+// Step 1 of email sign-in: request a code. Doesn't touch auth state (no session yet) — the screen reads
+// `devCode` off the fulfilled action itself (see unwrap() in EmailAuthScreen) rather than from the store.
+export const startEmailAuth = createAsyncThunk(
+  'auth/startEmailAuth',
+  async (email: string, { rejectWithValue }) => {
+    try {
+      const response = await authApi.emailStart(email);
+      return response.data as { success: true; devCode?: string };
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.error?.message ?? 'Could not send the code');
+    }
+  },
+);
+
+export const verifyEmailCode = createAsyncThunk(
+  'auth/verifyEmailCode',
+  async ({ email, code, displayName }: { email: string; code: string; displayName?: string }, { rejectWithValue }) => {
+    try {
+      const response = await authApi.emailVerify(email, code, displayName);
+      await persistSession({ token: response.data.accessToken, refreshToken: response.data.refreshToken });
+      return { user: response.data.user, token: response.data.accessToken, refreshToken: response.data.refreshToken };
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.error?.message ?? 'That code didn’t work');
     }
   },
 );
@@ -129,6 +156,9 @@ const authSlice = createSlice({
       .addCase(devLogin.pending, handlePending)
       .addCase(devLogin.fulfilled, handleFulfilled)
       .addCase(devLogin.rejected, handleRejected)
+      .addCase(verifyEmailCode.pending, handlePending)
+      .addCase(verifyEmailCode.fulfilled, handleFulfilled)
+      .addCase(verifyEmailCode.rejected, handleRejected)
       .addCase(restoreSession.fulfilled, handleFulfilled)
       .addCase(logoutAndInvalidate.fulfilled, (state) => {
         state.user = null;

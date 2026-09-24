@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, Alert, Animated, Easing, Platform, PermissionsAndroid } from 'react-native';
 import Svg, { Rect } from 'react-native-svg';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { AppDispatch, RootState } from '../../store';
 import { onboardingDraftSet, userUpdated } from '../../store/slices/authSlice';
 import { setLocationPermission, setUserLocation } from '../../store/slices/mapSlice';
@@ -87,6 +88,7 @@ const PulsingDot: React.FC = () => {
  * "Not now" finishes the same way without asking the OS for access.
  */
 export const LocationScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const { bottom } = useScreenInsets();
   const user = useSelector((s: RootState) => s.auth.user);
@@ -116,7 +118,7 @@ export const LocationScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
     } catch {
       busyRef.current = false;
       setBusy(null);
-      Alert.alert('Could not finish setting up', 'Please check your connection and try again.');
+      Alert.alert(t('onboarding.location.couldNotFinishTitle'), t('common.connectionError'));
     }
   };
 
@@ -126,9 +128,9 @@ export const LocationScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
 
       <View style={{ flex: 1, paddingTop: 18, paddingHorizontal: 24, rowGap: 22 }}>
         <View>
-          <Text style={{ fontSize: 26, fontWeight: '500', lineHeight: 29, letterSpacing: -0.39, marginBottom: 6, transform: [{ translateY: 0.67 }] }}>Show walks around you</Text>
+          <Text style={{ fontSize: 26, fontWeight: '500', lineHeight: 29, letterSpacing: -0.39, marginBottom: 6, transform: [{ translateY: 0.67 }] }}>{t('onboarding.location.title')}</Text>
           <Text style={{ fontSize: 13, lineHeight: 20, color: Ramp.neutral[400] }}>
-            WalkMe uses your location to find walks and people within {label}. You can switch this off in your profile.
+            {t('onboarding.location.subtitle', { radius: label })}
           </Text>
         </View>
 
@@ -146,7 +148,7 @@ export const LocationScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             />
             <PulsingDot />
             <Text style={{ position: 'absolute', left: 12, bottom: 10, fontFamily: MONO, fontSize: 10, fontWeight: '500', lineHeight: 12, color: Ramp.neutral[600] }}>
-              {`map preview — ${label} radius`}
+              {t('onboarding.location.mapPreview', { radius: label })}
             </Text>
           </View>
         </View>
@@ -162,10 +164,10 @@ export const LocationScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
           })}
         >
           <Icon name="navigation-arrow" size={16} color={Colors.primary} />
-          <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.primary }}>Allow location</Text>
+          <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.primary }}>{t('onboarding.location.allow')}</Text>
         </Pressable>
         <Pressable onPress={() => finish(false)} disabled={!!busy} style={{ height: 44, alignItems: 'center', justifyContent: 'center', opacity: busy === 'allow' ? 0.45 : 1 }}>
-          <Text style={{ fontSize: 14, color: Ramp.neutral[400] }}>Not now</Text>
+          <Text style={{ fontSize: 14, color: Ramp.neutral[400] }}>{t('onboarding.location.notNow')}</Text>
         </Pressable>
       </View>
     </View>

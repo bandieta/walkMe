@@ -27,6 +27,12 @@ export const env = {
   jwtAdminSecret: required('JWT_ADMIN_SECRET', 'dev-insecure-admin-secret'),
   jwtAdminExpiresIn: process.env.JWT_ADMIN_EXPIRES_IN ?? '12h',
 
+  // Email sign-in (auth/email/*): sends a 6-digit code via Resend. Unset in
+  // dev/test — the code is logged to the console and echoed back as
+  // `devCode` in the response instead of actually emailed (see lib/email.ts).
+  resendApiKey: process.env.RESEND_API_KEY ?? '',
+  emailFrom: process.env.EMAIL_FROM ?? 'walkMe <onboarding@resend.dev>',
+
   googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
   facebookAppId: process.env.FACEBOOK_APP_ID ?? '',
   facebookAppSecret: process.env.FACEBOOK_APP_SECRET ?? '',

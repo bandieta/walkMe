@@ -13,28 +13,33 @@ import {
 } from 'react-native';
 import Svg, { Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { AppDispatch, RootState } from '../../store';
 import { fetchWalkById, joinWalk, leaveWalk, updateWalkStatus } from '../../store/slices/walksSlice';
 import { Icon, IconName } from '../../components/Icon';
 import { Hairline, Tag, Btn, PrettyText, useScreenInsets } from '../../ui';
 import { Colors, Ramp } from '../../utils/theme';
 import { resolveMediaUrl } from '../../utils/media';
+import { walkCategoryLabel } from '../../utils/categoryLabels';
 
 const DIVIDER = 'rgba(233,233,237,0.16)';
 // Same reference point the map uses for "x km away" until real device location is wired in.
 const FALLBACK_CENTER = { latitude: 52.2297, longitude: 21.0122 };
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const MONTH_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
 const pad = (n: number) => String(n).padStart(2, '0');
 /** The prototype's 1.55 line-height snapped to the device pixel grid (RN rounds text boxes up, CSS does not). */
 const lh = (fs: number) => Math.round(fs * 1.55 * 3) / 3;
 
 /** "Today · 11:45" / "Thu 25 Sep · 09:00" — the prototype's `whenLong`. */
-function whenLong(iso: string) {
+function whenLong(t: TFunction, iso: string) {
   const d = new Date(iso);
   const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  const day = d.toDateString() === new Date().toDateString() ? 'Today' : `${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  const day = d.toDateString() === new Date().toDateString()
+    ? t('common.today')
+    : `${t(`common.weekdaysShort.${WEEKDAY_KEYS[d.getDay()]}`)} ${d.getDate()} ${t(`common.monthsShort.${MONTH_KEYS[d.getMonth()]}`)}`;
   return `${day} · ${time}`;
 }
 
@@ -127,6 +132,7 @@ const Toast: React.FC<{ text: string; top: number }> = ({ text, top }) => (
 );
 
 export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
+  const { t } = useTranslation();
   const { walkId } = route.params;
   const dispatch = useDispatch<AppDispatch>();
   const { width } = useWindowDimensions();
@@ -172,14 +178,14 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
       canJoin: !ended && !joined && !full,
       inside: !ended && joined,
       blocked: ended || (!joined && full),
-      blockedLabel: ended ? 'This walk has ended' : 'This walk is full',
-      statusLabel: live ? 'Live now' : ended ? 'Ended' : 'Upcoming',
+      blockedLabel: ended ? t('walks.detail.blockedEnded') : t('walks.detail.blockedFull'),
+      statusLabel: live ? t('walks.detail.statusLive') : ended ? t('walks.detail.statusEnded') : t('walks.detail.statusUpcoming'),
       icon: CATEGORY_ICON[walk.category ?? ''] ?? ('path' as IconName),
-      when: whenLong(walk.scheduledAt),
+      when: whenLong(t, walk.scheduledAt),
       dur: walk.duration,
       point: walk.meetingPoint,
-      dist: `${dist.toFixed(1)} km away`,
-      hostName: isHost ? 'you' : walk.host?.displayName,
+      dist: t('walks.detail.distAway', { dist: dist.toFixed(1) }),
+      hostName: isHost ? null : walk.host?.displayName,
       hostIni: initials(isHost ? user?.displayName : walk.host?.displayName),
       hostDog: hostDog ? `${hostDog.name} · ${hostDog.breed}` : '',
       people: ordered.map((p) => ({
@@ -189,12 +195,12 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
       })),
       pct: Math.round((participants.length / (walk.maxParticipants || 1)) * 100),
     };
-  }, [walk, user, userLocation]);
+  }, [walk, user, userLocation, t]);
 
   const shareLink = useCallback(() => {
     if (!walk) return;
-    Share.share({ message: `Join "${walk.title}" on WalkMe: https://dogpals.app/walk/${walk.id}` }).catch(() => undefined);
-  }, [walk]);
+    Share.share({ message: t('walks.detail.shareMessage', { title: walk.title, link: `https://dogpals.app/walk/${walk.id}` }) }).catch(() => undefined);
+  }, [walk, t]);
 
   const run = async (action: () => Promise<unknown>, okText?: string) => {
     setBusy(true);
@@ -202,23 +208,23 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
       await action();
       if (okText) showToast(okText);
     } catch (e: any) {
-      Alert.alert('Something went wrong', e?.message ?? 'Please try again.');
+      Alert.alert(t('walks.detail.errorTitle'), e?.message ?? t('walks.detail.errorMessage'));
     } finally {
       setBusy(false);
     }
   };
-  const join = () => run(() => dispatch(joinWalk(walkId)).unwrap(), 'You’re in. The group chat is open.');
-  const leave = () => run(() => dispatch(leaveWalk(walkId)).unwrap(), 'You left the walk');
+  const join = () => run(() => dispatch(joinWalk(walkId)).unwrap(), t('walks.detail.joinedToast'));
+  const leave = () => run(() => dispatch(leaveWalk(walkId)).unwrap(), t('walks.detail.leftToast'));
   const openChat = () => navigation.navigate('WalkChat', { walkId, walkTitle: walk?.title });
   const setStatus = (status: 'live' | 'ended') => run(() => dispatch(updateWalkStatus({ id: walkId, status })).unwrap());
   const confirmEnd = () =>
-    Alert.alert('End this walk?', 'It will move to past walks for everyone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'End walk', style: 'destructive', onPress: () => setStatus('ended') },
+    Alert.alert(t('walks.detail.endWalkTitle'), t('walks.detail.endWalkMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('walks.detail.endWalk'), style: 'destructive', onPress: () => setStatus('ended') },
     ]);
 
   const backBtn = (
-    <RoundBtn icon={Platform.OS === 'ios' ? 'caret-left' : 'arrow-left'} label="Back" onPress={() => navigation.goBack()} style={{ top: top - 4, left: 14 }} />
+    <RoundBtn icon={Platform.OS === 'ios' ? 'caret-left' : 'arrow-left'} label={t('walks.detail.back')} onPress={() => navigation.goBack()} style={{ top: top - 4, left: 14 }} />
   );
 
   if (!walk || !view) {
@@ -226,8 +232,8 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
       <View style={{ flex: 1, backgroundColor: Colors.backgroundDark, alignItems: 'center', justifyContent: 'center' }}>
         {failed ? (
           <View style={{ alignItems: 'center', rowGap: 14 }}>
-            <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[400] }}>We couldn’t load this walk.</Text>
-            <Btn label="Try again" variant="neutral" onPress={() => { setFailed(false); dispatch(fetchWalkById(walkId)).unwrap().catch(() => setFailed(true)); }} />
+            <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[400] }}>{t('walks.detail.loadFailed')}</Text>
+            <Btn label={t('walks.detail.tryAgain')} variant="neutral" onPress={() => { setFailed(false); dispatch(fetchWalkById(walkId)).unwrap().catch(() => setFailed(true)); }} />
           </View>
         ) : (
           <ActivityIndicator color={Colors.primary} />
@@ -243,7 +249,7 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
         <View>
           <MapCard icon={view.icon} width={width} />
           {backBtn}
-          <RoundBtn icon="export" label="Share" onPress={shareLink} style={{ top: top - 4, right: 14 }} />
+          <RoundBtn icon="export" label={t('walks.detail.share')} onPress={shareLink} style={{ top: top - 4, right: 14 }} />
         </View>
 
         <View style={{ paddingTop: 4, paddingHorizontal: 20, paddingBottom: 24, rowGap: 18 }}>
@@ -251,7 +257,7 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
           <View style={{ rowGap: 8 }}>
             <View style={{ flexDirection: 'row', columnGap: 6 }}>
               <Tag label={view.statusLabel} tone={view.live ? 'accent' : 'neutral'} />
-              <Tag label={walk.category ?? 'Walk'} tone="neutral" />
+              <Tag label={walk.category ? walkCategoryLabel(t, walk.category) : t('walks.detail.walkFallbackCategory')} tone="neutral" />
             </View>
             <PrettyText style={{ fontSize: 26, fontWeight: '500', lineHeight: 29, letterSpacing: -0.39 }}>{walk.title}</PrettyText>
           </View>
@@ -275,7 +281,9 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
           <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 12, padding: 12, borderRadius: 12, backgroundColor: Colors.surfaceDark }}>
             <Bubble name={view.isHost ? user?.displayName : walk.host?.displayName} uri={view.isHost ? user?.photoUrl : walk.host?.photoUrl} size={40} fontSize={13} bg={Ramp.accent[800]} fg={Ramp.accent[200]} />
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Text style={{ fontSize: 14, lineHeight: lh(14) }} numberOfLines={1}>Hosted by {view.hostName}</Text>
+              <Text style={{ fontSize: 14, lineHeight: lh(14) }} numberOfLines={1}>
+                {view.hostName ? t('walks.detail.hostedBy', { name: view.hostName }) : t('walks.detail.hostedByYou')}
+              </Text>
               {!!view.hostDog && <Text style={{ fontSize: 12, lineHeight: lh(12), color: Ramp.neutral[500] }} numberOfLines={1}>{view.hostDog}</Text>}
             </View>
           </View>
@@ -283,8 +291,8 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
           {/* going */}
           <View style={{ rowGap: 10 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500' }}>Going</Text>
-              <Text style={{ fontSize: 13, lineHeight: lh(13), color: Ramp.neutral[400] }}>{view.people.length} of {walk.maxParticipants}</Text>
+              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500' }}>{t('walks.detail.going')}</Text>
+              <Text style={{ fontSize: 13, lineHeight: lh(13), color: Ramp.neutral[400] }}>{t('walks.detail.goingCount', { count: view.people.length, max: walk.maxParticipants })}</Text>
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 10, rowGap: 10 }}>
               {view.people.map((p) => (
@@ -305,7 +313,7 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
           {/* about */}
           {!!walk.description && (
             <View style={{ rowGap: 6 }}>
-              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500' }}>About</Text>
+              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500' }}>{t('walks.detail.about')}</Text>
               <PrettyText style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[300] }}>{walk.description}</PrettyText>
             </View>
           )}
@@ -313,7 +321,7 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
           {/* host controls (not part of the prototype's markup: it has no way to start or end a walk) */}
           {view.isHost && !view.ended && (
             <Btn
-              label={view.live ? 'End walk' : 'Start walk'}
+              label={view.live ? t('walks.detail.endWalk') : t('walks.detail.startWalk')}
               variant={view.live ? 'neutral' : 'accent'}
               loading={busy}
               onPress={() => (view.live ? confirmEnd() : setStatus('live'))}
@@ -326,7 +334,7 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
       <View style={{ paddingTop: 12, paddingHorizontal: 20, paddingBottom: bottom + 2, flexDirection: 'row', columnGap: 10 }}>
         <Hairline tone="divider" style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
         {view.canJoin && (
-          <Btn label="Join walk" shape="pill" onPress={join} loading={busy} style={{ flex: 1 }} />
+          <Btn label={t('walks.detail.joinWalk')} shape="pill" onPress={join} loading={busy} style={{ flex: 1 }} />
         )}
         {view.inside && (
           <>
@@ -338,7 +346,7 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
               })}
             >
               <Icon name="chats-circle" size={15} color={Colors.primary} />
-              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500', color: Colors.primary }}>Group chat</Text>
+              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500', color: Colors.primary }}>{t('walks.detail.groupChat')}</Text>
             </Pressable>
             <Pressable
               onPress={view.isHost ? shareLink : leave}
@@ -348,7 +356,7 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
                 backgroundColor: pressed ? 'rgba(233,233,237,0.14)' : 'transparent', opacity: busy ? 0.45 : 1,
               })}
             >
-              <Text style={{ fontSize: 15, lineHeight: lh(15) }}>{view.isHost ? 'Invite' : 'Leave'}</Text>
+              <Text style={{ fontSize: 15, lineHeight: lh(15) }}>{view.isHost ? t('walks.detail.invite') : t('walks.detail.leave')}</Text>
             </Pressable>
           </>
         )}

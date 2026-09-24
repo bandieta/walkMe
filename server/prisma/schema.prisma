@@ -46,6 +46,21 @@ model User {
   @@unique([provider, providerId])
 }
 
+// One row per "send me a code" request. codeHash is sha256(code) — the plain
+// 6-digit code only ever exists in memory and in the email itself, never
+// stored. A fresh request replaces any earlier unused code for that email
+// (see auth/service.ts) so only the most recently sent code is valid.
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String
+  codeHash  String
+  expiresAt DateTime
+  attempts  Int      @default(0) // wrong-code guesses; capped in the application layer
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
 model RefreshToken {
   id        String   @id @default(uuid())
   userId    String

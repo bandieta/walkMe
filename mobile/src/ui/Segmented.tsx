@@ -16,7 +16,10 @@ export function Segmented<K extends string>({ options, value, onChange, height =
           <Pressable key={o.key} onPress={() => onChange(o.key)}
             style={{ flex: 1, alignItems: 'center', justifyContent: 'center', borderLeftWidth: i ? 1 : 0, borderLeftColor: DIV }}>
             {on && <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: i ? -1 : 0, right: 0, bottom: 0, borderWidth: 1, borderColor: Colors.primary }} />}
-            <Text style={{ fontSize, color: on ? Colors.primary : Colors.textPrimary }}>{o.label}</Text>
+            {/* Equal-width segments: a longer translated label shrinks rather than wrapping or clipping. */}
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize, color: on ? Colors.primary : Colors.textPrimary, paddingHorizontal: 2 }}>
+              {o.label}
+            </Text>
           </Pressable>
         );
       })}

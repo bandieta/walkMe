@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Keyboard, Platform, StatusBar } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
 import { Hairline, PrettyText, useScreenInsets } from '../../ui';
@@ -75,6 +76,7 @@ export const ThreadView: React.FC<Props> = ({
   kind, title, subtitle, avatarIcon, avatarText, actionLabel, actionIcon, onAction, onBack,
   messages, myId, loading, emptyTitle, emptyBody, onSend,
 }) => {
+  const { t } = useTranslation();
   const { top, bottom } = useScreenInsets();
   const [draft, setDraft] = useState('');
   const [focused, setFocused] = useState(false);
@@ -107,7 +109,7 @@ export const ThreadView: React.FC<Props> = ({
       <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 8, paddingTop: top - 6, paddingRight: 12, paddingBottom: 10, paddingLeft: 8 }}>
         <Pressable
           onPress={onBack}
-          accessibilityLabel="Back"
+          accessibilityLabel={t('chat.back')}
           style={({ pressed }) => ({ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? PRESSED : 'transparent' })}
         >
           <Icon name={BACK_ICON} size={20} color={Colors.textPrimary} />
@@ -183,7 +185,7 @@ export const ThreadView: React.FC<Props> = ({
           returnKeyType="send"
           blurOnSubmit={false}
           maxLength={1000}
-          placeholder="Message"
+          placeholder={t('chat.messagePlaceholder')}
           placeholderTextColor={Ramp.neutral[600]}
           selectionColor={Colors.primary}
           cursorColor={Colors.primary}
@@ -195,7 +197,7 @@ export const ThreadView: React.FC<Props> = ({
         <Pressable
           onPress={send}
           disabled={empty}
-          accessibilityLabel="Send"
+          accessibilityLabel={t('chat.send')}
           style={{
             width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center',
             opacity: empty ? 0.45 : 1,

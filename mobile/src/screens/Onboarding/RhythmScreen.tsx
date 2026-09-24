@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, PanResponder } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { AppDispatch, RootState } from '../../store';
 import { onboardingDraftSet, userUpdated } from '../../store/slices/authSlice';
 import { usersApi } from '../../services/api';
@@ -14,16 +15,16 @@ import { WALK_TIMES, MIN_RADIUS_KM, MAX_RADIUS_KM, snapRadius, radiusLabel, vali
 const TILE_RADIUS = 10;
 
 /** One time-of-day chip: surface card, icon, label and hours; a selected one gets a 1px accent ring and a check badge. */
-const TimeTile: React.FC<{ item: (typeof WALK_TIMES)[number]; on: boolean; onPress: () => void }> = ({ item, on, onPress }) => (
+const TimeTile: React.FC<{ item: (typeof WALK_TIMES)[number]; label: string; on: boolean; onPress: () => void }> = ({ item, label, on, onPress }) => (
   <Pressable
     onPress={onPress}
     accessibilityRole="checkbox"
     accessibilityState={{ checked: on }}
-    accessibilityLabel={`${item.label} ${item.range}`}
+    accessibilityLabel={`${label} ${item.range}`}
     style={{ flex: 1, padding: 12, borderRadius: TILE_RADIUS, backgroundColor: Colors.surfaceDark, rowGap: 6, alignItems: 'flex-start' }}
   >
     <Icon name={item.icon} size={20} color={on ? Colors.primary : Ramp.neutral[400]} />
-    <Text style={{ fontSize: 14, lineHeight: 21.66 }}>{item.label}</Text>
+    <Text numberOfLines={1} style={{ fontSize: 14, lineHeight: 21.66 }}>{label}</Text>
     <Text style={{ fontSize: 11, lineHeight: 17, color: Ramp.neutral[500] }}>{item.range}</Text>
     {on && (
       <>
@@ -41,7 +42,7 @@ const TimeTile: React.FC<{ item: (typeof WALK_TIMES)[number]; on: boolean; onPre
  * The prototype's radius slider: a 28px-tall hit area with a 4px rail, an accent fill and a 24px ring thumb.
  * Tap or drag anywhere on it; the value snaps to 0.5 km steps between 0.5 and 5 km.
  */
-const RadiusSlider: React.FC<{ value: number; onChange: (km: number) => void; onDragging: (on: boolean) => void }> = ({ value, onChange, onDragging }) => {
+const RadiusSlider: React.FC<{ value: number; onChange: (km: number) => void; onDragging: (on: boolean) => void; accessibilityLabel: string }> = ({ value, onChange, onDragging, accessibilityLabel }) => {
   const width = useRef(0);
   const startX = useRef(0);
   const cb = useRef({ onChange, onDragging });
@@ -77,7 +78,7 @@ const RadiusSlider: React.FC<{ value: number; onChange: (km: number) => void; on
       onLayout={(e) => { width.current = e.nativeEvent.layout.width; }}
       accessible
       accessibilityRole="adjustable"
-      accessibilityLabel="Walking radius"
+      accessibilityLabel={accessibilityLabel}
       accessibilityValue={{ text: radiusLabel(value) }}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={(e) => onChange(snapRadius(value + (e.nativeEvent.actionName === 'increment' ? 0.5 : -0.5)))}
@@ -98,6 +99,7 @@ const RadiusSlider: React.FC<{ value: number; onChange: (km: number) => void; on
  * the prototype): there Continue saves straight to the profile and goes back instead of moving on to Location.
  */
 export const RhythmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const { bottom } = useScreenInsets();
   const user = useSelector((s: RootState) => s.auth.user);
@@ -131,12 +133,12 @@ export const RhythmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     try {
       await usersApi.updateProfile({ walkTimes, radiusKm: radius });
       dispatch(userUpdated({ walkTimes, radiusKm: radius }));
-      show('Walking rhythm saved');
+      show(t('onboarding.rhythm.saved'));
       // Give the confirmation a moment to be seen (the prototype shows it on the screen it returns to).
       leaveTimer.current = setTimeout(() => { if (navigation.isFocused()) onBack(); }, 700);
     } catch {
       setSaving(false);
-      Alert.alert('Could not save your rhythm', 'Please check your connection and try again.');
+      Alert.alert(t('onboarding.rhythm.couldNotSaveTitle'), t('common.connectionError'));
     }
   };
 
@@ -154,15 +156,15 @@ export const RhythmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         contentContainerStyle={{ paddingTop: 18, paddingHorizontal: 24, paddingBottom: 24, rowGap: 20 }}
       >
         <View>
-          <Text style={{ fontSize: 26, fontWeight: '500', lineHeight: 29, letterSpacing: -0.39, marginBottom: 6, transform: [{ translateY: 0.67 }] }}>When do you usually walk?</Text>
-          <Text style={{ fontSize: 13, lineHeight: 20, color: Ramp.neutral[400] }}>We'll surface walks and people on your schedule.</Text>
+          <Text style={{ fontSize: 26, fontWeight: '500', lineHeight: 29, letterSpacing: -0.39, marginBottom: 6, transform: [{ translateY: 0.67 }] }}>{t('onboarding.rhythm.title')}</Text>
+          <Text style={{ fontSize: 13, lineHeight: 20, color: Ramp.neutral[400] }}>{t('onboarding.rhythm.subtitle')}</Text>
         </View>
 
         <View style={{ rowGap: 8 }}>
           {rows.map((row, i) => (
             <View key={i} style={{ flexDirection: 'row', columnGap: 8 }}>
-              {row.map((t) => (
-                <TimeTile key={t.key} item={t} on={times.includes(t.key)} onPress={() => toggle(t.key)} />
+              {row.map((wt) => (
+                <TimeTile key={wt.key} item={wt} label={t(`onboarding.walkTimes.${wt.key}`)} on={times.includes(wt.key)} onPress={() => toggle(wt.key)} />
               ))}
             </View>
           ))}
@@ -170,13 +172,13 @@ export const RhythmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         <View style={{ rowGap: 12 }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <Text style={{ fontSize: 14, lineHeight: 21.66, transform: [{ translateY: -2 }] }}>How far will you go?</Text>
+            <Text style={{ fontSize: 14, lineHeight: 21.66, transform: [{ translateY: -2 }] }}>{t('onboarding.rhythm.howFar')}</Text>
             <Text style={{ fontSize: 20, lineHeight: 31, fontWeight: '500', color: Ramp.accent[300], transform: [{ translateY: -1 }] }}>{radiusLabel(radius)}</Text>
           </View>
-          <RadiusSlider value={radius} onChange={setRadius} onDragging={setScrollLocked} />
+          <RadiusSlider value={radius} onChange={setRadius} onDragging={setScrollLocked} accessibilityLabel={t('onboarding.rhythm.howFar')} />
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', transform: [{ translateY: -0.67 }] }}>
-            <Text style={{ fontSize: 11, lineHeight: 17, color: Ramp.neutral[500] }}>0.5 km</Text>
-            <Text style={{ fontSize: 11, lineHeight: 17, color: Ramp.neutral[500] }}>5 km</Text>
+            <Text style={{ fontSize: 11, lineHeight: 17, color: Ramp.neutral[500] }}>{radiusLabel(MIN_RADIUS_KM)}</Text>
+            <Text style={{ fontSize: 11, lineHeight: 17, color: Ramp.neutral[500] }}>{radiusLabel(MAX_RADIUS_KM)}</Text>
           </View>
         </View>
 
@@ -184,12 +186,12 @@ export const RhythmScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <View style={{ marginTop: 1 }}>
             <Icon name="shield-check" size={16} color={Ramp.neutral[400]} />
           </View>
-          <Text style={{ flex: 1, fontSize: 12, lineHeight: 17.33, color: Ramp.neutral[400] }}>Others see an approximate area, never your exact location.</Text>
+          <Text style={{ flex: 1, fontSize: 12, lineHeight: 17.33, color: Ramp.neutral[400] }}>{t('onboarding.rhythm.privacyNote')}</Text>
         </View>
       </ScrollView>
 
       <View style={{ paddingTop: 10, paddingHorizontal: 24, paddingBottom: bottom + 4 }}>
-        <Btn label="Continue" shape="pill" height={52} fontSize={16} onPress={onContinue} disabled={invalid || saving} />
+        <Btn label={t('onboarding.rhythm.continue')} shape="pill" height={52} fontSize={16} onPress={onContinue} disabled={invalid || saving} />
       </View>
       {toast}
     </View>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing, StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTranslation } from 'react-i18next';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon } from '../../components/Icon';
 import { useScreenInsets } from '../../ui';
@@ -15,6 +16,7 @@ interface SplashScreenProps {
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
+  const { t } = useTranslation();
   const { bottom } = useScreenInsets();
   const fade = useRef(new Animated.Value(0)).current;
   const bar = useRef(new Animated.Value(0)).current;
@@ -51,7 +53,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onFinish }) => {
         <Icon name="paw-print" size={28} color={Colors.primary} weight="fill" />
       </View>
       <Text style={styles.wordmark}>WalkMe</Text>
-      <Text style={styles.tagline}>Walks with neighbours and their dogs.</Text>
+      <Text style={styles.tagline}>{t('splash.tagline')}</Text>
       <View style={styles.barTrack}>
         <Animated.View style={[styles.barFill, { width: bar }]} />
       </View>
