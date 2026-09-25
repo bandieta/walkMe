@@ -105,11 +105,35 @@ function OptionRow<K extends string>({ label, options, value, onChange, labelOf 
     <View>
       <Label>{label}</Label>
       <View style={{ flexDirection: 'row', marginTop: 6, height: 44, borderWidth: 1, borderColor: DIV, borderRadius: 8, overflow: 'hidden' }}>
-        {options.map((o) => {
+        {options.map((o, i) => {
           const on = o === value;
+          // Android doesn't reliably clip this ring to the frame's rounded corners via overflow:hidden alone —
+          // round the ring itself on the outer edges so it never pokes past the frame on the first/last option.
+          const edgeRadius =
+            i === 0
+              ? { borderTopLeftRadius: 7, borderBottomLeftRadius: 7 }
+              : i === options.length - 1
+                ? { borderTopRightRadius: 7, borderBottomRightRadius: 7 }
+                : null;
           return (
             <Pressable key={o} onPress={() => onChange(o)} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-              {on && <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 1, borderColor: Colors.primary }} />}
+              {on && (
+                <View
+                  pointerEvents="none"
+                  style={[
+                    {
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      borderWidth: 1,
+                      borderColor: Colors.primary,
+                    },
+                    edgeRadius,
+                  ]}
+                />
+              )}
               {/* Equal-width segments: a longer translated label shrinks rather than wrapping or clipping. */}
               <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: 13, color: on ? Colors.primary : Colors.textPrimary, paddingHorizontal: 2 }}>
                 {labelOf(o)}

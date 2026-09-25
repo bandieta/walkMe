@@ -18,11 +18,37 @@ const SegmentBar: React.FC<{ value: Segment; onChange: (s: Segment) => void }> =
   const { t } = useTranslation();
   return (
     <View style={{ flexDirection: 'row', marginHorizontal: 16, height: 38, borderWidth: 1, borderColor: DIV, borderRadius: 8, overflow: 'hidden' }}>
-      {SEGMENTS.map((o) => {
+      {SEGMENTS.map((o, i) => {
         const on = o.key === value;
+        // The bar's own borderRadius + overflow:hidden should clip this ring, but Android doesn't reliably
+        // clip a child view to a rounded parent that way — the ring's square corners then poke past the bar's
+        // rounded ones on the first/last segment (looks like a black notch at that corner when selected).
+        // Rounding the ring itself on those two outer corners fixes it regardless of platform clipping.
+        const edgeRadius =
+          i === 0
+            ? { borderTopLeftRadius: 7, borderBottomLeftRadius: 7 }
+            : i === SEGMENTS.length - 1
+              ? { borderTopRightRadius: 7, borderBottomRightRadius: 7 }
+              : null;
         return (
           <Pressable key={o.key} onPress={() => onChange(o.key)} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            {on && <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderWidth: 1, borderColor: Colors.primary }} />}
+            {on && (
+              <View
+                pointerEvents="none"
+                style={[
+                  {
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    borderWidth: 1,
+                    borderColor: Colors.primary,
+                  },
+                  edgeRadius,
+                ]}
+              />
+            )}
             <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ fontSize: 13, color: on ? Colors.primary : Colors.textPrimary, paddingHorizontal: 2 }}>
               {t(o.labelKey)}
             </Text>
