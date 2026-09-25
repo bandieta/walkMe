@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Key
 import { useTranslation } from 'react-i18next';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
-import { Hairline, PrettyText, useScreenInsets } from '../../ui';
+import { Hairline, PrettyText, ShelterHeartBadge, useScreenInsets } from '../../ui';
 import { TypingDots } from './TypingDots';
 
 /**
@@ -28,6 +28,8 @@ interface Props {
   /** Group: Phosphor icon in the rounded-square avatar. Direct: initials in the round avatar. */
   avatarIcon?: IconName;
   avatarText?: string;
+  /** The direct-message avatar is for a shelter's dog (DogRequestChatScreen) — shows the gradient heart badge. */
+  avatarShelter?: boolean;
   actionLabel: string;
   actionIcon: IconName;
   onAction: () => void;
@@ -79,7 +81,16 @@ const Bubble: React.FC<{ msg: ThreadMessage; mine: boolean; showName: boolean; c
 });
 
 export const ThreadView: React.FC<Props> = ({
-  kind, title, subtitle, avatarIcon, avatarText, actionLabel, actionIcon, onAction, onBack,
+  kind,
+  title,
+  subtitle,
+  avatarIcon,
+  avatarText,
+  avatarShelter,
+  actionLabel,
+  actionIcon,
+  onAction,
+  onBack,
   messages, myId, loading, emptyTitle, emptyBody, onSend, otherTyping, onTyping, onStoppedTyping,
 }) => {
   const { t } = useTranslation();
@@ -132,6 +143,9 @@ export const ThreadView: React.FC<Props> = ({
             <Icon name={avatarIcon} size={18} color={Ramp.accent[200]} />
           ) : (
             <Text style={{ fontSize: 13, fontWeight: '500', color: Ramp.accent[200] }}>{avatarText}</Text>
+          )}
+          {avatarShelter && (
+            <ShelterHeartBadge size={22} style={{ position: 'absolute', bottom: -8, right: -8 }} />
           )}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>

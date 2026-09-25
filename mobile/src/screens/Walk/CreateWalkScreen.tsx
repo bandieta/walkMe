@@ -17,7 +17,7 @@ import { fetchNearbyWalks } from '../../store/slices/walksSlice';
 import { placesApi, walksApi, usersApi } from '../../services/api';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
-import { Btn, Hairline, useScreenInsets } from '../../ui';
+import { Btn, Hairline, ShelterHeartBadge, useScreenInsets } from '../../ui';
 import { useToast } from '../../components/Toast';
 import { LocationField } from '../../components/LocationField';
 import { PickedLocation } from '../Location/PickLocationScreen';
@@ -75,9 +75,16 @@ const chipStyle = (on: boolean) => ({
 });
 const chipColor = (on: boolean) => (on ? Colors.primary : Ramp.neutral[300]);
 
-const Chip: React.FC<{ label: string; on: boolean; onPress: () => void; icon?: IconName; radius?: number; paddingH?: number; fixed?: boolean }> = ({
-  label, on, onPress, icon, radius = 8, paddingH = 13, fixed,
-}) => (
+const Chip: React.FC<{
+  label: string;
+  on: boolean;
+  onPress: () => void;
+  icon?: IconName;
+  shelter?: boolean;
+  radius?: number;
+  paddingH?: number;
+  fixed?: boolean;
+}> = ({ label, on, onPress, icon, shelter, radius = 8, paddingH = 13, fixed }) => (
   <Pressable
     onPress={onPress}
     accessibilityRole="button"
@@ -90,7 +97,13 @@ const Chip: React.FC<{ label: string; on: boolean; onPress: () => void; icon?: I
       chipStyle(on),
     ]}
   >
-    {icon && <Icon name={icon} size={13} color={chipColor(on)} />}
+    {/* Shelter dogs get the design system's gradient heart badge instead of a flat icon — same as everywhere
+        else a shelter dog needs to read as one at a glance. */}
+    {shelter ? (
+      <ShelterHeartBadge size={16} />
+    ) : (
+      icon && <Icon name={icon} size={13} color={chipColor(on)} />
+    )}
     <Text style={{ fontSize: 13, color: chipColor(on) }}>{label}</Text>
   </Pressable>
 );
@@ -362,7 +375,14 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
             <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ columnGap: 6 }}>
               <Chip label={t('walks.create.noDog')} on={dogId === null} onPress={() => setDogId(null)} fixed />
               {dogChoices.map((d) => (
-                <Chip key={d.id} label={d.name} icon={d.shelter ? 'heart' : undefined} on={dogId === d.id} onPress={() => setDogId(d.id)} fixed />
+                <Chip
+                  key={d.id}
+                  label={d.name}
+                  shelter={d.shelter}
+                  on={dogId === d.id}
+                  onPress={() => setDogId(d.id)}
+                  fixed
+                />
               ))}
             </ScrollView>
           </View>
