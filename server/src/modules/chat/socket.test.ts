@@ -3,7 +3,7 @@ import { AddressInfo } from 'net';
 import { Server } from 'socket.io';
 import { io as ioClient, Socket as ClientSocket } from 'socket.io-client';
 import request from 'supertest';
-import { app, authHeader, devLoginAs, unique } from '../../../test/helpers';
+import { app, authHeader, devLoginAs, devLoginAsShelter, unique } from '../../../test/helpers';
 import { registerChatGateway } from './socket';
 
 describe('chat socket gateway', () => {
@@ -136,6 +136,55 @@ describe('chat socket gateway', () => {
 
     hostSocket.close();
     guestSocket.close();
+  });
+
+  it('delivers the first dog-request message live, even to a socket that connected before the request was accepted', async () => {
+    // Regression test for a bug where the shelter's first message from a walker never showed up live (no toast,
+    // no message in the open thread) unless the shelter had already opened that exact chat once. Root cause:
+    // roomIdsForUser() only computes a user's rooms once, at socket-connect time, and the dog-request's room
+    // doesn't exist (as far as the shelter's room list is concerned) until the requester's own connect or an
+    // explicit `chat:room:join` — neither of which happens for the shelter just because they tapped Accept.
+    // shelterRequests/routes.ts's `/accept` handler now socketsJoin's both parties' already-connected sockets
+    // into the room at the moment it becomes usable, which is what this test asserts.
+    const shelter = await devLoginAsShelter(unique('LiveNotifyShelter'));
+    const walker = await devLoginAs(unique('LiveNotifyWalker'));
+
+    const dog = await request(app)
+      .post('/api/v1/dogs')
+      .set(authHeader(shelter.accessToken))
+      .send({ name: 'Pixel', breed: 'Mixed', age: 2, personality: [] });
+
+    // Both sockets connect *before* the request is even created, let alone accepted — the scenario where the
+    // pre-fix room list would already be stale by the time the request exists.
+    const shelterSocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: shelter.accessToken } });
+    const walkerSocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: walker.accessToken } });
+    await Promise.all([
+      new Promise<void>((resolve) => shelterSocket.on('connect', () => resolve())),
+      new Promise<void>((resolve) => walkerSocket.on('connect', () => resolve())),
+    ]);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    const like = await request(app).post(`/api/v1/dogs/${dog.body.id}/like`).set(authHeader(walker.accessToken));
+    const requestId = like.body.id;
+
+    await request(app).post(`/api/v1/dog-requests/${requestId}/accept`).set(authHeader(shelter.accessToken));
+    await new Promise((resolve) => setTimeout(resolve, 50)); // let the accept-time socketsJoin land
+
+    // Neither side ever emits chat:room:join or opens the thread — accepting alone must be enough.
+    const received = new Promise<{ content: string }>((resolve) => {
+      shelterSocket.on('chat:message:receive', resolve);
+    });
+
+    await request(app)
+      .post(`/api/v1/dog-requests/${requestId}/messages`)
+      .set(authHeader(walker.accessToken))
+      .send({ content: 'Hi, is Pixel still available?' });
+
+    const message = await received;
+    expect(message.content).toBe('Hi, is Pixel still available?');
+
+    shelterSocket.close();
+    walkerSocket.close();
   });
 
   it('rejects a connection without a valid token', (done) => {

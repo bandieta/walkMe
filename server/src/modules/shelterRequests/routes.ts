@@ -32,7 +32,20 @@ shelterRequestsRouter.get(
 shelterRequestsRouter.post(
   '/:id/accept',
   asyncHandler(async (req, res) => {
-    res.json(await shelterRequestsService.acceptRequest(req.params.id, req.userId!));
+    const request = await shelterRequestsService.acceptRequest(req.params.id, req.userId!);
+    // Neither side's already-connected socket is in this request's room yet: chat/socket.ts only computes a
+    // user's rooms once, at connect time, and this room didn't exist (or wasn't accepted) then. The requester
+    // joins it explicitly by opening DogRequestChatScreen, but the shelter doesn't have to open the thread to
+    // accept — they just tap Accept from the list — so without this, the *first* message sent right after
+    // acceptance broadcasts to an empty room on the shelter's side: no live message, no toast (the socket-only
+    // "chat:message:receive" is what drives both — see GlobalChatNotifier.tsx). socketsJoin against each
+    // user's own per-user room (every socket already sits in one, see chat/socket.ts) reaches them without
+    // needing a socket id. Subsequent messages already work once the shelter has opened the thread once, which
+    // is why this only ever showed up as "the first chat".
+    const io = req.app.get('io');
+    io?.of(CHAT_NAMESPACE).in(request.requesterId).socketsJoin(request.id);
+    io?.of(CHAT_NAMESPACE).in(request.shelterId).socketsJoin(request.id);
+    res.json(request);
   }),
 );
 
