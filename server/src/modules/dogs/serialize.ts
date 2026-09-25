@@ -4,7 +4,8 @@ import { fromJsonArray } from '../../lib/json';
 export function toDogDto(dog: Dog) {
   return {
     id: dog.id,
-    ownerId: dog.ownerId,
+    ownerId: dog.ownerId ?? undefined,
+    shelterId: dog.shelterId ?? undefined,
     name: dog.name,
     breed: dog.breed,
     age: dog.age,

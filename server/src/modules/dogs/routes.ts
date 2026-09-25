@@ -3,6 +3,7 @@ import { asyncHandler } from '../../middleware/errorHandler';
 import { requireAuth } from '../../middleware/auth';
 import { createDogSchema, updateDogSchema } from './schema';
 import * as dogsService from './service';
+import * as shelterRequestsService from '../shelterRequests/service';
 
 export const dogsRouter = Router();
 dogsRouter.use(requireAuth);
@@ -49,5 +50,19 @@ dogsRouter.delete(
   asyncHandler(async (req, res) => {
     await dogsService.deleteDog(req.params.id, req.userId!);
     res.json({ success: true });
+  }),
+);
+
+/**
+ * @openapi
+ * /dogs/{id}/like:
+ *   post:
+ *     summary: Like a shelter's adoptable dog in Discover — sends the shelter a walk request for that dog.
+ *     tags: [Dogs]
+ */
+dogsRouter.post(
+  '/:id/like',
+  asyncHandler(async (req, res) => {
+    res.status(201).json(await shelterRequestsService.likeDog(req.userId!, req.params.id));
   }),
 );

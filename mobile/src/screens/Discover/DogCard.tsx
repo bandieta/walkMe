@@ -3,13 +3,11 @@ import { View, Text, Animated, Image, Platform, StyleSheet } from 'react-native'
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../../components/Icon';
-import { Placeholder, Tag } from '../../ui';
+import { Placeholder, Tag, ShelterHeartBadge } from '../../ui';
 import { resolveMediaUrl } from '../../utils/media';
 import { Colors, Ramp } from '../../utils/theme';
 import { temperamentLabel } from '../../utils/dogLabels';
-import type { MatchUser, MatchDog } from '../../store/slices/matchesSlice';
-
-export type DeckUser = MatchUser & { dogs: MatchDog[] };
+import type { DeckCard as DeckCardType } from '../../store/slices/matchesSlice';
 
 export const CARD_HEIGHT = 470;
 
@@ -51,17 +49,33 @@ export const BackCard: React.FC = () => (
   </View>
 );
 
-/** One swipe card (a dog and its walker), drawn literally from the prototype's markup. */
+/** One swipe card: either a person with their dog, or (see ShelterHeartBadge) a shelter's individual adoptable dog. */
 export const DogCard: React.FC<{
-  user: DeckUser;
+  card: DeckCardType;
   likeOpacity?: Animated.AnimatedInterpolation<number> | number;
   nopeOpacity?: Animated.AnimatedInterpolation<number> | number;
-}> = ({ user, likeOpacity = 0, nopeOpacity = 0 }) => {
+}> = ({ card, likeOpacity = 0, nopeOpacity = 0 }) => {
   const { t } = useTranslation();
-  const dog = user.dogs[0];
-  const dist = formatDistance(user.distanceKm);
-  const photo = resolveMediaUrl((dog as any)?.photoUrl);
-  const loc = neighbourhood(user.location);
+  const isShelterDog = card.kind === 'shelterDog';
+  const view = card.kind === 'shelterDog'
+    ? {
+        dog: card.dog,
+        loc: neighbourhood(card.shelter.location),
+        subtitle: t('discover.card.fromShelter', { name: firstName(card.shelter.displayName) }),
+        bio: card.dog.bio,
+      }
+    : {
+        dog: card.dogs[0],
+        loc: neighbourhood(card.location),
+        subtitle: card.age
+          ? t('discover.card.withPersonAge', { name: firstName(card.displayName), age: card.age })
+          : t('discover.card.withPerson', { name: firstName(card.displayName) }),
+        bio: card.bio,
+      };
+  const { dog, loc, subtitle, bio } = view;
+  const dist = formatDistance(card.distanceKm);
+  const photo = resolveMediaUrl(dog?.photoUrl);
+
   return (
     <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: CARD_HEIGHT }}>
       {/* box-shadow: 0 0 0 1px #595d6c, 0 16px 40px rgba(0,0,0,.6) */}
@@ -71,11 +85,13 @@ export const DogCard: React.FC<{
         {photo ? (
           <Image source={{ uri: photo }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
         ) : (
-          <Text style={styles.photoLabel}>photo — {dog?.name} {t('discover.card.withPerson', { name: firstName(user.displayName) })}</Text>
+          <Text style={styles.photoLabel}>photo — {dog?.name} {subtitle}</Text>
         )}
 
+        {isShelterDog && <ShelterHeartBadge size={32} style={styles.shelterBadge} />}
+
         {!!dist && (
-          <View style={styles.distPill}>
+          <View style={[styles.distPill, isShelterDog && { left: undefined, right: 14 }]}>
             <Icon name="map-pin" size={12} color={Colors.textPrimary} />
             <Text style={{ fontSize: 12 }}>{dist}</Text>
           </View>
@@ -94,11 +110,7 @@ export const DogCard: React.FC<{
             <Text style={{ fontSize: 28, fontWeight: '500', letterSpacing: -0.56 }}>{dog?.name}</Text>
             <Text style={{ fontSize: 14, color: Ramp.neutral[300] }}>{dog ? t('discover.card.breedAge', { breed: dog.breed, age: dog.age }) : ''}</Text>
           </View>
-          <Text style={{ fontSize: 13, color: Ramp.accent[300] }}>
-            {(user.age
-              ? t('discover.card.withPersonAge', { name: firstName(user.displayName), age: user.age })
-              : t('discover.card.withPerson', { name: firstName(user.displayName) })) + (loc ? ` · ${loc}` : '')}
-          </Text>
+          <Text style={{ fontSize: 13, color: Ramp.accent[300] }}>{subtitle + (loc ? ` · ${loc}` : '')}</Text>
           {!!dog?.personality?.length && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 5, rowGap: 5 }}>
               {dog.personality.map((p) => (
@@ -106,7 +118,7 @@ export const DogCard: React.FC<{
               ))}
             </View>
           )}
-          {!!user.bio && <Text style={{ fontSize: 13, color: Ramp.neutral[300] }}>{user.bio}</Text>}
+          {!!bio && <Text style={{ fontSize: 13, color: Ramp.neutral[300] }}>{bio}</Text>}
         </View>
       </Placeholder>
     </View>
@@ -125,6 +137,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 14, left: 14, flexDirection: 'row', alignItems: 'center', columnGap: 4,
     paddingVertical: 5, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(22,24,38,0.85)',
   },
+  shelterBadge: { position: 'absolute', top: 10, left: 10 },
   stamp: { position: 'absolute', top: 40, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 2, borderRadius: 8 },
   stampText: { fontSize: 20, fontWeight: '500', letterSpacing: 1.2 },
   info: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 80, paddingHorizontal: 18, paddingBottom: 18, rowGap: 7 },

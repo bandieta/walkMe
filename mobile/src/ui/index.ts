@@ -7,3 +7,4 @@ export { Segmented } from './Segmented';
 export { Field } from './Field';
 export { useScreenInsets } from './useScreenInsets';
 export { PrettyText } from './PrettyText';
+export { ShelterHeartBadge } from './ShelterHeartBadge';

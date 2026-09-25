@@ -21,6 +21,8 @@ export const EmailCodeScreen: React.FC<{ navigation: any; route: any }> = ({ nav
   const { show: showToast, element: toast } = useToast();
   const email: string = route.params?.email ?? '';
   const devCode: string | undefined = route.params?.devCode;
+  const accountType: 'person' | 'shelter' = route.params?.accountType ?? 'person';
+  const shelterConfirmed: boolean = route.params?.shelterConfirmed ?? false;
 
   // Dev/test only — see server/src/lib/email.ts: `devCode` is only ever present when there's no real email
   // service configured, so this never shows on a properly configured production server.
@@ -42,7 +44,7 @@ export const EmailCodeScreen: React.FC<{ navigation: any; route: any }> = ({ nav
     if (!valid || busy) return;
     setBusy(true);
     try {
-      const result = await dispatch(verifyEmailCode({ email, code }));
+      const result = await dispatch(verifyEmailCode({ email, code, accountType, shelterConfirmed }));
       if (verifyEmailCode.rejected.match(result)) {
         showToast(String(result.payload ?? t('auth.emailCode.wrongCode')), 'error');
       }

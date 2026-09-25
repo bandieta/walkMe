@@ -5,7 +5,7 @@ import { toDogDto } from '../dogs/serialize';
 type UserWithDogs = User & { dogs?: Dog[] };
 type WalkWithRelations = Walk & {
   host: UserWithDogs;
-  participants: (WalkParticipant & { user: UserWithDogs })[];
+  participants: (WalkParticipant & { user: UserWithDogs; dog: Dog | null })[];
 };
 
 // A walk's people carry their dogs so clients can show "Mochi · Golden Retriever" without an extra request per person.
@@ -26,6 +26,9 @@ export function toWalkDto(walk: WalkWithRelations) {
     maxParticipants: walk.maxParticipants,
     participantIds: walk.participants.map((p) => p.userId),
     participants: walk.participants.map((p) => withDogs(p.user)),
+    // The dog each participant is bringing — their own or an approved shelter dog — keyed by userId, since
+    // `participants` above only carries each person's full dog roster, not which one they picked for this walk.
+    participantDogs: Object.fromEntries(walk.participants.filter((p) => p.dog).map((p) => [p.userId, toDogDto(p.dog!)])),
     status: walk.status,
     duration: walk.duration,
     createdAt: walk.createdAt.toISOString(),
@@ -35,5 +38,5 @@ export function toWalkDto(walk: WalkWithRelations) {
 
 export const walkInclude = {
   host: { include: { dogs: true } },
-  participants: { include: { user: { include: { dogs: true } } } },
+  participants: { include: { user: { include: { dogs: true } }, dog: true } },
 } as const;

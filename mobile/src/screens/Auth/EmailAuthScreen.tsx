@@ -20,6 +20,8 @@ export const EmailAuthScreen: React.FC<{ navigation: any; route: any }> = ({ nav
   const { top, bottom } = useScreenInsets();
   const { show: showToast, element: toast } = useToast();
   const mode: 'new' | 'existing' = route.params?.mode ?? 'new';
+  const accountType: 'person' | 'shelter' = route.params?.accountType ?? 'person';
+  const shelterConfirmed: boolean = route.params?.shelterConfirmed ?? false;
 
   const [email, setEmail] = useState('');
   const [focused, setFocused] = useState(false);
@@ -32,7 +34,7 @@ export const EmailAuthScreen: React.FC<{ navigation: any; route: any }> = ({ nav
     setBusy(true);
     try {
       const result = await dispatch(startEmailAuth(email.trim())).unwrap();
-      navigation.navigate('EmailCode', { email: email.trim(), mode, devCode: result.devCode });
+      navigation.navigate('EmailCode', { email: email.trim(), mode, devCode: result.devCode, accountType, shelterConfirmed });
     } catch (err) {
       showToast(typeof err === 'string' ? err : t('auth.emailAuth.couldNotSend'), 'error');
     } finally {

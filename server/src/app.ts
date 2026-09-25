@@ -15,6 +15,8 @@ import { matchesRouter } from './modules/matches/routes';
 import { placesRouter } from './modules/places/routes';
 import { storageRouter } from './modules/storage/routes';
 import { adminRouter } from './modules/admin/routes';
+import { shelterRequestsRouter } from './modules/shelterRequests/routes';
+import { notificationsRouter } from './modules/notifications/routes';
 
 export function createApp() {
   const app = express();
@@ -48,6 +50,8 @@ export function createApp() {
   // reachable without an app-user token, so it has to come first in the chain.
   v1.use('/admin', adminRouter); // separate admin-only auth (requireAdmin) — never uses the app-user JWT
   v1.use(matchesRouter); // mounts /matches and /discover itself
+  v1.use('/dog-requests', shelterRequestsRouter);
+  v1.use('/notifications', notificationsRouter);
   v1.use('/places', placesRouter);
   v1.use('/storage', storageRouter);
   app.use('/api/v1', v1);

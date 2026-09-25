@@ -27,11 +27,14 @@ import { DiscoverScreen } from '../screens/Discover/DiscoverScreen';
 import { ChatListScreen } from '../screens/Matches/ChatListScreen';
 import { DirectMessageScreen } from '../screens/Chat/DirectMessageScreen';
 import { WalkChatScreen } from '../screens/Chat/WalkChatScreen';
+import { DogRequestChatScreen } from '../screens/Chat/DogRequestChatScreen';
 import { EditProfileScreen } from '../screens/Profile/EditProfileScreen';
 import { MyDogsScreen } from '../screens/Profile/MyDogsScreen';
 import { AddDogScreen } from '../screens/Profile/AddDogScreen';
 import { EditDogScreen } from '../screens/Profile/EditDogScreen';
 import { LanguageScreen } from '../screens/Profile/LanguageScreen';
+import { NotificationsScreen } from '../screens/Profile/NotificationsScreen';
+import { NotificationSettingsScreen } from '../screens/Profile/NotificationSettingsScreen';
 import { PickLocationScreen } from '../screens/Location/PickLocationScreen';
 
 // ─── Param lists ─────────────────────────────────────────────────────────────
@@ -43,8 +46,11 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Welcome: undefined;
-  EmailAuth: { mode: 'new' | 'existing' };
-  EmailCode: { email: string; mode: 'new' | 'existing'; devCode?: string };
+  EmailAuth: { mode: 'new' | 'existing'; accountType?: 'person' | 'shelter'; shelterConfirmed?: boolean };
+  EmailCode: {
+    email: string; mode: 'new' | 'existing'; devCode?: string;
+    accountType?: 'person' | 'shelter'; shelterConfirmed?: boolean;
+  };
 };
 
 export type OnboardingStackParamList = {
@@ -71,6 +77,7 @@ export type ChatStackParamList = {
   ChatList: undefined;
   DirectMessage: { matchId: string; userName: string };
   WalkChat: { walkId: string; walkTitle?: string };
+  DogRequestChat: { requestId: string };
 };
 
 export type ProfileStackParamList = {
@@ -82,11 +89,14 @@ export type ProfileStackParamList = {
   MyWalks: undefined;
   Rhythm: undefined;
   Language: undefined;
+  Notifications: undefined;
+  NotificationSettings: undefined;
   WalkDetail: { walkId: string };
   WalkChat: { walkId: string; walkTitle?: string };
   CreateWalk: undefined;
   EventDetail: { eventId: string };
   PickLocation: { initialLat?: number; initialLng?: number; returnTo: string };
+  DogRequestChat: { requestId: string };
 };
 
 export type MainTabParamList = {
@@ -121,6 +131,7 @@ const linking: LinkingOptions<RootStackParamList> = {
               ChatList: 'messages',
               DirectMessage: 'dm/:matchId',
               WalkChat: 'chat/walk/:walkId',
+              DogRequestChat: 'chat/dog-request/:requestId',
             },
           },
           ProfileTab: {
@@ -133,6 +144,8 @@ const linking: LinkingOptions<RootStackParamList> = {
               MyWalks: 'my-walks',
               Rhythm: 'walking-rhythm',
               Language: 'language',
+              Notifications: 'notifications',
+              NotificationSettings: 'notifications/settings',
             },
           },
         },
@@ -172,6 +185,7 @@ const ChatStackScreen: React.FC = () => (
     <ChatStack.Screen name="ChatList" component={ChatListScreen} />
     <ChatStack.Screen name="DirectMessage" component={DirectMessageScreen} />
     <ChatStack.Screen name="WalkChat" component={WalkChatScreen} />
+    <ChatStack.Screen name="DogRequestChat" component={DogRequestChatScreen} />
   </ChatStack.Navigator>
 );
 
@@ -186,11 +200,14 @@ const ProfileStackScreen: React.FC = () => (
     <ProfileStack.Screen name="MyWalks" component={MyWalksScreen} />
     <ProfileStack.Screen name="Rhythm" component={RhythmScreen} />
     <ProfileStack.Screen name="Language" component={LanguageScreen} />
+    <ProfileStack.Screen name="Notifications" component={NotificationsScreen} />
+    <ProfileStack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
     <ProfileStack.Screen name="WalkDetail" component={WalkDetailScreen} />
     <ProfileStack.Screen name="WalkChat" component={WalkChatScreen} />
     <ProfileStack.Screen name="CreateWalk" component={CreateWalkScreen} />
     <ProfileStack.Screen name="EventDetail" component={EventDetailScreen} />
     <ProfileStack.Screen name="PickLocation" component={PickLocationScreen} />
+    <ProfileStack.Screen name="DogRequestChat" component={DogRequestChatScreen} />
   </ProfileStack.Navigator>
 );
 
