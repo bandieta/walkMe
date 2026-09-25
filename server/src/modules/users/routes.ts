@@ -40,6 +40,21 @@ usersRouter.get(
 
 /**
  * @openapi
+ * /users/{id}/stats:
+ *   get:
+ *     summary: Walks finished, walk friends and km walked for another user — same numbers as /me/stats, for
+ *       someone else's public profile (e.g. a shelter deciding whether to trust a walker).
+ *     tags: [Users]
+ */
+usersRouter.get(
+  '/:id/stats',
+  asyncHandler(async (req, res) => {
+    res.json(await usersService.getStats(req.params.id));
+  }),
+);
+
+/**
+ * @openapi
  * /users/{id}:
  *   get:
  *     summary: Get a user's public profile.

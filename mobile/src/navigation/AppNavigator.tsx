@@ -35,6 +35,7 @@ import { EditDogScreen } from '../screens/Profile/EditDogScreen';
 import { LanguageScreen } from '../screens/Profile/LanguageScreen';
 import { NotificationsScreen } from '../screens/Profile/NotificationsScreen';
 import { NotificationSettingsScreen } from '../screens/Profile/NotificationSettingsScreen';
+import { PersonProfileScreen } from '../screens/Profile/PersonProfileScreen';
 import { PickLocationScreen } from '../screens/Location/PickLocationScreen';
 
 // ─── Param lists ─────────────────────────────────────────────────────────────
@@ -78,6 +79,7 @@ export type ChatStackParamList = {
   DirectMessage: { matchId: string; userName: string };
   WalkChat: { walkId: string; walkTitle?: string };
   DogRequestChat: { requestId: string };
+  PersonProfile: { userId: string; name?: string; photoUrl?: string };
 };
 
 export type ProfileStackParamList = {
@@ -97,6 +99,7 @@ export type ProfileStackParamList = {
   EventDetail: { eventId: string };
   PickLocation: { initialLat?: number; initialLng?: number; returnTo: string };
   DogRequestChat: { requestId: string };
+  PersonProfile: { userId: string; name?: string; photoUrl?: string };
 };
 
 export type MainTabParamList = {
@@ -132,6 +135,7 @@ const linking: LinkingOptions<RootStackParamList> = {
               DirectMessage: 'dm/:matchId',
               WalkChat: 'chat/walk/:walkId',
               DogRequestChat: 'chat/dog-request/:requestId',
+              PersonProfile: 'person/:userId',
             },
           },
           ProfileTab: {
@@ -186,6 +190,7 @@ const ChatStackScreen: React.FC = () => (
     <ChatStack.Screen name="DirectMessage" component={DirectMessageScreen} />
     <ChatStack.Screen name="WalkChat" component={WalkChatScreen} />
     <ChatStack.Screen name="DogRequestChat" component={DogRequestChatScreen} />
+    <ChatStack.Screen name="PersonProfile" component={PersonProfileScreen} />
   </ChatStack.Navigator>
 );
 
@@ -208,6 +213,7 @@ const ProfileStackScreen: React.FC = () => (
     <ProfileStack.Screen name="EventDetail" component={EventDetailScreen} />
     <ProfileStack.Screen name="PickLocation" component={PickLocationScreen} />
     <ProfileStack.Screen name="DogRequestChat" component={DogRequestChatScreen} />
+    <ProfileStack.Screen name="PersonProfile" component={PersonProfileScreen} />
   </ProfileStack.Navigator>
 );
 

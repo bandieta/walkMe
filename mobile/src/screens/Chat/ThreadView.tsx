@@ -30,6 +30,9 @@ interface Props {
   avatarText?: string;
   /** The direct-message avatar is for a shelter's dog (DogRequestChatScreen) — shows the gradient heart badge. */
   avatarShelter?: boolean;
+  /** When set, the title/subtitle become a button (a shelter tapping through to the requester's PersonProfile
+   * from DogRequestChatScreen — see that screen for why only the shelter side gets this). */
+  onTitlePress?: () => void;
   actionLabel: string;
   actionIcon: IconName;
   onAction: () => void;
@@ -87,6 +90,7 @@ export const ThreadView: React.FC<Props> = ({
   avatarIcon,
   avatarText,
   avatarShelter,
+  onTitlePress,
   actionLabel,
   actionIcon,
   onAction,
@@ -133,25 +137,54 @@ export const ThreadView: React.FC<Props> = ({
         >
           <Icon name={BACK_ICON} size={20} color={Colors.textPrimary} />
         </Pressable>
-        <View
-          style={{
-            width: 38, height: 38, borderRadius: kind === 'group' ? 12 : 19, backgroundColor: Ramp.accent[800],
-            alignItems: 'center', justifyContent: 'center',
-          }}
+        <Pressable
+          onPress={onTitlePress}
+          disabled={!onTitlePress}
+          accessibilityLabel={onTitlePress ? title : undefined}
+          accessibilityRole={onTitlePress ? 'button' : undefined}
+          style={({ pressed }) => [
+            { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', columnGap: 10 },
+            onTitlePress && pressed && { opacity: 0.7 },
+          ]}
         >
-          {kind === 'group' && avatarIcon ? (
-            <Icon name={avatarIcon} size={18} color={Ramp.accent[200]} />
-          ) : (
-            <Text style={{ fontSize: 13, fontWeight: '500', color: Ramp.accent[200] }}>{avatarText}</Text>
-          )}
-          {avatarShelter && (
-            <ShelterHeartBadge size={22} style={{ position: 'absolute', bottom: -8, right: -8 }} />
-          )}
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '500', transform: [{ translateY: -0.5 }] }}>{title}</Text>
-          <Text style={{ fontSize: 12, color: Ramp.neutral[500], transform: [{ translateY: -1 }] }}>{subtitle}</Text>
-        </View>
+          <View
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: kind === 'group' ? 12 : 19,
+              backgroundColor: Ramp.accent[800],
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {kind === 'group' && avatarIcon ? (
+              <Icon name={avatarIcon} size={18} color={Ramp.accent[200]} />
+            ) : (
+              <Text style={{ fontSize: 13, fontWeight: '500', color: Ramp.accent[200] }}>
+                {avatarText}
+              </Text>
+            )}
+            {avatarShelter && (
+              <ShelterHeartBadge
+                size={22}
+                style={{ position: 'absolute', bottom: -8, right: -8 }}
+              />
+            )}
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 15, fontWeight: '500', transform: [{ translateY: -0.5 }] }}
+            >
+              {title}
+            </Text>
+            <Text
+              style={{ fontSize: 12, color: Ramp.neutral[500], transform: [{ translateY: -1 }] }}
+            >
+              {subtitle}
+            </Text>
+          </View>
+        </Pressable>
         <Pressable
           onPress={onAction}
           accessibilityLabel={actionLabel}
