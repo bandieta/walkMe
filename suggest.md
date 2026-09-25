@@ -9,6 +9,39 @@ designu zaszyty w kodzie (komponenty `mobile/src/ui`, `utils/theme`, komentarze 
 
 ---
 
+## 1b. Weryfikacja przez kolejną sesję (2026-09-25, później tego samego dnia)
+
+Ta sesja *miała* dostęp do paczki Claude Design (`chats/`, `project/WalkMe Prototype v2.dc.html`, `project/github.md`)
+i w jej ramach zbudowała wcześniej: gradientową/świecącą odznakę schroniska, notatki o psach, ekran „Profil osoby”
+dla schroniska (`PersonProfileScreen`) i kartę szczegółów psa (`DogDetailsCard`) — patrz historia commitów. Poniżej:
+ponowne uruchomienie testów po scaleniu z pracą powyższej sesji, porównanie listy ekranów z `github.md` z tym, co
+faktycznie jest w `mobile/src/screens`, i jeden znaleziony błąd.
+
+**Stan po scaleniu obu sesji:** serwer 79/79 testów, mobile 6/6 testów, `tsc --noEmit` bez błędów na obu pakietach.
+Zmiany z obu sesji nie kolidują — w szczególności nowa walidacja `chat:room:join` (`canJoinRoom`) poprawnie
+rozpoznaje pokoje próśb do schroniska, więc wcześniejsza poprawka „pierwsza wiadomość do schroniska bez
+powiadomienia” nadal działa (test regresyjny w `chat/socket.test.ts` przechodzi).
+
+**Porównanie ekranów z `project/github.md`:** wszystkie 18 ekranów z mapy ekranów (splash, powitanie, dodawanie
+psa, mapa, szczegóły spaceru, tworzenie spaceru, szczegóły/tworzenie wydarzenia, discover + match, wiadomości,
+wątek DM/spaceru, profil + podekrany, krok „typ konta”, karta psa ze schroniska, prośby o spacer, czat o psa +
+szczegóły, „psy pod opieką”/„psy do wyprowadzenia”, „weź psa” przy tworzeniu spaceru) ma odpowiadający ekran w
+kodzie. Brakujące funkcje to więc rzeczywiście luki *funkcjonalne* wewnątrz istniejących ekranów (patrz sekcja 3),
+nie brakujące ekrany.
+
+**Błąd znaleziony i naprawiony:**
+
+| # | Waga | Problem | Poprawka |
+| --- | --- | --- | --- |
+| 17 | Niski | `PersonProfileScreen` ustawiał stan (`setPerson`/`setFailed`/`setLoading`) po zakończeniu żądania bez sprawdzenia, czy ekran wciąż jest zamontowany — ostrzeżenie React przy szybkim cofnięciu z ekranu zanim `/users/:id` odpowie. Reszta aplikacji konsekwentnie używa flagi `alive` w takich `useEffect` (`CreateEventScreen`, `CreateWalkScreen`, `PickLocationScreen`, `DogRequestChatScreen`) — ten ekran był wyjątkiem. | Dodano flagę `alive` + `cleanup`, zgodnie z resztą kodu. |
+
+Sprawdzone dodatkowo bez znalezienia błędu: `DogDetailsCard` (brak animacji zamknięcia — ale to zgodne z
+istniejącym wzorcem `ConfirmDialog`, nie regresja), pozostałe ekrany z `.then(` w `useEffect` (już mają `alive`/
+`cancelled`), serializacja `/users/:id` (poprawnie używa `toPublicUser`, `provider` przechodzi, `email`/`lat`/`lng`
+nie).
+
+---
+
 ## 1. Co jest już zrobione
 
 | Obszar | Zakres |

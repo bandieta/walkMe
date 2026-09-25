@@ -91,17 +91,24 @@ export const PersonProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const [person, setPerson] = useState<PersonData | null>(null);
   const [failed, setFailed] = useState(false);
   const [loading, setLoading] = useState(true);
+  // Bumped by the "Try again" button to force the effect below to refetch without duplicating its body.
+  const [reloadTick, setReloadTick] = useState(0);
 
-  const load = () => {
+  useEffect(() => {
+    let alive = true;
     setFailed(false);
     setLoading(true);
     usersApi
       .getProfile(userId)
-      .then((res) => setPerson(res.data as PersonData))
-      .catch(() => setFailed(true))
-      .finally(() => setLoading(false));
-  };
-  useEffect(load, [userId]);
+      .then((res) => alive && setPerson(res.data as PersonData))
+      .catch(() => alive && setFailed(true))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [userId, reloadTick]);
+
+  const load = () => setReloadTick((n) => n + 1);
 
   const displayName = person?.displayName ?? name ?? '';
   const providerIcon = person?.provider && PROVIDER_ICON[person.provider];
