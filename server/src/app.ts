@@ -23,7 +23,12 @@ export function createApp() {
 
   app.use(cors());
   app.use(express.json());
-  app.use('/uploads', express.static(path.resolve(env.uploadDir)));
+  app.use(
+    '/uploads',
+    express.static(path.resolve(env.uploadDir), {
+      setHeaders: (res) => res.setHeader('X-Content-Type-Options', 'nosniff'),
+    }),
+  );
 
   app.get('/health', (_req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
 

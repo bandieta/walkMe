@@ -146,7 +146,7 @@ export const MapScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           act: () => navigation.navigate('CreateWalk', { category: p.category, pickedLocation: { name: p.name, lat: p.lat, lng: p.lng } }),
         };
       });
-  }, [segment, chips, query, walks, events, places, me?.id, navigation, origin]);
+  }, [segment, chips, query, walks, events, places, me?.id, navigation, origin, t]);
 
   const sel = items.find((i) => i.id === selected);
 

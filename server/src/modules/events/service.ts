@@ -31,14 +31,11 @@ export async function createEvent(organizerId: string, input: CreateEventInput) 
 export async function joinEvent(eventId: string, userId: string) {
   const event = await prisma.event.findUnique({ where: { id: eventId }, include: { participants: true } });
   if (!event) throw new HttpError(404, 'NOT_FOUND', 'Event not found');
+  if (event.participants.some((p) => p.userId === userId)) return getEventById(eventId, userId);
   if (event.participants.length >= event.maxParticipants) {
     throw new HttpError(409, 'EVENT_FULL', 'This event is full');
   }
-  await prisma.eventParticipant.upsert({
-    where: { eventId_userId: { eventId, userId } },
-    update: {},
-    create: { eventId, userId },
-  });
+  await prisma.eventParticipant.create({ data: { eventId, userId } });
   if (userId !== event.organizerId) {
     const joiner = await prisma.user.findUnique({ where: { id: userId } });
     if (joiner) {
@@ -54,6 +51,11 @@ export async function joinEvent(eventId: string, userId: string) {
 }
 
 export async function leaveEvent(eventId: string, userId: string) {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) throw new HttpError(404, 'NOT_FOUND', 'Event not found');
+  if (event.organizerId === userId) {
+    throw new HttpError(400, 'ORGANIZER_CANNOT_LEAVE', 'The organizer cannot leave their own event');
+  }
   await prisma.eventParticipant.deleteMany({ where: { eventId, userId } });
   return getEventById(eventId, userId);
 }

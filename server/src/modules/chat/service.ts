@@ -1,6 +1,32 @@
 import { prisma } from '../../lib/prisma';
+import { HttpError } from '../../middleware/errorHandler';
 import * as notificationsService from '../notifications/service';
 import { toMessageDto } from './serialize';
+
+export async function isWalkMember(walkId: string, userId: string) {
+  const row = await prisma.walkParticipant.findUnique({ where: { walkId_userId: { walkId, userId } } });
+  return !!row;
+}
+
+/** The generic /chat endpoints serve walk group rooms only — DMs and shelter threads have their own guarded routes. */
+async function assertWalkMember(walkId: string, userId: string) {
+  if (!(await isWalkMember(walkId, userId))) {
+    throw new HttpError(403, 'FORBIDDEN', 'You are not part of this walk');
+  }
+}
+
+/** Any room a socket may subscribe to: a walk it joined, one of its matches, or one of its shelter request threads. */
+export async function canJoinRoom(roomId: string, userId: string) {
+  const [walk, match, dogRequest] = await Promise.all([
+    isWalkMember(roomId, userId),
+    prisma.match.findFirst({ where: { id: roomId, OR: [{ userAId: userId }, { userBId: userId }] }, select: { id: true } }),
+    prisma.dogWalkRequest.findFirst({
+      where: { id: roomId, OR: [{ requesterId: userId }, { shelterId: userId }] },
+      select: { id: true },
+    }),
+  ]);
+  return walk || !!match || !!dogRequest;
+}
 
 export async function getRoomsForUser(userId: string) {
   const walks = await prisma.walk.findMany({
@@ -30,7 +56,8 @@ export async function getRoomsForUser(userId: string) {
   );
 }
 
-export async function getMessages(roomId: string) {
+export async function getMessages(roomId: string, viewerId: string) {
+  await assertWalkMember(roomId, viewerId);
   const messages = await prisma.message.findMany({
     where: { roomId },
     orderBy: { createdAt: 'asc' },
@@ -45,12 +72,13 @@ export async function sendMessage(
   content: string,
   type: 'text' | 'image' | 'system' = 'text',
 ) {
-  const walk = await prisma.walk.findUnique({ where: { id: roomId }, include: { participants: true } });
+  await assertWalkMember(roomId, senderId);
+  const walk = await prisma.walk.findUniqueOrThrow({ where: { id: roomId }, include: { participants: true } });
   const message = await prisma.message.create({
-    data: { roomId, senderId, content, type, walkId: walk ? roomId : null },
+    data: { roomId, senderId, content, type, walkId: roomId },
     include: { sender: true },
   });
-  if (walk && type !== 'system') {
+  if (type !== 'system') {
     const recipientIds = walk.participants.map((p) => p.userId).filter((id) => id !== senderId);
     for (const recipientId of recipientIds) {
       await notificationsService.notify(

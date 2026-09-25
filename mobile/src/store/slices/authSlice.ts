@@ -144,6 +144,11 @@ const authSlice = createSlice({
       state.refreshToken = null;
       AsyncStorage.multiRemove(['accessToken', 'refreshToken']);
     },
+    /** The API client silently rotated an expired access token (see services/api/client.ts). */
+    tokensRefreshed(state, action: PayloadAction<{ token: string; refreshToken: string }>) {
+      state.token = action.payload.token;
+      state.refreshToken = action.payload.refreshToken;
+    },
     /** Merge fresh profile fields (e.g. after finishing onboarding or editing the profile). */
     userUpdated(state, action: PayloadAction<Partial<NonNullable<AuthState['user']>>>) {
       if (state.user) state.user = { ...state.user, ...action.payload };
@@ -189,5 +194,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout, userUpdated, onboardingDraftSet } = authSlice.actions;
+export const { logout, tokensRefreshed, userUpdated, onboardingDraftSet } = authSlice.actions;
 export default authSlice.reducer;

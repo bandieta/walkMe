@@ -91,6 +91,17 @@ describe('shelter accounts and dog walk requests', () => {
     expect(history.body.map((m: { content: string }) => m.content)).toEqual(['Can I come meet Rex?', 'Of course — this weekend?']);
   });
 
+  it('liking the same dog again while pending does not re-notify the shelter', async () => {
+    const shelter = await devLoginAsShelter(unique('Quiet'));
+    const dog = await addShelterDog(shelter.accessToken, 'Echo');
+    const walker = await devLoginAs(unique('EchoFan'));
+    await request(app).post(`/api/v1/dogs/${dog.id}/like`).set(authHeader(walker.accessToken));
+    await request(app).post(`/api/v1/dogs/${dog.id}/like`).set(authHeader(walker.accessToken));
+
+    const inbox = await request(app).get('/api/v1/notifications').set(authHeader(shelter.accessToken));
+    expect((inbox.body.items as { type: string }[]).filter((n) => n.type === 'shelter_request')).toHaveLength(1);
+  });
+
   it('the shelter can decline a request instead of accepting it', async () => {
     const shelter = await devLoginAsShelter(unique('NoHome'));
     const dog = await addShelterDog(shelter.accessToken, 'Shadow');

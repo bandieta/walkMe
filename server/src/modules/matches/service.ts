@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../lib/prisma';
 import { HttpError } from '../../middleware/errorHandler';
 import { toPublicUser } from '../users/serialize';
@@ -120,36 +121,73 @@ function haversineKm(aLat: number, aLng: number, bLat: number, bLng: number) {
  * POST /dogs/:id/like). A shelter dog's card carries `kind: 'shelterDog'` so the client knows to route a like
  * to the dog-request flow instead of the person-swipe flow.
  */
+const DECK_SIZE = 50;
+const DEFAULT_RADIUS_KM = 20;
+
+/**
+ * People inside the viewer's own walking radius, closest first. A lat/lng bounding box narrows the query in the
+ * database; the exact haversine distance then filters and sorts the (small) remainder.
+ */
+async function nearbyPeople(
+  viewer: { lat: number | null; lng: number | null; radiusKm: number | null } | null,
+  where: Prisma.UserWhereInput,
+  distanceTo: (lat?: number | null, lng?: number | null) => number | undefined,
+) {
+  if (viewer?.lat == null || viewer.lng == null) return [];
+  const radiusKm = viewer.radiusKm ?? DEFAULT_RADIUS_KM;
+  const dLat = radiusKm / 111;
+  const dLng = radiusKm / (111 * Math.max(Math.cos((viewer.lat * Math.PI) / 180), 0.01));
+  const inBox = await prisma.user.findMany({
+    where: {
+      ...where,
+      lat: { gte: viewer.lat - dLat, lte: viewer.lat + dLat },
+      lng: { gte: viewer.lng - dLng, lte: viewer.lng + dLng },
+    },
+    include: { dogs: true },
+    take: 500,
+  });
+  return inBox
+    .map((u) => ({ u, km: distanceTo(u.lat, u.lng)! }))
+    .filter(({ km }) => km <= radiusKm)
+    .sort((a, b) => a.km - b.km)
+    .slice(0, DECK_SIZE)
+    .map(({ u }) => u);
+}
+
 export async function getSwipeDeck(userId: string) {
   const [viewer, swiped, requested] = await Promise.all([
-    prisma.user.findUnique({ where: { id: userId }, select: { lat: true, lng: true } }),
+    prisma.user.findUnique({ where: { id: userId }, select: { lat: true, lng: true, radiusKm: true } }),
     prisma.swipe.findMany({ where: { fromUserId: userId }, select: { toUserId: true } }),
     prisma.dogWalkRequest.findMany({ where: { requesterId: userId }, select: { dogId: true } }),
   ]);
   const swipedIds = new Set(swiped.map((s) => s.toUserId));
   const requestedDogIds = new Set(requested.map((r) => r.dogId));
 
-  const [personCandidates, shelterDogs] = await Promise.all([
-    prisma.user.findMany({
-      where: { id: { not: userId, notIn: [...swipedIds] }, provider: { not: 'filler' }, accountType: 'person' },
-      include: { dogs: true },
-      orderBy: { createdAt: 'asc' },
-      take: 50,
-    }),
-    prisma.dog.findMany({
-      // shelterId != userId also excludes personal dogs (shelterId is null there, and SQL NULL != x is never
-      // true) and the viewer's own shelter's dogs in one filter, without a separate "not null" check.
-      where: { shelterId: { not: userId }, id: { notIn: [...requestedDogIds] } },
-      include: { shelter: true },
-      orderBy: { createdAt: 'asc' },
-      take: 30,
-    }),
-  ]);
-
   const distanceTo = (lat?: number | null, lng?: number | null) => {
     const hasGeo = viewer?.lat != null && viewer.lng != null && lat != null && lng != null;
     return hasGeo ? Math.round(haversineKm(viewer!.lat!, viewer!.lng!, lat!, lng!) * 10) / 10 : undefined;
   };
+
+  const personWhere = { id: { not: userId, notIn: [...swipedIds] }, provider: { not: 'filler' }, accountType: 'person' };
+  const nearby = await nearbyPeople(viewer, personWhere, distanceTo);
+  // The rest of the deck is the newest accounts, so people who just joined are seen instead of waiting behind
+  // everyone who signed up before them.
+  const newest = await prisma.user.findMany({
+    where: { ...personWhere, id: { ...personWhere.id, notIn: [...swipedIds, ...nearby.map((u) => u.id)] } },
+    include: { dogs: true },
+    orderBy: { createdAt: 'desc' },
+    take: DECK_SIZE - nearby.length,
+  });
+  const personCandidates = [...nearby, ...newest];
+
+  const shelterDogs = await prisma.dog.findMany({
+    // shelterId != userId also excludes personal dogs (shelterId is null there, and SQL NULL != x is never
+    // true) and the viewer's own shelter's dogs in one filter, without a separate "not null" check.
+    where: { shelterId: { not: userId }, id: { notIn: [...requestedDogIds] } },
+    include: { shelter: true },
+    orderBy: { createdAt: 'desc' },
+    take: 30,
+  });
 
   const personCards = personCandidates.map((c) => ({
     kind: 'person' as const,
@@ -181,6 +219,8 @@ export async function swipe(fromUserId: string, toUserId: string, direction: 'le
   if (fromUserId === toUserId) {
     throw new HttpError(400, 'INVALID_TARGET', 'You cannot swipe on yourself');
   }
+  const target = await prisma.user.findUnique({ where: { id: toUserId }, select: { id: true } });
+  if (!target) throw new HttpError(404, 'NOT_FOUND', 'User not found');
   await prisma.swipe.upsert({
     where: { fromUserId_toUserId: { fromUserId, toUserId } },
     update: { direction },
@@ -197,15 +237,15 @@ export async function swipe(fromUserId: string, toUserId: string, direction: 'le
   }
 
   const [userAId, userBId] = orderedPair(fromUserId, toUserId);
-  const match = await prisma.match.upsert({
-    where: { userAId_userBId: { userAId, userBId } },
-    update: {},
-    create: { userAId, userBId },
-  });
+  const existing = await prisma.match.findUnique({ where: { userAId_userBId: { userAId, userBId } } });
+  const match = existing ?? (await prisma.match.create({ data: { userAId, userBId } }));
   const [otherUser, fromUser] = await Promise.all([
     prisma.user.findUniqueOrThrow({ where: { id: toUserId } }),
     prisma.user.findUniqueOrThrow({ where: { id: fromUserId } }),
   ]);
+  if (existing) {
+    return { matched: true as const, match: toMatchDto(match, fromUserId, otherUser), user: toPublicUser(otherUser) };
+  }
   await notificationsService.notify(fromUserId, 'match', { name: otherUser.displayName },
     { tab: 'ChatTab', screen: 'DirectMessage', params: { matchId: match.id, userName: otherUser.displayName } });
   await notificationsService.notify(toUserId, 'match', { name: fromUser.displayName },

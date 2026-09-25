@@ -39,6 +39,7 @@ describe('chat socket gateway', () => {
         meetingPoint: 'Park',
         scheduledAt: new Date(Date.now() + 3600_000).toISOString(),
       });
+    await request(app).post(`/api/v1/walks/${walk.body.id}/join`).set(authHeader(guest.accessToken)).send({});
 
     const hostSocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: host.accessToken } });
     const guestSocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: guest.accessToken } });
@@ -109,6 +110,7 @@ describe('chat socket gateway', () => {
         meetingPoint: 'Park',
         scheduledAt: new Date(Date.now() + 3600_000).toISOString(),
       });
+    await request(app).post(`/api/v1/walks/${walk.body.id}/join`).set(authHeader(guest.accessToken)).send({});
 
     const hostSocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: host.accessToken } });
     const guestSocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: guest.accessToken } });
@@ -185,6 +187,66 @@ describe('chat socket gateway', () => {
 
     shelterSocket.close();
     walkerSocket.close();
+  });
+
+  it('does not let an outsider eavesdrop by joining a walk room or another user’s personal room', async () => {
+    const host = await devLoginAs(unique('EavesHost'));
+    const spy = await devLoginAs(unique('EavesSpy'));
+    const walk = await request(app)
+      .post('/api/v1/walks')
+      .set(authHeader(host.accessToken))
+      .send({
+        title: 'Private walk',
+        meetingLat: 52.23,
+        meetingLng: 21.01,
+        meetingPoint: 'Park',
+        scheduledAt: new Date(Date.now() + 3600_000).toISOString(),
+      });
+
+    const spySocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: spy.accessToken } });
+    await new Promise<void>((resolve) => spySocket.on('connect', () => resolve()));
+    spySocket.emit('chat:room:join', { walkId: walk.body.id });
+    spySocket.emit('chat:room:join', { walkId: host.user.id });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    const leaked: unknown[] = [];
+    spySocket.on('chat:message:receive', (m) => leaked.push(m));
+    spySocket.on('notification:new', (n) => leaked.push(n));
+
+    await request(app)
+      .post(`/api/v1/chat/${walk.body.id}/messages`)
+      .set(authHeader(host.accessToken))
+      .send({ content: 'Only for members' });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    expect(leaked).toHaveLength(0);
+    spySocket.close();
+  });
+
+  it('ignores socket sends from non-members and survives malformed payloads', async () => {
+    const host = await devLoginAs(unique('SendHost'));
+    const outsider = await devLoginAs(unique('SendOutsider'));
+    const walk = await request(app)
+      .post('/api/v1/walks')
+      .set(authHeader(host.accessToken))
+      .send({
+        title: 'Guarded walk',
+        meetingLat: 52.23,
+        meetingLng: 21.01,
+        meetingPoint: 'Park',
+        scheduledAt: new Date(Date.now() + 3600_000).toISOString(),
+      });
+
+    const outsiderSocket: ClientSocket = ioClient(`http://localhost:${port}/chat`, { auth: { token: outsider.accessToken } });
+    await new Promise<void>((resolve) => outsiderSocket.on('connect', () => resolve()));
+    outsiderSocket.emit('chat:message:send', {});
+    outsiderSocket.emit('chat:message:send', { walkId: walk.body.id, content: 'sneaky' });
+    await new Promise((resolve) => setTimeout(resolve, 150));
+
+    const history = await request(app).get(`/api/v1/chat/${walk.body.id}/messages`).set(authHeader(host.accessToken));
+    expect(history.status).toBe(200);
+    expect(history.body).toHaveLength(0);
+    outsiderSocket.close();
   });
 
   it('rejects a connection without a valid token', (done) => {

@@ -3,7 +3,7 @@ import { prisma } from '../../lib/prisma';
 import { generateRefreshToken, hashToken, refreshTokenExpiryDate, signAccessToken } from '../../lib/jwt';
 import { HttpError } from '../../middleware/errorHandler';
 import { sendVerificationEmail } from '../../lib/email';
-import { toPublicUser } from '../users/serialize';
+import { toSelfUser } from '../users/serialize';
 import { verifyGoogleToken } from './verifiers/google';
 import { verifyFacebookToken } from './verifiers/facebook';
 import { verifyAppleToken } from './verifiers/apple';
@@ -14,7 +14,12 @@ const CODE_TTL_MS = 10 * 60 * 1000;
 const RESEND_COOLDOWN_MS = 30 * 1000;
 const MAX_ATTEMPTS = 5;
 
-async function issueTokenPair(userId: string) {
+/** Every sign-in path funnels through here, so this is where a suspended or banned account is turned away. */
+async function issueTokenPair(user: { id: string; status: string }) {
+  if (user.status !== 'active') {
+    throw new HttpError(403, 'ACCOUNT_SUSPENDED', 'This account has been suspended');
+  }
+  const userId = user.id;
   const accessToken = signAccessToken(userId);
   const refreshToken = generateRefreshToken();
   await prisma.refreshToken.create({
@@ -79,8 +84,8 @@ export async function socialLogin(
         : await verifyAppleToken(token, displayName);
 
   const user = await upsertUserFromProfile(provider, profile, accountType, shelterConfirmed);
-  const tokens = await issueTokenPair(user.id);
-  return { user: toPublicUser(user), ...tokens };
+  const tokens = await issueTokenPair(user);
+  return { user: toSelfUser(user), ...tokens };
 }
 
 export async function devLogin(
@@ -96,8 +101,8 @@ export async function devLogin(
     update: {},
     create: { provider: 'dev', providerId, displayName, email, ...accountTypeCreateFields(accountType, shelterConfirmed) },
   });
-  const tokens = await issueTokenPair(user.id);
-  return { user: toPublicUser(user), ...tokens };
+  const tokens = await issueTokenPair(user);
+  return { user: toSelfUser(user), ...tokens };
 }
 
 /** Step 1 of email sign-in: mint a 6-digit code, store its hash, email it (or log it in dev — see lib/email.ts). */
@@ -164,8 +169,8 @@ export async function verifyEmailCode(
       ...accountTypeCreateFields(accountType, shelterConfirmed),
     },
   });
-  const tokens = await issueTokenPair(user.id);
-  return { user: toPublicUser(user), ...tokens };
+  const tokens = await issueTokenPair(user);
+  return { user: toSelfUser(user), ...tokens };
 }
 
 export async function refreshTokens(refreshToken: string) {
@@ -180,8 +185,8 @@ export async function refreshTokens(refreshToken: string) {
   if (!user) {
     throw new HttpError(401, 'INVALID_REFRESH_TOKEN', 'User no longer exists');
   }
-  const tokens = await issueTokenPair(user.id);
-  return { user: toPublicUser(user), ...tokens };
+  const tokens = await issueTokenPair(user);
+  return { user: toSelfUser(user), ...tokens };
 }
 
 export async function logout(refreshToken: string) {

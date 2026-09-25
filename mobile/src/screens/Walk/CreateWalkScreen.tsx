@@ -162,9 +162,9 @@ const Input: React.FC<{
 /** Optional prefill, as the prototype does for "Plan a walk here" (place + type) and "Plan walk" (title). */
 export interface CreateWalkParams { title?: string; point?: string; category?: string; description?: string; pickedLocation?: PickedLocation }
 
-export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: CreateWalkParams } }> = ({ navigation, route }) => {
+export const CreateWalkScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
   const { t } = useTranslation();
-  const prefill = route?.params;
+  const prefill: CreateWalkParams | undefined = route?.params;
   const { top, bottom } = useScreenInsets();
   const dispatch = useDispatch<AppDispatch>();
   const userLocation = useSelector((s: RootState) => s.map.userLocation);

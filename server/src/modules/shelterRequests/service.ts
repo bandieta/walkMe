@@ -53,13 +53,15 @@ export async function likeDog(requesterId: string, dogId: string) {
         data: { dogId, requesterId, shelterId: dog.shelterId },
       });
 
-  const requester = await prisma.user.findUniqueOrThrow({ where: { id: requesterId } });
-  await notificationsService.notify(
-    dog.shelterId,
-    'shelter_request',
-    { name: requester.displayName, dogName: dog.name },
-    { tab: 'ChatTab', screen: 'ChatList' },
-  );
+  if (!existing || existing.status === 'declined') {
+    const requester = await prisma.user.findUniqueOrThrow({ where: { id: requesterId } });
+    await notificationsService.notify(
+      dog.shelterId,
+      'shelter_request',
+      { name: requester.displayName, dogName: dog.name },
+      { tab: 'ChatTab', screen: 'ChatList' },
+    );
+  }
 
   return withRelations(request, requesterId);
 }

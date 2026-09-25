@@ -32,7 +32,7 @@ chatRouter.get(
 chatRouter.get(
   '/:roomId/messages',
   asyncHandler(async (req, res) => {
-    res.json(await chatService.getMessages(req.params.roomId));
+    res.json(await chatService.getMessages(req.params.roomId, req.userId!));
   }),
 );
 

@@ -1,12 +1,18 @@
 import { prisma } from '../../lib/prisma';
 import { HttpError } from '../../middleware/errorHandler';
-import { toPublicUser } from './serialize';
+import { toPublicUser, toSelfUser } from './serialize';
 import { UpdateProfileInput } from './schema';
 
 export async function getUserById(id: string) {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) throw new HttpError(404, 'NOT_FOUND', 'User not found');
   return toPublicUser(user);
+}
+
+export async function getMe(id: string) {
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) throw new HttpError(404, 'NOT_FOUND', 'User not found');
+  return toSelfUser(user);
 }
 
 export async function updateProfile(userId: string, input: UpdateProfileInput) {
@@ -19,7 +25,7 @@ export async function updateProfile(userId: string, input: UpdateProfileInput) {
       ...(onboarded ? { onboardedAt: new Date() } : {}),
     },
   });
-  return toPublicUser(user);
+  return toSelfUser(user);
 }
 
 /** Profile numbers: walks finished, walk friends (matches) and an estimate of km walked together (4 km per walk-hour). */

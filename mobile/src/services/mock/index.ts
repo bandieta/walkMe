@@ -7,7 +7,7 @@ import {
 } from './data';
 
 // Realistic async delay
-const delay = (ms = 350) => new Promise(res => setTimeout(res, ms));
+const delay = (ms = 350) => new Promise<void>(res => setTimeout(res, ms));
 
 // Mutable in-memory state (persists for app session)
 let _users: MockUser[] = JSON.parse(JSON.stringify(USERS));

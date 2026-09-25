@@ -6,7 +6,7 @@ import { env } from '../../config/env';
 import { HttpError } from '../../middleware/errorHandler';
 import { signAdminToken } from '../../lib/adminJwt';
 import { fromJsonArray, toJsonArray } from '../../lib/json';
-import { toPublicUser } from '../users/serialize';
+import { toSelfUser } from '../users/serialize';
 import { toDogDto } from '../dogs/serialize';
 import {
   CreateAdminInput,
@@ -160,7 +160,7 @@ export async function listUsers(q: string | undefined, status: string | undefine
     prisma.user.count({ where }),
   ]);
   const items = rows.map((u) => ({
-    ...toPublicUser(u),
+    ...toSelfUser(u),
     provider: u.provider,
     status: u.status,
     dogCount: u._count.dogs,
@@ -182,7 +182,7 @@ export async function getUserDetail(id: string) {
   if (!user) throw new HttpError(404, 'NOT_FOUND', 'User not found');
   const matchCount = await prisma.match.count({ where: { OR: [{ userAId: id }, { userBId: id }] } });
   return {
-    ...toPublicUser(user),
+    ...toSelfUser(user),
     provider: user.provider,
     status: user.status,
     dogs: user.dogs.map(toDogDto),
@@ -196,7 +196,10 @@ export async function updateUser(id: string, input: UpdateUserInput) {
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) throw new HttpError(404, 'NOT_FOUND', 'User not found');
   const updated = await prisma.user.update({ where: { id }, data: input });
-  return { ...toPublicUser(updated), provider: updated.provider, status: updated.status };
+  if (updated.status !== 'active') {
+    await prisma.refreshToken.deleteMany({ where: { userId: id } });
+  }
+  return { ...toSelfUser(updated), provider: updated.provider, status: updated.status };
 }
 
 export async function deleteUser(id: string) {
