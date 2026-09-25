@@ -84,7 +84,13 @@ export async function createWalk(hostId: string, input: CreateWalkInput) {
 export async function joinWalk(walkId: string, userId: string, dogId?: string) {
   const walk = await prisma.walk.findUnique({ where: { id: walkId }, include: { participants: true } });
   if (!walk) throw new HttpError(404, 'NOT_FOUND', 'Walk not found');
-  if (walk.participants.length >= walk.maxParticipants) {
+  // Re-joining is how an existing member swaps the dog they're bringing, so it skips the capacity check and
+  // the host notification — both only apply to someone new.
+  const alreadyIn = walk.participants.some((p) => p.userId === userId);
+  if (!alreadyIn && walk.status === 'ended') {
+    throw new HttpError(409, 'WALK_ENDED', 'This walk has already ended');
+  }
+  if (!alreadyIn && walk.participants.length >= walk.maxParticipants) {
     throw new HttpError(409, 'WALK_FULL', 'This walk is full');
   }
   if (dogId) await assertCanWalkDog(userId, dogId);
@@ -93,7 +99,7 @@ export async function joinWalk(walkId: string, userId: string, dogId?: string) {
     update: { dogId },
     create: { walkId, userId, dogId },
   });
-  if (userId !== walk.hostId) {
+  if (!alreadyIn && userId !== walk.hostId) {
     const joiner = await prisma.user.findUnique({ where: { id: userId } });
     if (joiner) {
       await notificationsService.notify(
@@ -109,9 +115,13 @@ export async function joinWalk(walkId: string, userId: string, dogId?: string) {
 
 export async function leaveWalk(walkId: string, userId: string) {
   const walk = await prisma.walk.findUnique({ where: { id: walkId } });
-  const leaver = walk && userId !== walk.hostId ? await prisma.user.findUnique({ where: { id: userId } }) : null;
-  await prisma.walkParticipant.deleteMany({ where: { walkId, userId } });
-  if (walk && leaver) {
+  if (!walk) throw new HttpError(404, 'NOT_FOUND', 'Walk not found');
+  if (userId === walk.hostId) {
+    throw new HttpError(400, 'HOST_CANNOT_LEAVE', 'The host cannot leave their own walk — end it instead');
+  }
+  const leaver = await prisma.user.findUnique({ where: { id: userId } });
+  const { count } = await prisma.walkParticipant.deleteMany({ where: { walkId, userId } });
+  if (count > 0 && leaver) {
     await notificationsService.notify(
       walk.hostId,
       'walk_left',

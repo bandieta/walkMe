@@ -1,5 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
-import authReducer from './slices/authSlice';
+import authReducer, { logout, tokensRefreshed } from './slices/authSlice';
+import { registerSessionHooks } from '../services/api/client';
+import { disconnectSocket } from '../services/socket';
 import walksReducer from './slices/walksSlice';
 import profileReducer from './slices/profileSlice';
 import dogsReducer from './slices/dogsSlice';
@@ -24,6 +26,14 @@ export const store = configureStore({
     places: placesReducer,
     shelterRequests: shelterRequestsReducer,
     notifications: notificationsReducer,
+  },
+});
+
+registerSessionHooks({
+  onTokensRefreshed: (tokens) => store.dispatch(tokensRefreshed(tokens)),
+  onSessionExpired: () => {
+    disconnectSocket();
+    store.dispatch(logout());
   },
 });
 

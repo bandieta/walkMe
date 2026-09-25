@@ -1,7 +1,8 @@
 import { User } from '@prisma/client';
 import { fromJsonArray } from '../../lib/json';
 
-export function toPublicUser(user: User) {
+/** The signed-in user's own profile (and the admin panel's view): includes contact details and exact home point. */
+export function toSelfUser(user: User) {
   return {
     id: user.id,
     email: user.email ?? undefined,
@@ -23,6 +24,15 @@ export function toPublicUser(user: User) {
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };
+}
+
+/**
+ * Anyone else looking at this user. Onboarding promises others only ever see an approximate area, never an exact
+ * location — so no email and no coordinates; distance is computed server-side instead (see discover/matches).
+ */
+export function toPublicUser(user: User) {
+  const { email: _email, lat: _lat, lng: _lng, ...rest } = toSelfUser(user);
+  return rest;
 }
 
 export type PublicUser = ReturnType<typeof toPublicUser>;

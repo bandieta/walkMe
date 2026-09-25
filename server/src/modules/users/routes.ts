@@ -20,7 +20,7 @@ usersRouter.use(requireAuth);
 usersRouter.get(
   '/me',
   asyncHandler(async (req, res) => {
-    res.json(await usersService.getUserById(req.userId!));
+    res.json(await usersService.getMe(req.userId!));
   }),
 );
 

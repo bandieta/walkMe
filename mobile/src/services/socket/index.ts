@@ -1,4 +1,5 @@
 import { io, Socket } from 'socket.io-client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ENV } from '../../utils/env';
 import { SOCKET_EVENTS } from '@walkme/shared';
 
@@ -8,7 +9,12 @@ export const getSocket = (token: string): Socket => {
   if (!socket) {
     socket = io(`${ENV.SOCKET_URL}/chat`, {
       path: ENV.SOCKET_PATH,
-      auth: { token },
+      // Evaluated on every (re)connect, so a token the API client silently refreshed is picked up.
+      auth: (cb) => {
+        AsyncStorage.getItem('accessToken')
+          .then((stored) => cb({ token: stored ?? token }))
+          .catch(() => cb({ token }));
+      },
       transports: ['websocket'],
       autoConnect: false,
     });

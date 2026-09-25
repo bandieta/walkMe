@@ -19,7 +19,7 @@ import { LocationScreen } from '../screens/Onboarding/LocationScreen';
 import { MapScreen } from '../screens/Map/MapScreen';
 import { WalkDetailScreen } from '../screens/Walk/WalkDetailScreen';
 import { MyWalksScreen } from '../screens/Walk/MyWalksScreen';
-import { CreateWalkScreen } from '../screens/Walk/CreateWalkScreen';
+import { CreateWalkScreen, CreateWalkParams } from '../screens/Walk/CreateWalkScreen';
 import { ProfileScreen } from '../screens/Profile/ProfileScreen';
 import { EventDetailScreen } from '../screens/Events/EventDetailScreen';
 import { CreateEventScreen } from '../screens/Events/CreateEventScreen';
@@ -64,7 +64,7 @@ export type MapStackParamList = {
   MapHome: undefined;
   WalkDetail: { walkId: string };
   WalkChat: { walkId: string; walkTitle?: string };
-  CreateWalk: undefined;
+  CreateWalk: CreateWalkParams | undefined;
   EventDetail: { eventId: string };
   CreateEvent: undefined;
   PickLocation: { initialLat?: number; initialLng?: number; returnTo: string };
@@ -95,7 +95,7 @@ export type ProfileStackParamList = {
   NotificationSettings: undefined;
   WalkDetail: { walkId: string };
   WalkChat: { walkId: string; walkTitle?: string };
-  CreateWalk: undefined;
+  CreateWalk: CreateWalkParams | undefined;
   EventDetail: { eventId: string };
   PickLocation: { initialLat?: number; initialLng?: number; returnTo: string };
   DogRequestChat: { requestId: string };

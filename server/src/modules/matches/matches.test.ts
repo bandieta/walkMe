@@ -85,4 +85,37 @@ describe('matches & discover', () => {
     const back = await request(app).get('/api/v1/discover/deck').set(authHeader(viewer.accessToken));
     expect(back.body.some((c: { id: string }) => c.id === target.user.id)).toBe(true);
   });
+  it('swiping right again on an existing match does not send another match notification', async () => {
+    const a = await devLoginAs(unique('AgainA'));
+    const b = await devLoginAs(unique('AgainB'));
+    await request(app).post(`/api/v1/discover/${b.user.id}/swipe-right`).set(authHeader(a.accessToken));
+    await request(app).post(`/api/v1/discover/${a.user.id}/swipe-right`).set(authHeader(b.accessToken));
+    const again = await request(app).post(`/api/v1/discover/${a.user.id}/swipe-right`).set(authHeader(b.accessToken));
+    expect(again.status).toBe(200);
+
+    for (const s of [a, b]) {
+      const inbox = await request(app).get('/api/v1/notifications').set(authHeader(s.accessToken));
+      expect((inbox.body.items as { type: string }[]).filter((n) => n.type === 'match')).toHaveLength(1);
+    }
+  });
+
+  it('returns 404 when swiping on a user that does not exist', async () => {
+    const a = await devLoginAs(unique('Ghost'));
+    const res = await request(app).post('/api/v1/discover/00000000-0000-0000-0000-000000000000/swipe-right').set(authHeader(a.accessToken));
+    expect(res.status).toBe(404);
+  });
+  it('keeps showing newly joined and nearby people once there are more than a deck of candidates', async () => {
+    for (let i = 0; i < 55; i += 1) await devLoginAs(unique('Crowd'));
+    const viewer = await devLoginAs(unique('CrowdViewer'));
+    await request(app).patch('/api/v1/users/me').set(authHeader(viewer.accessToken)).send({ lat: 50.06, lng: 19.94, radiusKm: 5 });
+    const neighbour = await devLoginAs(unique('CrowdNeighbour'));
+    await request(app).patch('/api/v1/users/me').set(authHeader(neighbour.accessToken)).send({ lat: 50.061, lng: 19.941 });
+    for (let i = 0; i < 5; i += 1) await devLoginAs(unique('CrowdLate'));
+    const newcomer = await devLoginAs(unique('CrowdNewcomer'));
+
+    const deck = await request(app).get('/api/v1/discover/deck').set(authHeader(viewer.accessToken));
+    const ids = (deck.body as { id: string; kind: string }[]).filter((c) => c.kind === 'person').map((c) => c.id);
+    expect(ids[0]).toBe(neighbour.user.id);
+    expect(ids).toContain(newcomer.user.id);
+  });
 });

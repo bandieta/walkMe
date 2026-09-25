@@ -92,7 +92,7 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
     const full = left === 0;
     const isOrganiser = event.organizerId === user?.id || event.organizer?.id === user?.id;
     return {
-      ended, live, full,
+      ended, live, full, isOrganiser,
       statusLabel: live ? t('events.detail.statusLive') : ended ? t('events.detail.statusEnded') : t('events.detail.statusUpcoming'),
       canJoin: !ended && !event.isJoined && !full,
       joined: !ended && event.isJoined,
@@ -209,16 +209,18 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
               <Icon name="check-circle" weight="fill" size={18} color={Ramp.accent[300]} />
               <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.accent[300] }}>{t('events.detail.youreGoing')}</Text>
             </View>
-            <Pressable
-              onPress={toggle}
-              disabled={busy}
-              style={({ pressed }) => ({
-                height: 50, paddingHorizontal: 20, borderRadius: 25, borderWidth: 1, borderColor: DIVIDER, alignItems: 'center', justifyContent: 'center',
-                backgroundColor: pressed ? 'rgba(233,233,237,0.14)' : 'transparent', opacity: busy ? 0.45 : 1,
-              })}
-            >
-              <Text style={{ fontSize: 14, lineHeight: lh(14) }}>{t('events.detail.cantMakeIt')}</Text>
-            </Pressable>
+            {!view.isOrganiser && (
+              <Pressable
+                onPress={toggle}
+                disabled={busy}
+                style={({ pressed }) => ({
+                  height: 50, paddingHorizontal: 20, borderRadius: 25, borderWidth: 1, borderColor: DIVIDER, alignItems: 'center', justifyContent: 'center',
+                  backgroundColor: pressed ? 'rgba(233,233,237,0.14)' : 'transparent', opacity: busy ? 0.45 : 1,
+                })}
+              >
+                <Text style={{ fontSize: 14, lineHeight: lh(14) }}>{t('events.detail.cantMakeIt')}</Text>
+              </Pressable>
+            )}
           </>
         )}
         {view.blocked && (
