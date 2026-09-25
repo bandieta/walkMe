@@ -116,7 +116,14 @@ export async function startEmailAuth(emailInput: string) {
     data: { email, codeHash: hashToken(code), expiresAt: new Date(Date.now() + CODE_TTL_MS) },
   });
 
-  const { sent } = await sendVerificationEmail(email, code);
+  let sent: boolean;
+  try {
+    ({ sent } = await sendVerificationEmail(email, code));
+  } catch {
+    // Nothing was delivered, so don't leave a live code behind (it would also trip the resend cooldown).
+    await prisma.emailVerification.deleteMany({ where: { email } });
+    throw new HttpError(502, 'EMAIL_SEND_FAILED', "We couldn't send a code to this address. Please try again later or use a different email.");
+  }
   // Only when the code truly wasn't emailed (no RESEND_API_KEY configured) — see lib/email.ts.
   // Never populated once real sending is configured, so this can't leak in a production deploy.
   return { success: true, ...(sent ? {} : { devCode: code }) };
