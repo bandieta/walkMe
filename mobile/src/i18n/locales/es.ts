@@ -172,6 +172,8 @@ export default {
       age: 'Edad',
       energy: 'Energía',
       temperament: 'Temperamento',
+      note: 'Nota sobre tu perro',
+      notePlaceholder: 'Algo que un paseador debería saber: manías, rutas favoritas, notas de salud…',
       skipForNow: 'Omitir por ahora',
       couldNotSaveTitle: 'No se pudo guardar tu perro',
     },

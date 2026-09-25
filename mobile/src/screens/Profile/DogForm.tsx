@@ -61,6 +61,42 @@ const TextBox: React.FC<{
   );
 };
 
+const BIO_MAX = 500;
+
+const NoteBox: React.FC<{
+  label: string; value: string; onChangeText: (v: string) => void; placeholder: string;
+}> = ({ label, value, onChangeText, placeholder }) => {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Label>{label}</Label>
+        <Text style={{ fontSize: 11, color: Ramp.neutral[600] }}>{value.length}/{BIO_MAX}</Text>
+      </View>
+      <View style={{
+        minHeight: 80, marginTop: 5, borderRadius: 8, backgroundColor: Colors.surfaceDark, borderWidth: 1,
+        borderColor: focused ? Colors.primary : DIV, paddingHorizontal: 12, paddingVertical: 10,
+      }}>
+        <TextInput
+          value={value}
+          onChangeText={(v) => onChangeText(v.slice(0, BIO_MAX))}
+          placeholder={placeholder}
+          placeholderTextColor={Ramp.neutral[600]}
+          selectionColor={Colors.primary}
+          cursorColor={Colors.primary}
+          autoCapitalize="sentences"
+          multiline
+          textAlignVertical="top"
+          maxLength={BIO_MAX}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          style={{ fontSize: 14, lineHeight: 20, minHeight: 60, padding: 0, color: Colors.textPrimary }}
+        />
+      </View>
+    </View>
+  );
+};
+
 /** The prototype's option row: one 1px divider frame, equal buttons, the picked one gets an inset 1px accent ring (no separators). */
 function OptionRow<K extends string>({ label, options, value, onChange, labelOf }: {
   label: string; options: readonly K[]; value: K; onChange: (k: K) => void; labelOf: (k: K) => string;
@@ -125,6 +161,7 @@ export const DogForm: React.FC<{
   );
   const [energy, setEnergy] = useState<(typeof ENERGIES)[number]>(initialDog?.energy ?? 'Balanced');
   const [temps, setTemps] = useState<string[]>(initialDog?.personality?.length ? initialDog.personality : ['Friendly']);
+  const [bio, setBio] = useState(initialDog?.bio ?? '');
   const [photo, setPhoto] = useState<Photo | null>(
     initialDog?.photoUrl ? { uri: resolveMediaUrl(initialDog.photoUrl)!, name: '', type: '', remoteUrl: initialDog.photoUrl } : null,
   );
@@ -183,6 +220,7 @@ export const DogForm: React.FC<{
         ageGroup: age,
         energy,
         personality: temps,
+        bio: bio.trim(),
         ...(photoUrl ? { photoUrl } : {}),
       };
       if (savedId.current) {
@@ -283,6 +321,8 @@ export const DogForm: React.FC<{
             ))}
           </View>
         </View>
+
+        <NoteBox label={t('dogs.form.note')} value={bio} onChangeText={setBio} placeholder={t('dogs.form.notePlaceholder')} />
       </ScrollView>
 
       <View style={{ paddingTop: 10, paddingHorizontal: 24, paddingBottom: bottom + 4 }}>
