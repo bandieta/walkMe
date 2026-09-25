@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { RootState, AppDispatch } from '../../store';
@@ -11,6 +10,7 @@ import { ThreadView } from './ThreadView';
 import { useChatRoom } from './useChatRoom';
 import { useTypingIndicator } from './useTypingIndicator';
 import { initials } from './threadFormat';
+import { DogDetailsCard } from '../../components/DogDetailsCard';
 
 const NO_MESSAGES: DogRequestMessage[] = [];
 
@@ -29,6 +29,7 @@ export const DogRequestChatScreen: React.FC<{ route: any; navigation: any }> = (
   const request = useSelector((s: RootState) => s.shelterRequests.requests.find((r) => r.id === requestId));
   const messages = useSelector((s: RootState) => s.shelterRequests.messages[requestId]) ?? NO_MESSAGES;
   const [loading, setLoading] = useState(true);
+  const [dogDetailsOpen, setDogDetailsOpen] = useState(false);
   const haveRequest = !!request;
 
   useEffect(() => {
@@ -63,10 +64,7 @@ export const DogRequestChatScreen: React.FC<{ route: any; navigation: any }> = (
     else navigation.navigate('ChatList');
   };
 
-  const showDetails = () => {
-    if (!dog) return;
-    Alert.alert(dog.name, [dog.breed, `${dog.age}`, dog.bio].filter(Boolean).join('\n'));
-  };
+  const showDetails = () => setDogDetailsOpen(true);
 
   // Only a shelter gets to look up the person on the other end — a requester talking to a shelter has no
   // comparable "is this shelter trustworthy" screen to open (out of scope here; see PersonProfileScreen).
@@ -87,26 +85,36 @@ export const DogRequestChatScreen: React.FC<{ route: any; navigation: any }> = (
   };
 
   return (
-    <ThreadView
-      kind="direct"
-      title={title}
-      subtitle={subtitle}
-      avatarText={initials(dog?.name)}
-      avatarShelter
-      onTitlePress={viewPersonProfile}
-      actionLabel={t('chat.dogRequest.details')}
-      actionIcon="info"
-      onAction={showDetails}
-      onBack={goBack}
-      messages={messages}
-      myId={me?.id}
-      loading={loading}
-      emptyTitle={dog ? t('chat.dogRequest.sayHelloTo', { name: dog.name }) : ''}
-      emptyBody={dog ? t('chat.dogRequest.emptyBody', { dog: dog.name }) : ''}
-      onSend={send}
-      otherTyping={remoteTyping}
-      onTyping={notifyTyping}
-      onStoppedTyping={notifyStoppedTyping}
-    />
+    <>
+      <ThreadView
+        kind="direct"
+        title={title}
+        subtitle={subtitle}
+        avatarText={initials(dog?.name)}
+        avatarShelter
+        avatarLabel={dog?.name}
+        onAvatarPress={dog ? showDetails : undefined}
+        onTitlePress={viewPersonProfile}
+        actionLabel={t('chat.dogRequest.details')}
+        actionIcon="info"
+        onAction={showDetails}
+        onBack={goBack}
+        messages={messages}
+        myId={me?.id}
+        loading={loading}
+        emptyTitle={dog ? t('chat.dogRequest.sayHelloTo', { name: dog.name }) : ''}
+        emptyBody={dog ? t('chat.dogRequest.emptyBody', { dog: dog.name }) : ''}
+        onSend={send}
+        otherTyping={remoteTyping}
+        onTyping={notifyTyping}
+        onStoppedTyping={notifyStoppedTyping}
+      />
+      <DogDetailsCard
+        visible={dogDetailsOpen}
+        dog={dog ?? null}
+        shelter
+        onClose={() => setDogDetailsOpen(false)}
+      />
+    </>
   );
 };
