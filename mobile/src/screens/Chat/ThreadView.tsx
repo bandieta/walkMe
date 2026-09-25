@@ -81,7 +81,16 @@ const Bubble: React.FC<{ msg: ThreadMessage; mine: boolean; showName: boolean; c
 });
 
 export const ThreadView: React.FC<Props> = ({
-  kind, title, subtitle, avatarIcon, avatarText, avatarShelter, actionLabel, actionIcon, onAction, onBack,
+  kind,
+  title,
+  subtitle,
+  avatarIcon,
+  avatarText,
+  avatarShelter,
+  actionLabel,
+  actionIcon,
+  onAction,
+  onBack,
   messages, myId, loading, emptyTitle, emptyBody, onSend, otherTyping, onTyping, onStoppedTyping,
 }) => {
   const { t } = useTranslation();
@@ -135,7 +144,9 @@ export const ThreadView: React.FC<Props> = ({
           ) : (
             <Text style={{ fontSize: 13, fontWeight: '500', color: Ramp.accent[200] }}>{avatarText}</Text>
           )}
-          {avatarShelter && <ShelterHeartBadge size={22} style={{ position: 'absolute', bottom: -8, right: -8 }} />}
+          {avatarShelter && (
+            <ShelterHeartBadge size={22} style={{ position: 'absolute', bottom: -8, right: -8 }} />
+          )}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '500', transform: [{ translateY: -0.5 }] }}>{title}</Text>

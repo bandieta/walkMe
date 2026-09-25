@@ -170,7 +170,10 @@ export const ChatListScreen: React.FC = () => {
               <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', columnGap: 12, paddingVertical: 10, paddingHorizontal: 20 }}>
                 <View style={{ width: 48, height: 48 }}>
                   <Face name={r.dog.name} photoUrl={r.dog.photoUrl} size={48} radius={12} bg={Ramp.accent[900]} fg={Ramp.accent[200]} fontSize={16} />
-                  <ShelterHeartBadge size={24} style={{ position: 'absolute', bottom: -7, right: -7 }} />
+                  <ShelterHeartBadge
+                    size={24}
+                    style={{ position: 'absolute', bottom: -7, right: -7 }}
+                  />
                 </View>
                 <View style={{ flex: 1, minWidth: 0, marginTop: -1 }}>
                   <Text style={{ fontSize: 15 }} numberOfLines={1}>{r.dog.name}</Text>
@@ -216,7 +219,10 @@ export const ChatListScreen: React.FC = () => {
                 <Row key={r.id} onPress={() => openDogRequest(r)}>
                   <View style={{ width: 48, height: 48 }}>
                     <Face name={r.dog.name} photoUrl={r.dog.photoUrl} size={48} radius={12} bg={Ramp.accent[900]} fg={Ramp.accent[200]} fontSize={16} />
-                    <ShelterHeartBadge size={24} style={{ position: 'absolute', bottom: -7, right: -7 }} />
+                    <ShelterHeartBadge
+                      size={24}
+                      style={{ position: 'absolute', bottom: -7, right: -7 }}
+                    />
                   </View>
                   <View style={{ flex: 1, minWidth: 0, marginTop: -1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', columnGap: 8 }}>
@@ -237,7 +243,10 @@ export const ChatListScreen: React.FC = () => {
               <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', columnGap: 12, paddingVertical: 10, paddingHorizontal: 20, opacity: 0.6 }}>
                 <View style={{ width: 48, height: 48 }}>
                   <Face name={r.dog.name} photoUrl={r.dog.photoUrl} size={48} radius={12} bg={Ramp.neutral[900]} fg={Ramp.neutral[300]} fontSize={16} />
-                  <ShelterHeartBadge size={24} style={{ position: 'absolute', bottom: -7, right: -7 }} />
+                  <ShelterHeartBadge
+                    size={24}
+                    style={{ position: 'absolute', bottom: -7, right: -7 }}
+                  />
                 </View>
                 <View style={{ flex: 1, minWidth: 0, marginTop: -1 }}>
                   <Text style={{ fontSize: 15 }} numberOfLines={1}>{r.dog.name}</Text>

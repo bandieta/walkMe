@@ -62,9 +62,9 @@ export const DogCard: React.FC<{
         dog: card.dog,
         loc: neighbourhood(card.shelter.location),
         subtitle: t('discover.card.fromShelter', { name: firstName(card.shelter.displayName) }),
-        // A shelter dog has no separate "owner" — only its own note is shown.
-        note: card.dog.bio,
-        ownerBio: undefined as string | undefined,
+          // A shelter dog has no separate "owner" — only its own note is shown.
+          note: card.dog.bio,
+          ownerBio: undefined as string | undefined,
       }
     : {
         dog: card.dogs[0],
@@ -72,9 +72,9 @@ export const DogCard: React.FC<{
         subtitle: card.age
           ? t('discover.card.withPersonAge', { name: firstName(card.displayName), age: card.age })
           : t('discover.card.withPerson', { name: firstName(card.displayName) }),
-        // The dog's own note is the card's main text; the person's own bio is a shorter line under it.
-        note: card.dogs[0]?.bio,
-        ownerBio: card.bio,
+          // The dog's own note is the card's main text; the person's own bio is a shorter line under it.
+          note: card.dogs[0]?.bio,
+          ownerBio: card.bio,
       };
   const { dog, loc, subtitle, note, ownerBio } = view;
   const dist = formatDistance(card.distanceKm);
@@ -122,8 +122,19 @@ export const DogCard: React.FC<{
               ))}
             </View>
           )}
-          {!!note && <Text style={{ fontSize: 14, lineHeight: 19.6, color: Colors.textPrimary }}>{note}</Text>}
-          {!!ownerBio && <Text numberOfLines={1} style={{ fontSize: 12, lineHeight: 16.8, color: Ramp.neutral[400] }}>{ownerBio}</Text>}
+          {!!note && (
+            <Text style={{ fontSize: 14, lineHeight: 19.6, color: Colors.textPrimary }}>
+              {note}
+            </Text>
+          )}
+          {!!ownerBio && (
+            <Text
+              numberOfLines={1}
+              style={{ fontSize: 12, lineHeight: 16.8, color: Ramp.neutral[400] }}
+            >
+              {ownerBio}
+            </Text>
+          )}
         </View>
       </Placeholder>
     </View>

@@ -30,14 +30,19 @@ let nextId = 0;
  * Both the gradient fill and the glow are drawn with react-native-svg rather than RN's `shadow*` / `elevation`
  * props — Android drops colour from shadows entirely (see SplashScreen's glow, which hit the same wall).
  */
-export const ShelterHeartBadge: React.FC<{ size?: number; style?: object }> = ({ size = 28, style }) => {
+export const ShelterHeartBadge: React.FC<{ size?: number; style?: object }> = ({
+  size = 28,
+  style,
+}) => {
   const id = useRef(`shelterHeart${nextId++}`).current;
   // filter: drop-shadow(0 0 Npx rgba(145,132,217,.45)) in the prototype, N scaling with the badge (5px at
   // 16px up to 15px at 44px) — approximated here as a soft radial glow sized relative to the badge.
   const glowSize = size * 2.2;
 
   return (
-    <View style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}>
+    <View
+      style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}
+    >
       <Svg
         width={glowSize}
         height={glowSize}
@@ -57,7 +62,13 @@ export const ShelterHeartBadge: React.FC<{ size?: number; style?: object }> = ({
       <View style={{ width: size, height: size, opacity: 0.88 }}>
         <Svg width={size} height={size} viewBox="0 0 256 256">
           <Defs>
-            <LinearGradient id={`${id}-fill`} x1={GRADIENT_LINE.x1} y1={GRADIENT_LINE.y1} x2={GRADIENT_LINE.x2} y2={GRADIENT_LINE.y2}>
+            <LinearGradient
+              id={`${id}-fill`}
+              x1={GRADIENT_LINE.x1}
+              y1={GRADIENT_LINE.y1}
+              x2={GRADIENT_LINE.x2}
+              y2={GRADIENT_LINE.y2}
+            >
               <Stop offset="0%" stopColor={GRADIENT_STOPS[0]} />
               <Stop offset="45%" stopColor={GRADIENT_STOPS[1]} />
               <Stop offset="100%" stopColor={GRADIENT_STOPS[2]} />
@@ -66,7 +77,15 @@ export const ShelterHeartBadge: React.FC<{ size?: number; style?: object }> = ({
           <Path d={HEART_PATH} fill={`url(#${id}-fill)`} />
         </Svg>
         {/* The house sits centred on the heart, same as `left:50%;top:36%;transform:translateX(-50%)` in the prototype. */}
-        <View style={{ position: 'absolute', top: size * 0.36, left: 0, right: 0, alignItems: 'center' }}>
+        <View
+          style={{
+            position: 'absolute',
+            top: size * 0.36,
+            left: 0,
+            right: 0,
+            alignItems: 'center',
+          }}
+        >
           <Icon name="house" weight="fill" size={size * 0.42} color={Colors.backgroundDark} />
         </View>
       </View>

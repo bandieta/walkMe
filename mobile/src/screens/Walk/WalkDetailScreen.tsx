@@ -287,7 +287,16 @@ export const WalkDetailScreen: React.FC<{ route: any; navigation: any }> = ({ ro
               </Text>
               {!!view.hostDog && <Text style={{ fontSize: 12, lineHeight: lh(12), color: Ramp.neutral[500] }} numberOfLines={1}>{view.hostDog}</Text>}
               {!!view.hostNote && (
-                <PrettyText style={{ marginTop: 4, fontSize: 12, lineHeight: lh(12), color: Ramp.neutral[300] }}>{view.hostNote}</PrettyText>
+                <PrettyText
+                  style={{
+                    marginTop: 4,
+                    fontSize: 12,
+                    lineHeight: lh(12),
+                    color: Ramp.neutral[300],
+                  }}
+                >
+                  {view.hostNote}
+                </PrettyText>
               )}
             </View>
           </View>

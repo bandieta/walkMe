@@ -156,7 +156,18 @@ export const ProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navi
                   <Text style={cssText(12, { color: Ramp.neutral[500] })} numberOfLines={1}>
                     {d.breed} · {ageGroupOf(d)}
                   </Text>
-                  {!!d.bio && <Text style={cssText(12, { color: Ramp.neutral[300], marginTop: 4, lineHeight: 16.8 })} numberOfLines={2}>{d.bio}</Text>}
+                  {!!d.bio && (
+                    <Text
+                      style={cssText(12, {
+                        color: Ramp.neutral[300],
+                        marginTop: 4,
+                        lineHeight: 16.8,
+                      })}
+                      numberOfLines={2}
+                    >
+                      {d.bio}
+                    </Text>
+                  )}
                 </View>
               </View>
             ))}
@@ -187,7 +198,18 @@ export const ProfileScreen: React.FC<{ navigation: any; route?: any }> = ({ navi
                   <View style={{ marginTop: 8 }}>
                     <Text style={cssText(14, { fontWeight: '500' })} numberOfLines={1}>{r.dog.name}</Text>
                     <Text style={cssText(12, { color: Ramp.neutral[500] })} numberOfLines={1}>{r.shelter.displayName}</Text>
-                    {!!r.dog.bio && <Text style={cssText(12, { color: Ramp.neutral[300], marginTop: 4, lineHeight: 16.8 })} numberOfLines={2}>{r.dog.bio}</Text>}
+                    {!!r.dog.bio && (
+                      <Text
+                        style={cssText(12, {
+                          color: Ramp.neutral[300],
+                          marginTop: 4,
+                          lineHeight: 16.8,
+                        })}
+                        numberOfLines={2}
+                      >
+                        {r.dog.bio}
+                      </Text>
+                    )}
                   </View>
                 </Pressable>
               ))}
