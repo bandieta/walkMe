@@ -27,7 +27,20 @@ async function issueTokenPair(userId: string) {
   return { accessToken, refreshToken };
 }
 
-async function upsertUserFromProfile(provider: string, profile: VerifiedProfile) {
+/** accountType/shelterConfirmed only ever apply to a brand-new account — an existing one keeps what it was created with. */
+function accountTypeCreateFields(accountType: 'person' | 'shelter', shelterConfirmed?: boolean) {
+  return {
+    accountType,
+    ...(accountType === 'shelter' && shelterConfirmed ? { shelterConfirmedAt: new Date() } : {}),
+  };
+}
+
+async function upsertUserFromProfile(
+  provider: string,
+  profile: VerifiedProfile,
+  accountType: 'person' | 'shelter',
+  shelterConfirmed?: boolean,
+) {
   if (provider === 'facebook' && profile.photoUrl) {
     const stored = await saveRemoteImage(profile.photoUrl, `fb-${profile.providerId}`);
     if (stored) profile = { ...profile, photoUrl: stored };
@@ -45,12 +58,19 @@ async function upsertUserFromProfile(provider: string, profile: VerifiedProfile)
       email: profile.email,
       displayName: profile.displayName,
       photoUrl: profile.photoUrl,
+      ...accountTypeCreateFields(accountType, shelterConfirmed),
     },
   });
   return user;
 }
 
-export async function socialLogin(provider: 'google' | 'facebook' | 'apple', token: string, displayName?: string) {
+export async function socialLogin(
+  provider: 'google' | 'facebook' | 'apple',
+  token: string,
+  displayName?: string,
+  accountType: 'person' | 'shelter' = 'person',
+  shelterConfirmed?: boolean,
+) {
   const profile =
     provider === 'google'
       ? await verifyGoogleToken(token)
@@ -58,18 +78,23 @@ export async function socialLogin(provider: 'google' | 'facebook' | 'apple', tok
         ? await verifyFacebookToken(token)
         : await verifyAppleToken(token, displayName);
 
-  const user = await upsertUserFromProfile(provider, profile);
+  const user = await upsertUserFromProfile(provider, profile, accountType, shelterConfirmed);
   const tokens = await issueTokenPair(user.id);
   return { user: toPublicUser(user), ...tokens };
 }
 
-export async function devLogin(displayName: string, email?: string) {
+export async function devLogin(
+  displayName: string,
+  email?: string,
+  accountType: 'person' | 'shelter' = 'person',
+  shelterConfirmed?: boolean,
+) {
   // A stable dev user per display name so repeated dev logins reuse the same account.
   const providerId = `dev-${displayName.toLowerCase().replace(/\s+/g, '-')}`;
   const user = await prisma.user.upsert({
     where: { provider_providerId: { provider: 'dev', providerId } },
     update: {},
-    create: { provider: 'dev', providerId, displayName, email },
+    create: { provider: 'dev', providerId, displayName, email, ...accountTypeCreateFields(accountType, shelterConfirmed) },
   });
   const tokens = await issueTokenPair(user.id);
   return { user: toPublicUser(user), ...tokens };
@@ -98,7 +123,13 @@ export async function startEmailAuth(emailInput: string) {
 }
 
 /** Step 2: check the code, then create-or-reuse a `provider: "email"` account exactly like social/dev login do. */
-export async function verifyEmailCode(emailInput: string, code: string, displayName?: string) {
+export async function verifyEmailCode(
+  emailInput: string,
+  code: string,
+  displayName?: string,
+  accountType: 'person' | 'shelter' = 'person',
+  shelterConfirmed?: boolean,
+) {
   const email = emailInput.trim().toLowerCase();
   const verification = await prisma.emailVerification.findFirst({ where: { email }, orderBy: { createdAt: 'desc' } });
 
@@ -118,7 +149,13 @@ export async function verifyEmailCode(emailInput: string, code: string, displayN
   const user = await prisma.user.upsert({
     where: { provider_providerId: { provider: 'email', providerId: email } },
     update: {},
-    create: { provider: 'email', providerId: email, email, displayName: displayName?.trim() || email.split('@')[0] },
+    create: {
+      provider: 'email',
+      providerId: email,
+      email,
+      displayName: displayName?.trim() || email.split('@')[0],
+      ...accountTypeCreateFields(accountType, shelterConfirmed),
+    },
   });
   const tokens = await issueTokenPair(user.id);
   return { user: toPublicUser(user), ...tokens };

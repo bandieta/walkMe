@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { matchesApi } from '../../services/api';
+import { matchesApi, usersApi } from '../../services/api';
 
 export interface MatchUser {
   id: string;
@@ -25,7 +25,26 @@ export interface MatchDog {
   ageGroup?: string;
   personality: string[];
   bio?: string;
+  photoUrl?: string;
 }
+
+/** A person's own Discover card — the existing behaviour, swiped on as a unit with their dogs. */
+export interface PersonDeckCard extends MatchUser {
+  kind: 'person';
+  dogs: MatchDog[];
+}
+
+/** A shelter's adoptable dog, its own Discover card (see ShelterHeartBadge in the design system). `id` is the
+ * dog's id — "liking" one posts to /dogs/:id/like, not the person-swipe endpoints. */
+export interface ShelterDogDeckCard {
+  kind: 'shelterDog';
+  id: string;
+  dog: MatchDog;
+  shelter: MatchUser;
+  distanceKm?: number;
+}
+
+export type DeckCard = PersonDeckCard | ShelterDogDeckCard;
 
 export interface Match {
   id: string;
@@ -53,7 +72,7 @@ export interface MatchMessage {
 
 interface MatchesState {
   matches: Match[];
-  swipeDeck: (MatchUser & { dogs: MatchDog[] })[];
+  swipeDeck: DeckCard[];
   messages: Record<string, MatchMessage[]>;
   latestMatch: { match: Match; user: MatchUser } | null;
   loading: boolean;
@@ -121,6 +140,20 @@ export const swipeLeft = createAsyncThunk('matches/swipeLeft', async (userId: st
   }
 });
 
+/**
+ * "Liking" a shelter dog's Discover card: unlike a person swipe, this never matches on its own — it just lets
+ * the shelter know, and a conversation only opens once they accept (see screens/Discover/DiscoverScreen.tsx).
+ * A "pass" on a shelter dog card is local only (see `removeFromDeck` below), nothing to undo server-side.
+ */
+export const likeShelterDog = createAsyncThunk('matches/likeShelterDog', async (dogId: string, { rejectWithValue }) => {
+  try {
+    const res = await usersApi.likeDog(dogId);
+    return res.data;
+  } catch (err: any) {
+    return rejectWithValue(err?.response?.data?.error?.message ?? err?.message ?? 'Failed');
+  }
+});
+
 export const fetchMatchMessages = createAsyncThunk('matches/fetchMessages', async (matchId: string, { rejectWithValue }) => {
   try {
     const res = await matchesApi.getMessages(matchId);
@@ -175,6 +208,10 @@ const matchesSlice = createSlice({
     setActiveMatch(state, action: PayloadAction<string | null>) {
       state.activeMatchId = action.payload;
     },
+    /** Passing on a shelter dog card: nothing is persisted, just drop it from the local deck. */
+    removeFromDeck(state, action: PayloadAction<string>) {
+      state.swipeDeck = state.swipeDeck.filter((c) => c.id !== action.payload);
+    },
     receiveMatchMessage(state, action: PayloadAction<MatchMessage>) {
       const msg = action.payload;
       if (!state.messages[msg.roomId]) state.messages[msg.roomId] = [];
@@ -211,6 +248,13 @@ const matchesSlice = createSlice({
       })
       .addCase(swipeLeft.fulfilled, (state, action) => {
         state.swipeDeck = state.swipeDeck.filter(u => u.id !== action.meta.arg);
+      })
+      .addCase(likeShelterDog.fulfilled, (state, action) => {
+        state.swipeDeck = state.swipeDeck.filter((c) => c.id !== action.meta.arg);
+      })
+      .addCase(likeShelterDog.rejected, (state, action) => {
+        // Even on failure, don't leave the card stuck mid-throw — DiscoverScreen already toasts the error.
+        state.swipeDeck = state.swipeDeck.filter((c) => c.id !== action.meta.arg);
       })
       .addCase(resetSwipes.fulfilled, (state, action) => { state.swipeLoading = false; state.swipeDeck = action.payload; })
       .addCase(fetchMatchMessages.fulfilled, (state, action) => {
@@ -253,5 +297,5 @@ const matchesSlice = createSlice({
   },
 });
 
-export const { clearLatestMatch, setActiveMatch, receiveMatchMessage } = matchesSlice.actions;
+export const { clearLatestMatch, setActiveMatch, removeFromDeck, receiveMatchMessage } = matchesSlice.actions;
 export default matchesSlice.reducer;

@@ -4,15 +4,21 @@
 // against the mocks keep working unchanged.
 import { apiClient } from './client';
 
+export type NotificationCategory = 'matches' | 'messages' | 'walks' | 'events' | 'shelterRequests' | 'nearby';
+
 export const authApi = {
-  socialLogin: (provider: 'google' | 'facebook' | 'apple', token: string, displayName?: string) =>
-    apiClient.post('/auth/social', { provider, token, displayName }),
+  socialLogin: (
+    provider: 'google' | 'facebook' | 'apple', token: string, displayName?: string,
+    accountType?: 'person' | 'shelter', shelterConfirmed?: boolean,
+  ) => apiClient.post('/auth/social', { provider, token, displayName, accountType, shelterConfirmed }),
   devLogin: (displayName: string) => apiClient.post('/auth/dev-login', { displayName }),
   refresh: (refreshToken: string) => apiClient.post('/auth/refresh', { refreshToken }),
   logout: (refreshToken: string) => apiClient.post('/auth/logout', { refreshToken }),
   emailStart: (email: string) => apiClient.post('/auth/email/start', { email }),
-  emailVerify: (email: string, code: string, displayName?: string) =>
-    apiClient.post('/auth/email/verify', { email, code, displayName }),
+  emailVerify: (
+    email: string, code: string, displayName?: string,
+    accountType?: 'person' | 'shelter', shelterConfirmed?: boolean,
+  ) => apiClient.post('/auth/email/verify', { email, code, displayName, accountType, shelterConfirmed }),
 };
 
 export const usersApi = {
@@ -32,13 +38,15 @@ export const usersApi = {
   createDog: (data: Record<string, unknown>) => apiClient.post('/dogs', data),
   updateDog: (dogId: string, data: Record<string, unknown>) => apiClient.patch(`/dogs/${dogId}`, data),
   deleteDog: (dogId: string) => apiClient.delete(`/dogs/${dogId}`),
+  likeDog: (dogId: string) => apiClient.post(`/dogs/${dogId}/like`),
+  getWalkableDogs: () => apiClient.get('/users/me/walkable-dogs'),
 };
 
 export const walksApi = {
   list: (params?: { lat?: number; lng?: number; radiusKm?: number }) => apiClient.get('/walks', { params }),
   getById: (id: string) => apiClient.get(`/walks/${id}`),
   create: (data: Record<string, unknown>) => apiClient.post('/walks', data),
-  join: (id: string) => apiClient.post(`/walks/${id}/join`),
+  join: (id: string, dogId?: string) => apiClient.post(`/walks/${id}/join`, { dogId }),
   leave: (id: string) => apiClient.post(`/walks/${id}/leave`),
   updateStatus: (id: string, status: string) => apiClient.patch(`/walks/${id}/status`, { status }),
 };
@@ -66,6 +74,24 @@ export const matchesApi = {
   swipeRight: (userId: string) => apiClient.post(`/discover/${userId}/swipe-right`),
   swipeLeft: (userId: string) => apiClient.post(`/discover/${userId}/swipe-left`),
   resetSwipes: () => apiClient.post('/discover/reset'),
+};
+
+export const shelterRequestsApi = {
+  getAll: () => apiClient.get('/dog-requests'),
+  accept: (id: string) => apiClient.post(`/dog-requests/${id}/accept`),
+  decline: (id: string) => apiClient.post(`/dog-requests/${id}/decline`),
+  getMessages: (id: string) => apiClient.get(`/dog-requests/${id}/messages`),
+  sendMessage: (id: string, content: string) => apiClient.post(`/dog-requests/${id}/messages`, { content }),
+  markRead: (id: string) => apiClient.post(`/dog-requests/${id}/read`),
+};
+
+export const notificationsApi = {
+  list: (cursor?: string) => apiClient.get('/notifications', { params: cursor ? { cursor } : undefined }),
+  unreadCount: () => apiClient.get('/notifications/unread-count'),
+  markRead: (id: string) => apiClient.post(`/notifications/${id}/read`),
+  markAllRead: () => apiClient.post('/notifications/read-all'),
+  getPreferences: () => apiClient.get('/notifications/preferences'),
+  updatePreferences: (patch: Partial<Record<NotificationCategory, boolean>>) => apiClient.put('/notifications/preferences', patch),
 };
 
 export const placesApi = {

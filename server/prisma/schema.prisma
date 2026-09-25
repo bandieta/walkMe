@@ -17,31 +17,42 @@ datasource db {
 }
 
 model User {
-  id              String   @id @default(uuid())
-  provider        String // "google" | "facebook" | "apple" | "dev"
-  providerId      String
-  email           String?
-  displayName     String
-  photoUrl        String?
-  bio             String?
-  age             Int?
-  location        String?
-  walkTimes       String? // JSON string[] of preferred walking times (onboarding)
-  radiusKm        Float?
-  onboardedAt     DateTime?
-  lat             Float? // home area, used to compute distances in Discover
-  lng             Float?
-  status          String   @default("active") // "active" | "suspended" | "banned" — set from the admin panel
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                 String    @id @default(uuid())
+  provider           String // "google" | "facebook" | "apple" | "dev" | "email"
+  providerId         String
+  email              String?
+  displayName        String
+  photoUrl           String?
+  bio                String?
+  age                Int?
+  location           String?
+  walkTimes          String? // JSON string[] of preferred walking times (onboarding)
+  radiusKm           Float?
+  onboardedAt        DateTime?
+  lat                Float? // home area, used to compute distances in Discover
+  lng                Float?
+  status             String    @default("active") // "active" | "suspended" | "banned" — set from the admin panel
+  // "person" (default) walks their own dogs like any user; "shelter" manages a roster of adoptable dogs that
+  // have no personal owner (see Dog.shelterId) instead of swiping themselves. Set once at signup and not
+  // changed afterwards. shelterConfirmedAt records that the "I confirm this is a shelter/rescue" checkbox was
+  // checked at signup — an audit trail, not a gate (nothing currently re-checks it after account creation).
+  accountType        String    @default("person") // "person" | "shelter"
+  shelterConfirmedAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  dogs            Dog[]
-  hostedWalks     Walk[]             @relation("WalkHost")
-  walkEntries     WalkParticipant[]
-  organizedEvents Event[]            @relation("EventOrganizer")
-  eventEntries    EventParticipant[]
-  sentMessages    Message[]
-  refreshTokens   RefreshToken[]
+  dogs             Dog[]
+  shelterDogs      Dog[]                   @relation("ShelterDogs")
+  hostedWalks      Walk[]                  @relation("WalkHost")
+  walkEntries      WalkParticipant[]
+  organizedEvents  Event[]                 @relation("EventOrganizer")
+  eventEntries     EventParticipant[]
+  sentMessages     Message[]
+  refreshTokens    RefreshToken[]
+  sentDogRequests  DogWalkRequest[]        @relation("DogRequestRequester")
+  shelterRequests  DogWalkRequest[]        @relation("DogRequestShelter")
+  notifications    Notification[]
+  notificationPref NotificationPreference?
 
   @@unique([provider, providerId])
 }
@@ -72,8 +83,13 @@ model RefreshToken {
 
 model Dog {
   id          String   @id @default(uuid())
-  ownerId     String
-  owner       User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  // Exactly one of ownerId/shelterId is set (enforced in the application layer, not here — SQLite has no
+  // usable CHECK constraint via Prisma): a person's own dog has ownerId, a shelter's adoptable dog has
+  // shelterId instead and no personal owner.
+  ownerId     String?
+  owner       User?    @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  shelterId   String?
+  shelter     User?    @relation("ShelterDogs", fields: [shelterId], references: [id], onDelete: Cascade)
   name        String
   breed       String
   age         Int
@@ -86,6 +102,9 @@ model Dog {
   personality String // JSON-encoded string[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  walkRequests DogWalkRequest[]
+  walkEntries  WalkParticipant[]
 }
 
 model Walk {
@@ -105,15 +124,19 @@ model Walk {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  participants    WalkParticipant[]
-  messages        Message[]
+  participants WalkParticipant[]
+  messages     Message[]
 }
 
 model WalkParticipant {
   walkId String
-  walk   Walk   @relation(fields: [walkId], references: [id], onDelete: Cascade)
+  walk   Walk    @relation(fields: [walkId], references: [id], onDelete: Cascade)
   userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Which dog this participant is bringing — their own, or one they've been approved to walk from a shelter
+  // (see DogWalkRequest). Optional: joining a walk never requires naming a dog.
+  dogId  String?
+  dog    Dog?    @relation(fields: [dogId], references: [id], onDelete: SetNull)
 
   @@id([walkId, userId])
 }
@@ -136,7 +159,7 @@ model Event {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  participants    EventParticipant[]
+  participants EventParticipant[]
 }
 
 model EventParticipant {
@@ -183,6 +206,68 @@ model Swipe {
   @@unique([fromUserId, toUserId])
 }
 
+// "Liking" a shelter dog in Discover creates one of these instead of a Swipe/Match: it needs shelter approval
+// before a conversation opens (unlike a mutual-swipe person match, which is instant), and a shelter can have
+// many of these open at once — one per dog per interested person — each its own conversation "on behalf of"
+// that dog, which a plain (userA, userB) Match can't represent since a pair can only match once.
+model DogWalkRequest {
+  id                 String    @id @default(uuid())
+  dogId              String
+  dog                Dog       @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  requesterId        String
+  requester          User      @relation("DogRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  // Denormalized from dog.shelterId at creation time: lets the shelter's inbox query by shelterId directly,
+  // and survives a shelter dog being reassigned or removed independently of the relation on Dog.
+  shelterId          String
+  shelter            User      @relation("DogRequestShelter", fields: [shelterId], references: [id], onDelete: Cascade)
+  status             String    @default("pending") // "pending" | "accepted" | "declined"
+  createdAt          DateTime  @default(now())
+  respondedAt        DateTime?
+  lastMessage        String?
+  lastMessageAt      DateTime  @default(now())
+  unreadForRequester Int       @default(0)
+  unreadForShelter   Int       @default(0)
+
+  @@unique([dogId, requesterId])
+}
+
+// One row per user, created lazily with all-true defaults on first read/write. Six categories cover every
+// kind of notification the app can generate — see notifications/service.ts's TYPE_CATEGORY map for which
+// event fires which one. "messages" is included for symmetry and mobile's toast suppression even though the
+// server doesn't gate persisted Notification rows with it (chat messages already have their own unread state
+// and toast, independent of this feed — see GlobalChatNotifier.tsx).
+model NotificationPreference {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matches         Boolean  @default(true)
+  messages        Boolean  @default(true)
+  walks           Boolean  @default(true)
+  events          Boolean  @default(true)
+  shelterRequests Boolean  @default(true)
+  nearby          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// In-app notification feed — the source of truth independent of any device push (this sandbox has no
+// APNs/FCM credentials to send a real one; delivery here is the persisted row plus a real-time socket event —
+// see notifications/socket.ts). `data` is JSON-encoded { tab, screen, params } telling the client where to
+// navigate on tap.
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String // "match" | "walk_joined" | "walk_left" | "walk_nearby" | "event_joined" | "shelter_request" | "shelter_accepted" | "shelter_declined"
+  title     String
+  body      String
+  data      String? // JSON-encoded { tab, screen, params? }
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
 model Place {
   id          String  @id @default(uuid())
   name        String
@@ -204,15 +289,15 @@ model Place {
 // through any /api/v1/* route a mobile client calls.
 
 model AdminUser {
-  id           String   @id @default(uuid())
-  email        String   @unique
+  id           String    @id @default(uuid())
+  email        String    @unique
   passwordHash String
   displayName  String
-  role         String   @default("admin") // "admin" | "superadmin" — only superadmin can manage other admins
-  createdAt    DateTime @default(now())
+  role         String    @default("admin") // "admin" | "superadmin" — only superadmin can manage other admins
+  createdAt    DateTime  @default(now())
   lastLoginAt  DateTime?
 
-  auditLogs    AuditLog[]
+  auditLogs AuditLog[]
 }
 
 model AuditLog {

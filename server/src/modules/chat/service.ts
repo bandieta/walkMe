@@ -1,4 +1,5 @@
 import { prisma } from '../../lib/prisma';
+import * as notificationsService from '../notifications/service';
 import { toMessageDto } from './serialize';
 
 export async function getRoomsForUser(userId: string) {
@@ -44,10 +45,21 @@ export async function sendMessage(
   content: string,
   type: 'text' | 'image' | 'system' = 'text',
 ) {
-  const walk = await prisma.walk.findUnique({ where: { id: roomId } });
+  const walk = await prisma.walk.findUnique({ where: { id: roomId }, include: { participants: true } });
   const message = await prisma.message.create({
     data: { roomId, senderId, content, type, walkId: walk ? roomId : null },
     include: { sender: true },
   });
+  if (walk && type !== 'system') {
+    const recipientIds = walk.participants.map((p) => p.userId).filter((id) => id !== senderId);
+    for (const recipientId of recipientIds) {
+      await notificationsService.notify(
+        recipientId,
+        'message',
+        { name: message.sender.displayName, preview: content.length > 80 ? `${content.slice(0, 80)}…` : content },
+        { tab: 'ChatTab', screen: 'WalkChat', params: { walkId: roomId, walkTitle: walk.title } },
+      );
+    }
+  }
   return toMessageDto(message);
 }

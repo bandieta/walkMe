@@ -3,10 +3,11 @@ import { View, Text, Pressable, Animated, Easing, StyleSheet, Platform, BackHand
 import { useTranslation } from 'react-i18next';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
-import { useScreenInsets } from '../../ui';
+import { Btn, Toggle, useScreenInsets } from '../../ui';
 
 export type Provider = 'google' | 'facebook' | 'apple' | 'email';
 export type SheetMode = 'new' | 'existing';
+export type AccountType = 'person' | 'shelter';
 
 const DIVIDER = 'rgba(233,233,237,0.16)';
 
@@ -42,7 +43,7 @@ interface Props {
   mode: SheetMode | null;
   /** Provider whose sign-in is in flight; every other option dims and all are disabled. */
   pending: Provider | null;
-  onProvider: (provider: Provider) => void;
+  onProvider: (provider: Provider, accountType: AccountType, shelterConfirmed: boolean) => void;
   onClose: () => void;
 }
 
@@ -54,11 +55,19 @@ export const SignInSheet: React.FC<Props> = ({ mode, pending, onProvider, onClos
   const [mounted, setMounted] = useState(mode !== null);
   const [shownMode, setShownMode] = useState<SheetMode>(mode ?? 'new');
   const [sheetH, setSheetH] = useState(420);
+  // Only a brand-new account chooses a type — a returning user's account already has one, so `existing` skips
+  // straight to the provider list. Reset to the first step (and the default choice) each time the sheet opens.
+  const [step, setStep] = useState<'accountType' | 'providers'>('providers');
+  const [accountType, setAccountType] = useState<AccountType>('person');
+  const [shelterConfirmed, setShelterConfirmed] = useState(false);
 
   useEffect(() => {
     if (mode) {
       setShownMode(mode);
       setMounted(true);
+      setStep(mode === 'new' ? 'accountType' : 'providers');
+      setAccountType('person');
+      setShelterConfirmed(false);
       Animated.timing(anim, { toValue: 1, duration: 280, easing: Easing.bezier(0.2, 0.8, 0.2, 1), useNativeDriver: true }).start();
     } else {
       Animated.timing(anim, { toValue: 0, duration: 180, easing: Easing.out(Easing.quad), useNativeDriver: true }).start(({ finished }) => {
@@ -92,37 +101,100 @@ export const SignInSheet: React.FC<Props> = ({ mode, pending, onProvider, onClos
         {/* box-shadow ring: 0 0 0 1px neutral-500 */}
         <View pointerEvents="none" style={styles.ring} />
         <View style={styles.handle} />
-        <Text style={styles.title}>{shownMode === 'existing' ? t('auth.welcomeBack') : t('auth.createAccount')}</Text>
-        <Text style={styles.sub}>{t('auth.noPasswords')}</Text>
 
-        {PROVIDERS.map((p, i) => {
-          const primary = i === 0;
-          const isPending = pending === p.key;
-          const fg = primary ? Colors.primary : Colors.textPrimary;
-          const label = t(p.labelKey);
-          return (
-            <Pressable
-              key={p.key}
-              onPress={() => onProvider(p.key)}
-              disabled={!!pending}
-              accessibilityRole="button"
-              accessibilityLabel={label}
-              style={({ pressed }) => [
-                styles.provider,
-                { borderColor: primary ? Colors.primary : DIVIDER, opacity: pending && !isPending ? 0.45 : 1 },
-                pressed && { backgroundColor: 'rgba(233,233,237,0.06)' },
-              ]}
-            >
-              {isPending ? <Spinner /> : <Icon name={p.icon} size={19} color={fg} weight={p.weight} />}
-              {/* Fixed-height row: a longer translated provider name shrinks rather than wrapping. */}
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 15, fontWeight: '500', color: fg }}>
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
+        {step === 'accountType' ? (
+          <>
+            <Text style={styles.title}>{t('auth.accountType.title')}</Text>
+            <Text style={styles.sub}>{t('auth.accountType.subtitle')}</Text>
 
-        <Text style={styles.terms}>{t('auth.termsNotice')}</Text>
+            {(['person', 'shelter'] as const).map((type) => {
+              const selected = accountType === type;
+              return (
+                <Pressable
+                  key={type}
+                  onPress={() => setAccountType(type)}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                  accessibilityLabel={t(type === 'person' ? 'auth.accountType.person' : 'auth.accountType.shelter')}
+                  style={({ pressed }) => [
+                    styles.accountTypeRow,
+                    { borderColor: selected ? Colors.primary : DIVIDER, backgroundColor: selected ? 'rgba(145,132,217,0.10)' : 'transparent' },
+                    pressed && !selected && { backgroundColor: 'rgba(233,233,237,0.06)' },
+                  ]}
+                >
+                  <Icon name={type === 'person' ? 'user' : 'house'} size={19} color={selected ? Colors.primary : Colors.textPrimary} />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '500', color: selected ? Colors.primary : Colors.textPrimary }}>
+                      {t(type === 'person' ? 'auth.accountType.person' : 'auth.accountType.shelter')}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: Ramp.neutral[400], marginTop: 1 }}>
+                      {t(type === 'person' ? 'auth.accountType.personSub' : 'auth.accountType.shelterSub')}
+                    </Text>
+                  </View>
+                  {selected && <Icon name="check" size={18} color={Colors.primary} />}
+                </Pressable>
+              );
+            })}
+
+            {accountType === 'shelter' && (
+              <Pressable
+                onPress={() => setShelterConfirmed((v) => !v)}
+                style={styles.confirmRow}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: shelterConfirmed }}
+              >
+                <Text style={{ flex: 1, fontSize: 13, color: Ramp.neutral[300], lineHeight: 18 }}>
+                  {t('auth.accountType.shelterConfirm')}
+                </Text>
+                <Toggle value={shelterConfirmed} onValueChange={setShelterConfirmed} accessibilityLabel={t('auth.accountType.shelterConfirm')} />
+              </Pressable>
+            )}
+
+            <Btn
+              label={t('common.next')}
+              shape="pill"
+              height={50}
+              fontSize={15}
+              disabled={accountType === 'shelter' && !shelterConfirmed}
+              onPress={() => setStep('providers')}
+              style={{ marginTop: 4 }}
+            />
+          </>
+        ) : (
+          <>
+            <Text style={styles.title}>{shownMode === 'existing' ? t('auth.welcomeBack') : t('auth.createAccount')}</Text>
+            <Text style={styles.sub}>{t('auth.noPasswords')}</Text>
+
+            {PROVIDERS.map((p, i) => {
+              const primary = i === 0;
+              const isPending = pending === p.key;
+              const fg = primary ? Colors.primary : Colors.textPrimary;
+              const label = t(p.labelKey);
+              return (
+                <Pressable
+                  key={p.key}
+                  onPress={() => onProvider(p.key, accountType, shelterConfirmed)}
+                  disabled={!!pending}
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  style={({ pressed }) => [
+                    styles.provider,
+                    { borderColor: primary ? Colors.primary : DIVIDER, opacity: pending && !isPending ? 0.45 : 1 },
+                    pressed && { backgroundColor: 'rgba(233,233,237,0.06)' },
+                  ]}
+                >
+                  {isPending ? <Spinner /> : <Icon name={p.icon} size={19} color={fg} weight={p.weight} />}
+                  {/* Fixed-height row: a longer translated provider name shrinks rather than wrapping. */}
+                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ fontSize: 15, fontWeight: '500', color: fg }}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+
+            <Text style={styles.terms}>{t('auth.termsNotice')}</Text>
+          </>
+        )}
       </Animated.View>
     </View>
   );
@@ -172,4 +244,21 @@ const styles = StyleSheet.create({
     columnGap: 10,
   },
   terms: { fontSize: 11, color: Ramp.neutral[500], marginTop: 4 },
+  accountTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 12,
+    minHeight: 60,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    columnGap: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+  },
 });

@@ -17,7 +17,7 @@ authRouter.post(
   '/social',
   asyncHandler(async (req, res) => {
     const body = socialLoginSchema.parse(req.body);
-    const result = await authService.socialLogin(body.provider, body.token, body.displayName);
+    const result = await authService.socialLogin(body.provider, body.token, body.displayName, body.accountType, body.shelterConfirmed);
     res.json(result);
   }),
 );
@@ -36,7 +36,7 @@ authRouter.post(
       throw new HttpError(403, 'DEV_LOGIN_DISABLED', 'Dev login is disabled on this server');
     }
     const body = devLoginSchema.parse(req.body ?? {});
-    const result = await authService.devLogin(body.displayName, body.email);
+    const result = await authService.devLogin(body.displayName, body.email, body.accountType, body.shelterConfirmed);
     res.json(result);
   }),
 );
@@ -68,7 +68,7 @@ authRouter.post(
   '/email/verify',
   asyncHandler(async (req, res) => {
     const body = emailVerifySchema.parse(req.body);
-    const result = await authService.verifyEmailCode(body.email, body.code, body.displayName);
+    const result = await authService.verifyEmailCode(body.email, body.code, body.displayName, body.accountType, body.shelterConfirmed);
     res.json(result);
   }),
 );

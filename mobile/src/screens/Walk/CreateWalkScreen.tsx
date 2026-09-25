@@ -14,7 +14,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { AppDispatch, RootState } from '../../store';
 import { fetchNearbyWalks } from '../../store/slices/walksSlice';
-import { placesApi, walksApi } from '../../services/api';
+import { placesApi, walksApi, usersApi } from '../../services/api';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
 import { Btn, Hairline, useScreenInsets } from '../../ui';
@@ -175,6 +175,23 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
   const [desc, setDesc] = useState(prefill?.description ?? '');
   const [busy, setBusy] = useState(false);
 
+  // Dogs available to bring: your own, or any shelter dog you've been approved to walk (see ChatListScreen's
+  // shelter-request inbox). `null` means going without a dog, always an option.
+  const [walkableDogs, setWalkableDogs] = useState<{ ownDogs: any[]; shelterDogs: any[] }>({ ownDogs: [], shelterDogs: [] });
+  const [dogId, setDogId] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    usersApi.getWalkableDogs().then((r) => { if (alive) setWalkableDogs(r.data); }).catch(() => undefined);
+    return () => { alive = false; };
+  }, []);
+  const dogChoices = useMemo(
+    () => [
+      ...walkableDogs.ownDogs.map((d) => ({ id: d.id, name: d.name, shelter: false })),
+      ...walkableDogs.shelterDogs.map((d) => ({ id: d.id, name: d.name, shelter: true })),
+    ],
+    [walkableDogs],
+  );
+
   // A pick returned from PickLocationScreen (`navigation.navigate({ name: 'CreateWalk', params: { pickedLocation } })`).
   useEffect(() => {
     const picked = route?.params?.pickedLocation;
@@ -256,6 +273,7 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
         scheduledAt: scheduledAt.toISOString(),
         maxParticipants: max,
         duration,
+        ...(dogId ? { dogId } : {}),
       });
       dispatch(fetchNearbyWalks());
       const id = res?.data?.id;
@@ -337,6 +355,18 @@ export const CreateWalkScreen: React.FC<{ navigation: any; route?: { params?: Cr
             onChangeMode={() => setPointCoords(null)}
           />
         </View>
+
+        {dogChoices.length > 0 && (
+          <View style={{ rowGap: 8 }}>
+            <Label>{t('walks.create.bringDog')}</Label>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ columnGap: 6 }}>
+              <Chip label={t('walks.create.noDog')} on={dogId === null} onPress={() => setDogId(null)} fixed />
+              {dogChoices.map((d) => (
+                <Chip key={d.id} label={d.name} icon={d.shelter ? 'heart' : undefined} on={dogId === d.id} onPress={() => setDogId(d.id)} fixed />
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         <View style={{ rowGap: 8 }}>
           <Label>{t('walks.create.day')}</Label>

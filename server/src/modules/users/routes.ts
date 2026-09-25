@@ -4,6 +4,7 @@ import { requireAuth } from '../../middleware/auth';
 import { updateProfileSchema } from './schema';
 import * as usersService from './service';
 import * as dogsService from '../dogs/service';
+import * as shelterRequestsService from '../shelterRequests/service';
 
 export const usersRouter = Router();
 
@@ -87,7 +88,7 @@ usersRouter.post('/me/fcm-token', (_req, res) => {
 usersRouter.get(
   '/me/dogs',
   asyncHandler(async (req, res) => {
-    res.json(await dogsService.getDogsByOwner(req.userId!));
+    res.json(await dogsService.getDogsForUser(req.userId!));
   }),
 );
 
@@ -101,6 +102,20 @@ usersRouter.get(
 usersRouter.get(
   '/:id/dogs',
   asyncHandler(async (req, res) => {
-    res.json(await dogsService.getDogsByOwner(req.params.id));
+    res.json(await dogsService.getDogsForUser(req.params.id));
+  }),
+);
+
+/**
+ * @openapi
+ * /users/me/walkable-dogs:
+ *   get:
+ *     summary: Dogs the current user can bring on a walk — their own, plus any shelter dog they're approved to walk.
+ *     tags: [Dogs]
+ */
+usersRouter.get(
+  '/me/walkable-dogs',
+  asyncHandler(async (req, res) => {
+    res.json(await shelterRequestsService.getWalkableDogs(req.userId!));
   }),
 );

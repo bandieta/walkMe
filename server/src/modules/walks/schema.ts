@@ -10,8 +10,15 @@ export const createWalkSchema = z.object({
   scheduledAt: z.string().datetime(),
   maxParticipants: z.number().int().positive().default(8),
   duration: z.string().default('1h'),
+  // Which dog the host is bringing — their own, or one a shelter has approved them to walk. Optional.
+  dogId: z.string().optional(),
 });
 export type CreateWalkInput = z.infer<typeof createWalkSchema>;
+
+export const joinWalkSchema = z.object({
+  dogId: z.string().optional(),
+});
+export type JoinWalkInput = z.infer<typeof joinWalkSchema>;
 
 export const updateWalkStatusSchema = z.object({
   status: z.enum(['upcoming', 'live', 'ended']),

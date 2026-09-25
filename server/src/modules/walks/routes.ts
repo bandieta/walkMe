@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler';
 import { requireAuth } from '../../middleware/auth';
-import { createWalkSchema, nearbyQuerySchema, updateWalkStatusSchema } from './schema';
+import { createWalkSchema, joinWalkSchema, nearbyQuerySchema, updateWalkStatusSchema } from './schema';
 import * as walksService from './service';
 
 export const walksRouter = Router();
@@ -65,7 +65,8 @@ walksRouter.post(
 walksRouter.post(
   '/:id/join',
   asyncHandler(async (req, res) => {
-    res.json(await walksService.joinWalk(req.params.id, req.userId!));
+    const body = joinWalkSchema.parse(req.body ?? {});
+    res.json(await walksService.joinWalk(req.params.id, req.userId!, body.dogId));
   }),
 );
 

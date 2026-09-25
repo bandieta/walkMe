@@ -8,6 +8,8 @@ import eventsReducer from './slices/eventsSlice';
 import mapReducer from './slices/mapSlice';
 import matchesReducer from './slices/matchesSlice';
 import placesReducer from './slices/placesSlice';
+import shelterRequestsReducer from './slices/shelterRequestsSlice';
+import notificationsReducer from './slices/notificationsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -20,6 +22,8 @@ export const store = configureStore({
     map: mapReducer,
     matches: matchesReducer,
     places: placesReducer,
+    shelterRequests: shelterRequestsReducer,
+    notifications: notificationsReducer,
   },
 });
 

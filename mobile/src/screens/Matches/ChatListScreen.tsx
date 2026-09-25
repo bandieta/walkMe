@@ -7,11 +7,13 @@ import type { TFunction } from 'i18next';
 import { RootState, AppDispatch } from '../../store';
 import { fetchMatches, Match } from '../../store/slices/matchesSlice';
 import { fetchChatRooms, ChatRoom } from '../../store/slices/chatSlice';
+import { fetchDogRequests, acceptDogRequest, declineDogRequest, DogRequest } from '../../store/slices/shelterRequestsSlice';
 import { Colors, Ramp } from '../../utils/theme';
 import { resolveMediaUrl } from '../../utils/media';
 import { Icon, categoryIcon } from '../../components/Icon';
 import { EmptyState } from '../../components/EmptyState';
-import { useScreenInsets } from '../../ui';
+import { useScreenInsets, ShelterHeartBadge } from '../../ui';
+import { useToast } from '../../components/Toast';
 import { initials, firstName, walkWhen } from '../Chat/threadFormat';
 
 const HOVER = 'rgba(233,233,237,0.04)';
@@ -74,15 +76,20 @@ export const ChatListScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigation = useNavigation<any>();
   const { top } = useScreenInsets();
+  const { show: showToast, element: toastElement } = useToast();
   const me = useSelector((s: RootState) => s.auth.user);
+  const isShelter = me?.accountType === 'shelter';
   const { matches, loading: matchLoading } = useSelector((s: RootState) => s.matches);
   const { rooms, loading: chatLoading } = useSelector((s: RootState) => s.chat);
+  const { requests, loading: requestsLoading } = useSelector((s: RootState) => s.shelterRequests);
+  const [responding, setResponding] = useState<string | null>(null);
 
   // Refresh whenever the tab is shown: reading a thread clears its unread dot.
   useFocusEffect(
     useCallback(() => {
       dispatch(fetchMatches());
       dispatch(fetchChatRooms());
+      dispatch(fetchDogRequests());
     }, [dispatch]),
   );
 
@@ -94,17 +101,37 @@ export const ChatListScreen: React.FC = () => {
   );
   const dmRows = useMemo(() => matches.filter((m) => !!m.lastMessage), [matches]);
   const walkRooms = useMemo(() => rooms.filter((r) => r.walkStatus !== 'ended'), [rooms]);
+  // Pending requests only need action from a shelter (accept/decline); a requester's own pending ones just wait.
+  const pendingForShelter = useMemo(() => (isShelter ? requests.filter((r) => r.status === 'pending') : []), [requests, isShelter]);
+  const pendingForRequester = useMemo(() => (isShelter ? [] : requests.filter((r) => r.status === 'pending')), [requests, isShelter]);
+  const openDogRequests = useMemo(() => requests.filter((r) => r.status === 'accepted'), [requests]);
 
   const openMatch = (m: Match) => navigation.navigate('DirectMessage', { matchId: m.id, userName: m.user?.displayName ?? t('chat.list.defaultMatchName') });
   const openWalk = (r: ChatRoom) => navigation.navigate('WalkChat', { walkId: r.walkId, walkTitle: r.walkTitle });
+  const openDogRequest = (r: DogRequest) => navigation.navigate('DogRequestChat', { requestId: r.id });
+
+  const respond = async (r: DogRequest, accept: boolean) => {
+    if (responding) return;
+    setResponding(r.id);
+    try {
+      const result = await dispatch(accept ? acceptDogRequest(r.id) : declineDogRequest(r.id));
+      if (accept && acceptDogRequest.rejected.match(result)) showToast(String(result.payload ?? t('chat.list.dogRequests.respondFailed')), 'error');
+      if (!accept && declineDogRequest.rejected.match(result)) showToast(String(result.payload ?? t('chat.list.dogRequests.respondFailed')), 'error');
+    } finally {
+      setResponding(null);
+    }
+  };
 
   const walkPreview = (r: ChatRoom) => {
     const l = r.lastMessage;
     if (!l) return t('chat.list.noMessagesYet');
     return `${l.senderId === me?.id ? t('chat.list.you') : firstName(l.senderName)}: ${l.content}`;
   };
+  const dogRequestPreview = (r: DogRequest) => r.lastMessage || t('chat.list.noMessagesYet');
 
-  const empty = !matchLoading && !chatLoading && newMatches.length === 0 && dmRows.length === 0 && walkRooms.length === 0;
+  const empty = !matchLoading && !chatLoading && !requestsLoading
+    && newMatches.length === 0 && dmRows.length === 0 && walkRooms.length === 0
+    && pendingForShelter.length === 0 && pendingForRequester.length === 0 && openDogRequests.length === 0;
   const now = new Date();
 
   return (
@@ -133,6 +160,93 @@ export const ChatListScreen: React.FC = () => {
                 </Pressable>
               ))}
             </ScrollView>
+          </View>
+        )}
+
+        {pendingForShelter.length > 0 && (
+          <View>
+            <SectionLabel style={{ paddingBottom: 4 }}>{t('chat.list.dogRequests.pendingSection')}</SectionLabel>
+            {pendingForShelter.map((r) => (
+              <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', columnGap: 12, paddingVertical: 10, paddingHorizontal: 20 }}>
+                <View style={{ width: 48, height: 48 }}>
+                  <Face name={r.dog.name} photoUrl={r.dog.photoUrl} size={48} radius={12} bg={Ramp.accent[900]} fg={Ramp.accent[200]} fontSize={16} />
+                  <ShelterHeartBadge size={18} style={{ position: 'absolute', bottom: -4, right: -4 }} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0, marginTop: -1 }}>
+                  <Text style={{ fontSize: 15 }} numberOfLines={1}>{r.dog.name}</Text>
+                  <Text style={{ fontSize: 13, color: Ramp.neutral[500] }} numberOfLines={1}>
+                    {t('chat.list.dogRequests.wantsToWalk', { name: r.requester.displayName })}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => respond(r, false)}
+                  disabled={!!responding}
+                  accessibilityLabel={t('chat.list.dogRequests.decline')}
+                  style={({ pressed }) => ({
+                    width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(233,233,237,0.16)',
+                    alignItems: 'center', justifyContent: 'center', opacity: responding === r.id ? 0.5 : 1,
+                    backgroundColor: pressed ? HOVER : 'transparent',
+                  })}
+                >
+                  <Icon name="x" size={16} color={Ramp.neutral[300]} />
+                </Pressable>
+                <Pressable
+                  onPress={() => respond(r, true)}
+                  disabled={!!responding}
+                  accessibilityLabel={t('chat.list.dogRequests.accept')}
+                  style={({ pressed }) => ({
+                    width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: Colors.primary,
+                    alignItems: 'center', justifyContent: 'center', opacity: responding === r.id ? 0.5 : 1,
+                    backgroundColor: pressed ? 'rgba(145,132,217,0.12)' : 'transparent',
+                  })}
+                >
+                  <Icon name="check" size={16} color={Colors.primary} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {(openDogRequests.length > 0 || pendingForRequester.length > 0) && (
+          <View>
+            <SectionLabel style={{ paddingBottom: 4 }}>{t('chat.list.dogRequests.section')}</SectionLabel>
+            {openDogRequests.map((r) => {
+              const title = isShelter ? `${r.dog.name} · ${r.requester.displayName}` : r.dog.name;
+              return (
+                <Row key={r.id} onPress={() => openDogRequest(r)}>
+                  <View style={{ width: 48, height: 48 }}>
+                    <Face name={r.dog.name} photoUrl={r.dog.photoUrl} size={48} radius={12} bg={Ramp.accent[900]} fg={Ramp.accent[200]} fontSize={16} />
+                    <ShelterHeartBadge size={18} style={{ position: 'absolute', bottom: -4, right: -4 }} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0, marginTop: -1 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', columnGap: 8 }}>
+                      <Text style={{ fontSize: 15, flexShrink: 1 }} numberOfLines={1}>{title}</Text>
+                      <Text style={{ fontSize: 11, flexShrink: 0, color: Ramp.neutral[500] }} numberOfLines={1}>
+                        {chatTime(t, r.lastMessageAt, now) || t('chat.list.now')}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 13, color: r.unread > 0 ? Colors.textPrimary : Ramp.neutral[500] }} numberOfLines={1}>
+                      {dogRequestPreview(r)}
+                    </Text>
+                  </View>
+                  {r.unread > 0 && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.primary }} />}
+                </Row>
+              );
+            })}
+            {pendingForRequester.map((r) => (
+              <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', columnGap: 12, paddingVertical: 10, paddingHorizontal: 20, opacity: 0.6 }}>
+                <View style={{ width: 48, height: 48 }}>
+                  <Face name={r.dog.name} photoUrl={r.dog.photoUrl} size={48} radius={12} bg={Ramp.neutral[900]} fg={Ramp.neutral[300]} fontSize={16} />
+                  <ShelterHeartBadge size={18} style={{ position: 'absolute', bottom: -4, right: -4 }} />
+                </View>
+                <View style={{ flex: 1, minWidth: 0, marginTop: -1 }}>
+                  <Text style={{ fontSize: 15 }} numberOfLines={1}>{r.dog.name}</Text>
+                  <Text style={{ fontSize: 13, color: Ramp.neutral[500] }} numberOfLines={1}>
+                    {t('chat.list.dogRequests.waitingFor', { name: r.shelter.displayName })}
+                  </Text>
+                </View>
+              </View>
+            ))}
           </View>
         )}
 
@@ -194,6 +308,7 @@ export const ChatListScreen: React.FC = () => {
           <EmptyState icon="chat" title={t('chat.list.emptyTitle')} subtitle={t('chat.list.emptySubtitle')} />
         )}
       </ScrollView>
+      {toastElement}
     </View>
   );
 };

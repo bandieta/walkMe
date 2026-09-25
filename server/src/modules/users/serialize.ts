@@ -15,6 +15,7 @@ export function toPublicUser(user: User) {
     walkTimes: user.walkTimes ? fromJsonArray(user.walkTimes) : undefined,
     radiusKm: user.radiusKm ?? undefined,
     onboarded: user.onboardedAt != null,
+    accountType: user.accountType as 'person' | 'shelter',
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };

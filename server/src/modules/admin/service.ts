@@ -215,14 +215,18 @@ export async function listDogs(q: string | undefined, ownerId: string | undefine
   const [rows, total] = await Promise.all([
     prisma.dog.findMany({
       where,
-      include: { owner: { select: { id: true, displayName: true } } },
+      include: {
+        owner: { select: { id: true, displayName: true } },
+        shelter: { select: { id: true, displayName: true } },
+      },
       orderBy: { createdAt: 'desc' },
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
     prisma.dog.count({ where }),
   ]);
-  const items = rows.map((d) => ({ ...toDogDto(d), ownerName: d.owner.displayName }));
+  // A shelter's adoptable dog has no personal owner (see Dog.shelterId) — show the shelter's name instead.
+  const items = rows.map((d) => ({ ...toDogDto(d), ownerName: d.owner?.displayName ?? d.shelter?.displayName ?? 'Unknown' }));
   return paginate(items, total, page, pageSize);
 }
 

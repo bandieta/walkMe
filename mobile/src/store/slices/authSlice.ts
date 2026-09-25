@@ -4,7 +4,7 @@ import { authApi, usersApi } from '../../services/api';
 import { disconnectSocket } from '../../services/socket';
 
 interface AuthState {
-  user: { id: string; email?: string; displayName: string; photoUrl?: string; bio?: string; location?: string; lat?: number; lng?: number; walkTimes?: string[]; radiusKm?: number; onboarded?: boolean } | null;
+  user: { id: string; email?: string; displayName: string; photoUrl?: string; bio?: string; location?: string; lat?: number; lng?: number; walkTimes?: string[]; radiusKm?: number; onboarded?: boolean; accountType?: 'person' | 'shelter' } | null;
   token: string | null;
   refreshToken: string | null;
   loading: boolean;
@@ -32,11 +32,16 @@ async function persistSession(data: { token: string; refreshToken: string }) {
 export const socialLogin = createAsyncThunk(
   'auth/socialLogin',
   async (
-    { provider, token, displayName }: { provider: 'google' | 'facebook' | 'apple'; token: string; displayName?: string },
+    {
+      provider, token, displayName, accountType, shelterConfirmed,
+    }: {
+      provider: 'google' | 'facebook' | 'apple'; token: string; displayName?: string;
+      accountType?: 'person' | 'shelter'; shelterConfirmed?: boolean;
+    },
     { rejectWithValue },
   ) => {
     try {
-      const response = await authApi.socialLogin(provider, token, displayName);
+      const response = await authApi.socialLogin(provider, token, displayName, accountType, shelterConfirmed);
       await persistSession({ token: response.data.accessToken, refreshToken: response.data.refreshToken });
       return { user: response.data.user, token: response.data.accessToken, refreshToken: response.data.refreshToken };
     } catch (err: any) {
@@ -77,9 +82,17 @@ export const startEmailAuth = createAsyncThunk(
 
 export const verifyEmailCode = createAsyncThunk(
   'auth/verifyEmailCode',
-  async ({ email, code, displayName }: { email: string; code: string; displayName?: string }, { rejectWithValue }) => {
+  async (
+    {
+      email, code, displayName, accountType, shelterConfirmed,
+    }: {
+      email: string; code: string; displayName?: string;
+      accountType?: 'person' | 'shelter'; shelterConfirmed?: boolean;
+    },
+    { rejectWithValue },
+  ) => {
     try {
-      const response = await authApi.emailVerify(email, code, displayName);
+      const response = await authApi.emailVerify(email, code, displayName, accountType, shelterConfirmed);
       await persistSession({ token: response.data.accessToken, refreshToken: response.data.refreshToken });
       return { user: response.data.user, token: response.data.accessToken, refreshToken: response.data.refreshToken };
     } catch (err: any) {

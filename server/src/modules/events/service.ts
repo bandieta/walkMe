@@ -1,5 +1,6 @@
 import { prisma } from '../../lib/prisma';
 import { HttpError } from '../../middleware/errorHandler';
+import * as notificationsService from '../notifications/service';
 import { eventInclude, toEventDto } from './serialize';
 import { CreateEventInput } from './schema';
 
@@ -38,6 +39,17 @@ export async function joinEvent(eventId: string, userId: string) {
     update: {},
     create: { eventId, userId },
   });
+  if (userId !== event.organizerId) {
+    const joiner = await prisma.user.findUnique({ where: { id: userId } });
+    if (joiner) {
+      await notificationsService.notify(
+        event.organizerId,
+        'event_joined',
+        { name: joiner.displayName, eventTitle: event.title },
+        { tab: 'MapTab', screen: 'EventDetail', params: { eventId } },
+      );
+    }
+  }
   return getEventById(eventId, userId);
 }
 

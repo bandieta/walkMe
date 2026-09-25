@@ -4,12 +4,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { RootState, AppDispatch } from '../../store';
-import { fetchSwipeDeck, resetSwipes, swipeLeft, swipeRight, clearLatestMatch } from '../../store/slices/matchesSlice';
+import {
+  fetchSwipeDeck, resetSwipes, swipeLeft, swipeRight, likeShelterDog, removeFromDeck, clearLatestMatch, DeckCard,
+} from '../../store/slices/matchesSlice';
 import { fetchMyDogs } from '../../store/slices/dogsSlice';
 import { Icon } from '../../components/Icon';
 import { Btn, useScreenInsets } from '../../ui';
 import { Colors, Ramp } from '../../utils/theme';
-import { BackCard, DogCard, DeckUser, CARD_HEIGHT } from './DogCard';
+import { BackCard, DogCard, CARD_HEIGHT } from './DogCard';
 import { MatchModal } from './MatchModal';
 import { SavedToast } from './SavedToast';
 
@@ -31,7 +33,9 @@ export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   const [pending, setPending] = useState<string[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const deck = useMemo(
-    () => (swipeDeck as DeckUser[]).filter((u) => (u.dogs?.length ?? 0) > 0 && !pending.includes(u.id)),
+    () => (swipeDeck as DeckCard[]).filter(
+      (c) => (c.kind === 'person' ? (c.dogs?.length ?? 0) > 0 : true) && !pending.includes(c.id),
+    ),
     [swipeDeck, pending],
   );
   const current = deck[0];
@@ -46,20 +50,33 @@ export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   // ── swipe: drag / buttons share one Animated.ValueXY ──────────────────────────────────────────────
   const position = useRef(new Animated.ValueXY()).current;
   const busy = useRef(false);
-  const currentRef = useRef<DeckUser | undefined>(current);
+  const currentRef = useRef<DeckCard | undefined>(current);
   currentRef.current = current;
 
-  const commit = (dir: 1 | -1, user: DeckUser) => {
-    setPending((p) => [...p, user.id]);
+  const commit = (dir: 1 | -1, card: DeckCard) => {
     position.setValue({ x: 0, y: 0 });
-    dispatch(dir > 0 ? swipeRight(user.id) : swipeLeft(user.id)).finally(() => setPending((p) => p.filter((id) => id !== user.id)));
+    if (card.kind === 'shelterDog') {
+      if (dir < 0) {
+        dispatch(removeFromDeck(card.id));
+        return;
+      }
+      setPending((p) => [...p, card.id]);
+      dispatch(likeShelterDog(card.id))
+        .unwrap()
+        .then(() => setToast(t('discover.requestSent', { dog: card.dog.name, shelter: card.shelter.displayName })))
+        .catch(() => undefined)
+        .finally(() => setPending((p) => p.filter((id) => id !== card.id)));
+      return;
+    }
+    setPending((p) => [...p, card.id]);
+    dispatch(dir > 0 ? swipeRight(card.id) : swipeLeft(card.id)).finally(() => setPending((p) => p.filter((id) => id !== card.id)));
   };
   const fly = (dir: 1 | -1) => {
-    const user = currentRef.current;
-    if (!user || busy.current) return;
+    const card = currentRef.current;
+    if (!card || busy.current) return;
     busy.current = true;
     Animated.timing(position, { toValue: { x: dir * 520, y: 30 }, duration: 260, easing: EASE, useNativeDriver: true }).start(() => {
-      commit(dir, user);
+      commit(dir, card);
       busy.current = false;
     });
   };
@@ -92,12 +109,13 @@ export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
   const save = () => {
     if (!current || busy.current) return;
     // There is no shortlist on the server yet: like the prototype, remember it with a toast and move on to the next dog.
-    setToast(t('discover.savedToShortlist', { name: current.dogs[0]?.name ?? t('discover.defaultDogName') }));
+    const dogName = current.kind === 'shelterDog' ? current.dog.name : current.dogs[0]?.name;
+    setToast(t('discover.savedToShortlist', { name: dogName ?? t('discover.defaultDogName') }));
     fly(-1);
   };
 
   // ── match modal ───────────────────────────────────────────────────────────────────────────────────
-  const matchUser = latestMatch?.user as (DeckUser | undefined);
+  const matchUser = latestMatch?.user;
   const sayHi = () => {
     if (!latestMatch) return;
     const { match, user } = latestMatch;
@@ -138,7 +156,7 @@ export const DiscoverScreen: React.FC<{ navigation: any }> = ({ navigation }) =>
             {...panResponder.panHandlers}
             style={[styles.cardSlot, { transform: [{ translateX: position.x }, { translateY: position.y }, { rotate }] }]}
           >
-            <DogCard user={current} likeOpacity={likeOpacity} nopeOpacity={nopeOpacity} />
+            <DogCard card={current} likeOpacity={likeOpacity} nopeOpacity={nopeOpacity} />
           </Animated.View>
         )}
         {empty && (

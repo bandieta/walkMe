@@ -39,6 +39,7 @@ const FlowerLotus: PhosphorIcon = require('phosphor-react-native/lib/commonjs/ic
 const Gear: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Gear').GearIcon;
 const GoogleLogo: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/GoogleLogo').GoogleLogoIcon;
 const Heart: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Heart').HeartIcon;
+const House: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/House').HouseIcon;
 const Image: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Image').ImageIcon;
 const Info: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/Info').InfoIcon;
 const ListBullets: PhosphorIcon = require('phosphor-react-native/lib/commonjs/icons/ListBullets').ListBulletsIcon;
@@ -144,6 +145,7 @@ const ICONS = {
   'google-logo': GoogleLogo,
   googleLogo: GoogleLogo,
   heart: Heart,
+  house: House,
   image: Image,
   info: Info,
   lake: Waves,

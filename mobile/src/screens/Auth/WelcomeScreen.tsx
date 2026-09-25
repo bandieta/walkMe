@@ -11,7 +11,7 @@ import { signInWithApple } from '../../services/auth/apple';
 import { Colors, Ramp } from '../../utils/theme';
 import { Btn, Placeholder, useScreenInsets } from '../../ui';
 import { useToast } from '../../components/Toast';
-import { SignInSheet, Provider, SheetMode } from './SignInSheet';
+import { SignInSheet, Provider, SheetMode, AccountType } from './SignInSheet';
 
 const SLIDE_MS = 4500 * 1000; // TEMP-MEASURE revert to 4500
 const PROVIDER_NAME: Partial<Record<Provider, string>> = { google: 'Google', facebook: 'Facebook', apple: 'Apple' };
@@ -74,13 +74,13 @@ export const WelcomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
   const closeSheet = useCallback(() => setSheet(null), []);
 
-  const handleProvider = async (provider: Provider) => {
+  const handleProvider = async (provider: Provider, accountType: AccountType, shelterConfirmed: boolean) => {
     if (provider === 'email') {
       // Email has its own two-screen flow (address, then the code) rather than a native SDK call — hand off
       // to it directly instead of going through the pending/spinner state below, which is social-only.
       const mode = sheet ?? 'new';
       setSheet(null);
-      navigation.navigate('EmailAuth', { mode });
+      navigation.navigate('EmailAuth', { mode, accountType, shelterConfirmed });
       return;
     }
 
@@ -101,7 +101,7 @@ export const WelcomeScreen: React.FC<{ navigation: any }> = ({ navigation }) => 
 
       if (!token) return; // user cancelled
 
-      const result = await dispatch(socialLogin({ provider, token, displayName }));
+      const result = await dispatch(socialLogin({ provider, token, displayName, accountType, shelterConfirmed }));
       if (socialLogin.rejected.match(result)) {
         showToast(String(result.payload ?? t('auth.signInFailed')), 'error');
       }

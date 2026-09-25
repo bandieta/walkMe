@@ -16,11 +16,12 @@ export const CHAT_NAMESPACE = '/chat';
  * socket at all, since Socket.io rooms only exist for sockets that explicitly joined them.
  */
 async function roomIdsForUser(userId: string): Promise<string[]> {
-  const [walks, matches] = await Promise.all([
+  const [walks, matches, dogRequests] = await Promise.all([
     prisma.walkParticipant.findMany({ where: { userId }, select: { walkId: true } }),
     prisma.match.findMany({ where: { OR: [{ userAId: userId }, { userBId: userId }] }, select: { id: true } }),
+    prisma.dogWalkRequest.findMany({ where: { OR: [{ requesterId: userId }, { shelterId: userId }] }, select: { id: true } }),
   ]);
-  return [...walks.map((w) => w.walkId), ...matches.map((m) => m.id)];
+  return [...walks.map((w) => w.walkId), ...matches.map((m) => m.id), ...dogRequests.map((r) => r.id)];
 }
 
 export function registerChatGateway(server: Server) {
@@ -39,6 +40,10 @@ export function registerChatGateway(server: Server) {
   });
 
   io.on('connection', (socket: AuthedSocket) => {
+    // A room named after the user's own id, so notifications/socket.ts can push straight to them regardless
+    // of which chat rooms they're currently in — see emitNotification().
+    socket.join(socket.data.userId);
+
     roomIdsForUser(socket.data.userId).then((roomIds) => {
       roomIds.forEach((id) => socket.join(id));
     });
