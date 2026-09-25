@@ -174,6 +174,8 @@ export default {
       age: 'Age',
       energy: 'Energy',
       temperament: 'Temperament',
+      note: 'Note about your dog',
+      notePlaceholder: 'Anything a walker should know — quirks, favourite routes, health notes…',
       skipForNow: 'Skip for now',
       couldNotSaveTitle: 'Could not save your dog',
     },

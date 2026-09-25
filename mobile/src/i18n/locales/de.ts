@@ -172,6 +172,8 @@ export default {
       age: 'Alter',
       energy: 'Energie',
       temperament: 'Temperament',
+      note: 'Notiz zu deinem Hund',
+      notePlaceholder: 'Alles, was ein Gassigeher wissen sollte – Eigenheiten, Lieblingsrouten, gesundheitliche Hinweise…',
       skipForNow: 'Vorerst überspringen',
       couldNotSaveTitle: 'Dein Hund konnte nicht gespeichert werden',
     },

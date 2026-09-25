@@ -172,6 +172,8 @@ export default {
       age: 'Wiek',
       energy: 'Energia',
       temperament: 'Temperament',
+      note: 'Notatka o Twoim psie',
+      notePlaceholder: 'Coś, co powinien wiedzieć opiekun spaceru — zwyczaje, ulubione trasy, uwagi zdrowotne…',
       skipForNow: 'Pomiń na razie',
       couldNotSaveTitle: 'Nie udało się zapisać psa',
     },
