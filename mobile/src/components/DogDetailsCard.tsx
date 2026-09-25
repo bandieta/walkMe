@@ -132,8 +132,10 @@ export const DogDetailsCard: React.FC<{
                   padding={10}
                 />
               )}
+              {/* Bigger here than the 38px the prototype's small photo strip used — this is the one place a
+                  shelter dog gets a full hero photo, so the badge reads at that same scale. */}
               {shelter && (
-                <ShelterHeartBadge size={38} style={{ position: 'absolute', top: 10, left: 10 }} />
+                <ShelterHeartBadge size={56} style={{ position: 'absolute', top: 12, left: 12 }} />
               )}
             </View>
 
