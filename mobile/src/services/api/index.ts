@@ -25,11 +25,12 @@ export const usersApi = {
   getMe: () => apiClient.get('/users/me'),
   getStats: () => apiClient.get('/users/me/stats'),
   getProfile: async (userId: string) => {
-    const [user, dogs] = await Promise.all([
+    const [user, dogs, stats] = await Promise.all([
       apiClient.get(`/users/${userId}`),
       apiClient.get(`/users/${userId}/dogs`),
+      apiClient.get(`/users/${userId}/stats`),
     ]);
-    return { ...user, data: { ...user.data, dogs: dogs.data } };
+    return { ...user, data: { ...user.data, dogs: dogs.data, stats: stats.data } };
   },
   updateProfile: (data: Record<string, unknown>) => apiClient.patch('/users/me', data),
   updateFcmToken: (token?: string) => apiClient.post('/users/me/fcm-token', { token }),

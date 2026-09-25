@@ -68,6 +68,18 @@ export const DogRequestChatScreen: React.FC<{ route: any; navigation: any }> = (
     Alert.alert(dog.name, [dog.breed, `${dog.age}`, dog.bio].filter(Boolean).join('\n'));
   };
 
+  // Only a shelter gets to look up the person on the other end — a requester talking to a shelter has no
+  // comparable "is this shelter trustworthy" screen to open (out of scope here; see PersonProfileScreen).
+  const viewPersonProfile =
+    isShelter && other
+      ? () =>
+          navigation.navigate('PersonProfile', {
+            userId: other.id,
+            name: other.displayName,
+            photoUrl: other.photoUrl,
+          })
+      : undefined;
+
   const send = async (content: string) => {
     if (!me) return false;
     const result = await dispatch(sendDogRequestMessage({ requestId, content, sender: { id: me.id, name: me.displayName } }));
@@ -81,6 +93,7 @@ export const DogRequestChatScreen: React.FC<{ route: any; navigation: any }> = (
       subtitle={subtitle}
       avatarText={initials(dog?.name)}
       avatarShelter
+      onTitlePress={viewPersonProfile}
       actionLabel={t('chat.dogRequest.details')}
       actionIcon="info"
       onAction={showDetails}
