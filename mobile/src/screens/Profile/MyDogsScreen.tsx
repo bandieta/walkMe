@@ -76,6 +76,7 @@ export const MyDogsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     <Tag key={tag} label={temperamentLabel(t, tag)} tone="neutral" paddingV={2} paddingH={8} />
                   ))}
                 </View>
+                {!!d.bio && <Text style={{ fontSize: 13, lineHeight: 18.2, color: Ramp.neutral[300] }}>{d.bio}</Text>}
               </View>
               <View style={{ rowGap: 4 }}>
                 <Pressable

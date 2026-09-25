@@ -80,6 +80,7 @@ export const DogRequestChatScreen: React.FC<{ route: any; navigation: any }> = (
       title={title}
       subtitle={subtitle}
       avatarText={initials(dog?.name)}
+      avatarShelter
       actionLabel={t('chat.dogRequest.details')}
       actionIcon="info"
       onAction={showDetails}

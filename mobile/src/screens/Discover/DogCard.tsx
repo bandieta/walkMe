@@ -62,7 +62,9 @@ export const DogCard: React.FC<{
         dog: card.dog,
         loc: neighbourhood(card.shelter.location),
         subtitle: t('discover.card.fromShelter', { name: firstName(card.shelter.displayName) }),
-        bio: card.dog.bio,
+        // A shelter dog has no separate "owner" — only its own note is shown.
+        note: card.dog.bio,
+        ownerBio: undefined as string | undefined,
       }
     : {
         dog: card.dogs[0],
@@ -70,9 +72,11 @@ export const DogCard: React.FC<{
         subtitle: card.age
           ? t('discover.card.withPersonAge', { name: firstName(card.displayName), age: card.age })
           : t('discover.card.withPerson', { name: firstName(card.displayName) }),
-        bio: card.bio,
+        // The dog's own note is the card's main text; the person's own bio is a shorter line under it.
+        note: card.dogs[0]?.bio,
+        ownerBio: card.bio,
       };
-  const { dog, loc, subtitle, bio } = view;
+  const { dog, loc, subtitle, note, ownerBio } = view;
   const dist = formatDistance(card.distanceKm);
   const photo = resolveMediaUrl(dog?.photoUrl);
 
@@ -88,7 +92,7 @@ export const DogCard: React.FC<{
           <Text style={styles.photoLabel}>photo — {dog?.name} {subtitle}</Text>
         )}
 
-        {isShelterDog && <ShelterHeartBadge size={32} style={styles.shelterBadge} />}
+        {isShelterDog && <ShelterHeartBadge size={44} style={styles.shelterBadge} />}
 
         {!!dist && (
           <View style={[styles.distPill, isShelterDog && { left: undefined, right: 14 }]}>
@@ -118,7 +122,8 @@ export const DogCard: React.FC<{
               ))}
             </View>
           )}
-          {!!bio && <Text style={{ fontSize: 13, color: Ramp.neutral[300] }}>{bio}</Text>}
+          {!!note && <Text style={{ fontSize: 14, lineHeight: 19.6, color: Colors.textPrimary }}>{note}</Text>}
+          {!!ownerBio && <Text numberOfLines={1} style={{ fontSize: 12, lineHeight: 16.8, color: Ramp.neutral[400] }}>{ownerBio}</Text>}
         </View>
       </Placeholder>
     </View>
@@ -137,7 +142,7 @@ const styles = StyleSheet.create({
     position: 'absolute', top: 14, left: 14, flexDirection: 'row', alignItems: 'center', columnGap: 4,
     paddingVertical: 5, paddingHorizontal: 10, borderRadius: 14, backgroundColor: 'rgba(22,24,38,0.85)',
   },
-  shelterBadge: { position: 'absolute', top: 10, left: 10 },
+  shelterBadge: { position: 'absolute', top: 12, left: 12 },
   stamp: { position: 'absolute', top: 40, paddingVertical: 6, paddingHorizontal: 12, borderWidth: 2, borderRadius: 8 },
   stampText: { fontSize: 20, fontWeight: '500', letterSpacing: 1.2 },
   info: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 80, paddingHorizontal: 18, paddingBottom: 18, rowGap: 7 },
