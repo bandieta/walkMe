@@ -80,6 +80,10 @@ export const startEmailAuth = createAsyncThunk(
   },
 );
 
+// The address of the last successful email sign-in. Deliberately kept on logout so EmailAuthScreen can
+// prefill it — retyping it on every sign-in is how codes end up at a mistyped (someone else's) address.
+export const LAST_EMAIL_KEY = 'lastEmail';
+
 export const verifyEmailCode = createAsyncThunk(
   'auth/verifyEmailCode',
   async (
@@ -94,6 +98,7 @@ export const verifyEmailCode = createAsyncThunk(
     try {
       const response = await authApi.emailVerify(email, code, displayName, accountType, shelterConfirmed);
       await persistSession({ token: response.data.accessToken, refreshToken: response.data.refreshToken });
+      await AsyncStorage.setItem(LAST_EMAIL_KEY, email).catch(() => {});
       return { user: response.data.user, token: response.data.accessToken, refreshToken: response.data.refreshToken };
     } catch (err: any) {
       return rejectWithValue(err?.response?.data?.error?.message ?? 'That code didn’t work');

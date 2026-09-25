@@ -1,5 +1,6 @@
 import request from 'supertest';
 import { app, unique } from '../../../test/helpers';
+import { env } from '../../config/env';
 
 describe('auth', () => {
   it('logs in via /auth/dev-login and returns a usable access token', async () => {
@@ -100,6 +101,26 @@ describe('auth', () => {
       await request(app).post('/api/v1/auth/email/start').send({ email });
       const res = await request(app).post('/api/v1/auth/email/start').send({ email });
       expect(res.status).toBe(429);
+    });
+
+    it('reports a failed send clearly and lets the user retry straight away', async () => {
+      const email = `${unique('bounce')}@example.com`;
+      const realFetch = global.fetch;
+      env.resendApiKey = 're_test';
+      global.fetch = jest.fn(async () => new Response('{"statusCode":403}', { status: 403 })) as typeof fetch;
+      try {
+        const res = await request(app).post('/api/v1/auth/email/start').send({ email });
+        expect(res.status).toBe(502);
+        expect(res.body.error.code).toBe('EMAIL_SEND_FAILED');
+        expect(res.body.devCode).toBeUndefined();
+      } finally {
+        global.fetch = realFetch;
+        env.resendApiKey = '';
+      }
+
+      // No leftover code, so the cooldown doesn't block an immediate retry.
+      const retry = await request(app).post('/api/v1/auth/email/start').send({ email });
+      expect(retry.status).toBe(200);
     });
   });
 });

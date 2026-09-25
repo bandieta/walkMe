@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TextInput, Pressable, Platform, KeyboardAvoidingView } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { AppDispatch } from '../../store';
-import { startEmailAuth } from '../../store/slices/authSlice';
+import { LAST_EMAIL_KEY, startEmailAuth } from '../../store/slices/authSlice';
 import { Icon } from '../../components/Icon';
 import { Btn, useScreenInsets } from '../../ui';
 import { useToast } from '../../components/Toast';
@@ -26,6 +27,17 @@ export const EmailAuthScreen: React.FC<{ navigation: any; route: any }> = ({ nav
   const [email, setEmail] = useState('');
   const [focused, setFocused] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  // Prefill the address this device last signed in with, unless the user has already started typing.
+  useEffect(() => {
+    AsyncStorage.getItem(LAST_EMAIL_KEY)
+      .then((saved) => {
+        if (saved) {
+          setEmail((current) => current || saved);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const valid = EMAIL_RE.test(email.trim());
 

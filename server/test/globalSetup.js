@@ -18,6 +18,12 @@ module.exports = async () => {
   process.env.JWT_ACCESS_SECRET = 'test-access-secret';
   process.env.JWT_REFRESH_SECRET = 'test-refresh-secret';
   process.env.UPLOAD_DIR = path.join(__dirname, '..', 'test-uploads');
+  // Blank the external-provider settings so a real server/.env (loaded by dotenv, which never
+  // overrides what's already set) can't make tests call Resend or Facebook for real.
+  process.env.RESEND_API_KEY = '';
+  process.env.FACEBOOK_APP_ID = '';
+  process.env.FACEBOOK_APP_SECRET = '';
+  process.env.GOOGLE_CLIENT_ID = '';
 
   const cwd = path.join(__dirname, '..');
   execSync('npx prisma db push --skip-generate --accept-data-loss', { cwd, env: process.env, stdio: 'inherit' });
