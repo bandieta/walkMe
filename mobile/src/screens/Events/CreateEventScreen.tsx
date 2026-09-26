@@ -1,6 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Keyboard, Platform, StatusBar, Alert, TextInputProps,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  ScrollView,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
+  StatusBar,
+  Alert,
+  TextInputProps,
 } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -10,8 +20,9 @@ import { createEvent } from '../../store/slices/eventsSlice';
 import { placesApi } from '../../services/api';
 import { Colors, Ramp } from '../../utils/theme';
 import { Icon, IconName } from '../../components/Icon';
-import { Hairline, Placeholder, useScreenInsets } from '../../ui';
+import { Hairline, Placeholder, useScreenInsets, useNativeDateTimePicker } from '../../ui';
 import { LocationField } from '../../components/LocationField';
+import { DogMultiSelect } from '../../components/DogMultiSelect';
 import { eventCategoryLabel } from '../../utils/categoryLabels';
 
 /**
@@ -32,7 +43,20 @@ const CATEGORIES: { label: string; icon: IconName; emoji: string }[] = [
 const TIMES = ['10:00', '12:00', '16:00', '19:00'];
 const DEFAULT_TIME = '11:00';
 const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-const MONTH_KEYS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+const MONTH_KEYS = [
+  'jan',
+  'feb',
+  'mar',
+  'apr',
+  'may',
+  'jun',
+  'jul',
+  'aug',
+  'sep',
+  'oct',
+  'nov',
+  'dec',
+];
 // Warsaw centre: used when the typed location is not one of the known places (no geocoder yet).
 const FALLBACK_COORDS = { lat: 52.2297, lng: 21.0122 };
 
@@ -43,16 +67,36 @@ function weekendOptions(t: TFunction, now: Date) {
   while (out.length < 4) {
     if (d.getDay() === 6 || d.getDay() === 0) {
       const date = new Date(d);
-      const month = date.getMonth() !== now.getMonth() ? ` ${t(`common.monthsShort.${MONTH_KEYS[date.getMonth()]}`)}` : '';
-      out.push({ key: date.toDateString(), label: `${t(`common.weekdaysShort.${WEEKDAY_KEYS[date.getDay()]}`)} ${date.getDate()}${month}`, date });
+      const month =
+        date.getMonth() !== now.getMonth()
+          ? ` ${t(`common.monthsShort.${MONTH_KEYS[date.getMonth()]}`)}`
+          : '';
+      out.push({
+        key: date.toDateString(),
+        label: `${t(`common.weekdaysShort.${WEEKDAY_KEYS[date.getDay()]}`)} ${date.getDate()}${month}`,
+        date,
+      });
     }
     d.setDate(d.getDate() + 1);
   }
   return out;
 }
 
+const CUSTOM_DAY_KEY = '__custom__';
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+/** "Oct 14" — for a custom date picked outside the weekend-only chip list, e.g. any weekday. */
+function shortDate(t: TFunction, d: Date) {
+  return `${t(`common.monthsShort.${MONTH_KEYS[d.getMonth()]}`)} ${d.getDate()}`;
+}
+
 const Chip: React.FC<{
-  label: string; on: boolean; onPress: () => void; icon?: IconName; radius: number; paddingHorizontal: number;
+  label: string;
+  on: boolean;
+  onPress: () => void;
+  icon?: IconName;
+  radius: number;
+  paddingHorizontal: number;
 }> = ({ label, on, onPress, icon, radius, paddingHorizontal }) => {
   const fg = on ? Colors.primary : Ramp.neutral[300];
   return (
@@ -61,8 +105,16 @@ const Chip: React.FC<{
       accessibilityRole="button"
       accessibilityState={{ selected: on }}
       style={{
-        height: 36, paddingHorizontal, borderRadius: radius, borderWidth: 1, borderColor: on ? Colors.primary : DIV,
-        backgroundColor: on ? ACCENT_TINT : 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', columnGap: 6,
+        height: 36,
+        paddingHorizontal,
+        borderRadius: radius,
+        borderWidth: 1,
+        borderColor: on ? Colors.primary : DIV,
+        backgroundColor: on ? ACCENT_TINT : 'transparent',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        columnGap: 6,
       }}
     >
       {icon && <Icon name={icon} size={13} color={fg} />}
@@ -72,28 +124,54 @@ const Chip: React.FC<{
 };
 
 const Label: React.FC<{ children: string }> = ({ children }) => (
-  <Text style={{ fontSize: 12, color: Ramp.neutral[400], transform: [{ translateY: -1 }] }}>{children}</Text>
+  <Text style={{ fontSize: 12, color: Ramp.neutral[400], transform: [{ translateY: -1 }] }}>
+    {children}
+  </Text>
 );
 
 /** 46px (or multi-line) surface box with an accent border while focused. */
-const Box: React.FC<TextInputProps & { left?: number; multiline?: boolean }> = ({ left = 12, multiline, style, onFocus, onBlur, ...rest }) => {
+const Box: React.FC<TextInputProps & { left?: number; multiline?: boolean }> = ({
+  left = 12,
+  multiline,
+  style,
+  onFocus,
+  onBlur,
+  ...rest
+}) => {
   const [focused, setFocused] = useState(false);
   return (
     <TextInput
       {...rest}
       multiline={multiline}
-      onFocus={(e) => { setFocused(true); onFocus?.(e); }}
-      onBlur={(e) => { setFocused(false); onBlur?.(e); }}
+      onFocus={(e) => {
+        setFocused(true);
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        setFocused(false);
+        onBlur?.(e);
+      }}
       placeholderTextColor={Ramp.neutral[600]}
       selectionColor={Colors.primary}
       cursorColor={Colors.primary}
       style={[
         {
-          borderRadius: 8, backgroundColor: Colors.surfaceDark, borderWidth: 1, borderColor: focused ? Colors.primary : DIV,
-          color: Colors.textPrimary, paddingLeft: left, paddingRight: 12,
+          borderRadius: 8,
+          backgroundColor: Colors.surfaceDark,
+          borderWidth: 1,
+          borderColor: focused ? Colors.primary : DIV,
+          color: Colors.textPrimary,
+          paddingLeft: left,
+          paddingRight: 12,
         },
         multiline
-          ? { minHeight: 90, paddingTop: 10, paddingBottom: 10, fontSize: 14, textAlignVertical: 'top' }
+          ? {
+              minHeight: 90,
+              paddingTop: 10,
+              paddingBottom: 10,
+              fontSize: 14,
+              textAlignVertical: 'top',
+            }
           : { height: 46, paddingTop: 0, paddingBottom: 5.5, fontSize: 15 },
         style,
       ]}
@@ -101,7 +179,10 @@ const Box: React.FC<TextInputProps & { left?: number; multiline?: boolean }> = (
   );
 };
 
-export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ navigation, route }) => {
+export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({
+  navigation,
+  route,
+}) => {
   const { t } = useTranslation();
   const dispatch = useDispatch<AppDispatch>();
   const { top, bottom } = useScreenInsets();
@@ -114,8 +195,42 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
   // so the two can never disagree. Typing again ("Change") clears both, falling back to the known-places match below.
   const [pointCoords, setPointCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dayKey, setDayKey] = useState(days[0].key);
+  const [customDay, setCustomDay] = useState<Date | null>(null);
+  const selectedDate =
+    dayKey === CUSTOM_DAY_KEY && customDay
+      ? customDay
+      : (days.find((d) => d.key === dayKey) ?? days[0]).date;
   const [time, setTime] = useState(DEFAULT_TIME);
+  const datePicker = useNativeDateTimePicker({
+    mode: 'date',
+    value: selectedDate,
+    minimumDate: startOfDay(new Date()),
+    onPicked: (d) => {
+      setCustomDay(startOfDay(d));
+      setDayKey(CUSTOM_DAY_KEY);
+    },
+  });
+  const timePicker = useNativeDateTimePicker({
+    mode: 'time',
+    value: (() => {
+      const [hh, mm] = time.split(':').map(Number);
+      return new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        hh,
+        mm,
+      );
+    })(),
+    onPicked: (d) =>
+      setTime(
+        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+      ),
+  });
   const [max, setMax] = useState(20);
+  const [dogIds, setDogIds] = useState<string[]>([]);
+  const toggleDog = (dogId: string) =>
+    setDogIds((cur) => (cur.includes(dogId) ? cur.filter((id) => id !== dogId) : [...cur, dogId]));
   const [desc, setDesc] = useState('');
   const [photo, setPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -126,22 +241,42 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
   const fieldY = useRef<Record<string, number>>({});
 
   useEffect(() => {
-    const show = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardUp(true));
-    const hide = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardUp(false));
-    return () => { show.remove(); hide.remove(); };
+    const show = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setKeyboardUp(true),
+    );
+    const hide = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setKeyboardUp(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
   }, []);
 
   // Known places give the event real coordinates when the typed location names one of them.
   useEffect(() => {
     let alive = true;
-    placesApi.list().then((res) => { if (alive && Array.isArray(res.data)) setPlaces(res.data); }).catch(() => undefined);
-    return () => { alive = false; };
+    placesApi
+      .list()
+      .then((res) => {
+        if (alive && Array.isArray(res.data)) {
+          setPlaces(res.data);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // A pick returned from PickLocationScreen (`navigation.navigate({ name: 'CreateEvent', params: { pickedLocation } })`).
   useEffect(() => {
     const picked = route?.params?.pickedLocation;
-    if (!picked) return;
+    if (!picked) {
+      return;
+    }
     setPoint(picked.name);
     setPointCoords({ lat: picked.lat, lng: picked.lng });
     navigation.setParams({ pickedLocation: undefined });
@@ -150,14 +285,25 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
 
   const invalid = title.trim().length < 3 || point.trim().length < 3;
 
-  const trackY = (key: string) => (e: { nativeEvent: { layout: { y: number } } }) => { fieldY.current[key] = e.nativeEvent.layout.y; };
+  const trackY = (key: string) => (e: { nativeEvent: { layout: { y: number } } }) => {
+    fieldY.current[key] = e.nativeEvent.layout.y;
+  };
   // The keyboard shrinks the scroll area (KeyboardAvoidingView); bring the focused field to its top.
   const reveal = (key: string) => () => {
-    setTimeout(() => scrollRef.current?.scrollTo({ y: Math.max(0, (fieldY.current[key] ?? 0) - 12), animated: true }), 160);
+    setTimeout(
+      () =>
+        scrollRef.current?.scrollTo({
+          y: Math.max(0, (fieldY.current[key] ?? 0) - 12),
+          animated: true,
+        }),
+      160,
+    );
   };
 
   const resolveCoords = (text: string) => {
-    if (pointCoords) return pointCoords;
+    if (pointCoords) {
+      return pointCoords;
+    }
     const q = text.trim().toLowerCase();
     const hit = places.find((p) => {
       const n = p.name.toLowerCase();
@@ -167,45 +313,83 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
   };
 
   const publish = async () => {
-    if (invalid || saving) return;
-    const day = days.find((d) => d.key === dayKey) ?? days[0];
+    if (invalid || saving) {
+      return;
+    }
     const [hh, mm] = time.split(':').map(Number);
-    const when = new Date(day.date.getFullYear(), day.date.getMonth(), day.date.getDate(), hh, mm);
+    const when = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      hh,
+      mm,
+    );
     if (when.getTime() <= Date.now()) {
       Alert.alert(t('events.create.pastTimeTitle'), t('events.create.pastTimeMessage'));
       return;
     }
     Keyboard.dismiss();
     setSaving(true);
-    const res = await dispatch(createEvent({
-      title: title.trim(),
-      ...(desc.trim() ? { description: desc.trim() } : {}),
-      location: point.trim(),
-      ...resolveCoords(point),
-      date: when.toISOString(),
-      maxParticipants: max,
-      category: cat,
-      emoji: CATEGORIES.find((c) => c.label === cat)?.emoji,
-      photoCaption: photo ? 'your cover photo' : 'add a cover photo',
-    }));
+    const res = await dispatch(
+      createEvent({
+        title: title.trim(),
+        ...(desc.trim() ? { description: desc.trim() } : {}),
+        location: point.trim(),
+        ...resolveCoords(point),
+        date: when.toISOString(),
+        maxParticipants: max,
+        category: cat,
+        emoji: CATEGORIES.find((c) => c.label === cat)?.emoji,
+        photoCaption: photo ? 'your cover photo' : 'add a cover photo',
+        ...(dogIds.length ? { dogIds } : {}),
+      }),
+    );
     setSaving(false);
     if (createEvent.fulfilled.match(res)) {
       navigation.replace('EventDetail', { eventId: res.payload.id });
     } else {
-      Alert.alert(t('events.create.couldNotPublishTitle'), typeof res.payload === 'string' ? res.payload : t('events.create.couldNotPublishMessage'));
+      Alert.alert(
+        t('events.create.couldNotPublishTitle'),
+        typeof res.payload === 'string' ? res.payload : t('events.create.couldNotPublishMessage'),
+      );
     }
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: Colors.backgroundDark }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: Colors.backgroundDark }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <StatusBar barStyle="light-content" />
 
       {/* Header: padding 52 12 8, Cancel (44px tap target, neutral-400) / title 17 / 66px spacer. */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: top - 4, paddingHorizontal: 12, paddingBottom: 8 }}>
-        <Pressable onPress={() => navigation.goBack()} accessibilityLabel={t('events.create.cancel')} style={{ height: 44, paddingHorizontal: 10, justifyContent: 'center' }}>
-          <Text style={{ fontSize: 15, color: Ramp.neutral[400] }}>{t('events.create.cancel')}</Text>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingTop: top - 4,
+          paddingHorizontal: 12,
+          paddingBottom: 8,
+        }}
+      >
+        <Pressable
+          onPress={() => navigation.goBack()}
+          accessibilityLabel={t('events.create.cancel')}
+          style={{ height: 44, paddingHorizontal: 10, justifyContent: 'center' }}
+        >
+          <Text style={{ fontSize: 15, color: Ramp.neutral[400] }}>
+            {t('events.create.cancel')}
+          </Text>
         </Pressable>
-        <Text style={{ fontSize: 17, fontWeight: '500' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{t('events.create.title')}</Text>
+        <Text
+          style={{ fontSize: 17, fontWeight: '500' }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+        >
+          {t('events.create.title')}
+        </Text>
         <View style={{ width: 66 }} />
       </View>
 
@@ -213,32 +397,96 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
       <ScrollView
         ref={scrollRef}
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingTop: 10, paddingHorizontal: 20, paddingBottom: 24, rowGap: 18 }}
+        contentContainerStyle={{
+          paddingTop: 10,
+          paddingHorizontal: 20,
+          paddingBottom: 24,
+          rowGap: 18,
+        }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       >
         {/* Cover photo stand-in (tap toggles the "added" state). */}
-        <Pressable onPress={() => setPhoto((p) => !p)} accessibilityRole="button" style={{ height: 130 }}>
-          <Placeholder colors={['#1c1e2c', '#212332']} stripe={10} radius={12} style={{ height: 130 }}>
-            <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', rowGap: 6 }}>
+        <Pressable
+          onPress={() => setPhoto((p) => !p)}
+          accessibilityRole="button"
+          style={{ height: 130 }}
+        >
+          <Placeholder
+            colors={['#1c1e2c', '#212332']}
+            stripe={10}
+            radius={12}
+            style={{ height: 130 }}
+          >
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                alignItems: 'center',
+                justifyContent: 'center',
+                rowGap: 6,
+              }}
+            >
               <View style={{ transform: [{ translateY: 3.4 }] }}>
                 <Icon name={photo ? 'check' : 'image'} size={22} color={Ramp.neutral[400]} />
               </View>
-              <Text style={{ fontFamily: MONO, fontWeight: '500', fontSize: 10, lineHeight: 15.5, color: Ramp.neutral[400], transform: [{ translateY: 0.5 }] }}>
+              <Text
+                style={{
+                  fontFamily: MONO,
+                  fontWeight: '500',
+                  fontSize: 10,
+                  lineHeight: 15.5,
+                  color: Ramp.neutral[400],
+                  transform: [{ translateY: 0.5 }],
+                }}
+              >
                 {photo ? t('events.create.photoAdded') : t('events.create.addPhoto')}
               </Text>
             </View>
           </Placeholder>
-          <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 12, borderWidth: 1, borderColor: photo ? Colors.primary : 'transparent' }} />
+          <View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: photo ? Colors.primary : 'transparent',
+            }}
+          />
         </Pressable>
 
         {/* Type */}
         <View style={{ rowGap: 8 }}>
-          <Text style={{ fontSize: 11, letterSpacing: 1.1, textTransform: 'uppercase', color: Ramp.neutral[500], transform: [{ translateY: -0.8 }] }}>{t('events.create.type')}</Text>
+          <Text
+            style={{
+              fontSize: 11,
+              letterSpacing: 1.1,
+              textTransform: 'uppercase',
+              color: Ramp.neutral[500],
+              transform: [{ translateY: -0.8 }],
+            }}
+          >
+            {t('events.create.type')}
+          </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 6, rowGap: 6 }}>
             {CATEGORIES.map((c) => (
-              <Chip key={c.label} label={eventCategoryLabel(t, c.label)} icon={c.icon} on={cat === c.label} onPress={() => setCat(c.label)} radius={18} paddingHorizontal={12} />
+              <Chip
+                key={c.label}
+                label={eventCategoryLabel(t, c.label)}
+                icon={c.icon}
+                on={cat === c.label}
+                onPress={() => setCat(c.label)}
+                radius={18}
+                paddingHorizontal={12}
+              />
             ))}
           </View>
         </View>
@@ -246,7 +494,15 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
         {/* Event name */}
         <View style={{ rowGap: 6 }} onLayout={trackY('title')}>
           <Label>{t('events.create.eventName')}</Label>
-          <Box value={title} onChangeText={setTitle} onFocus={reveal('title')} placeholder={t('events.create.eventNamePlaceholder')} autoCapitalize="sentences" returnKeyType="next" maxLength={120} />
+          <Box
+            value={title}
+            onChangeText={setTitle}
+            onFocus={reveal('title')}
+            placeholder={t('events.create.eventNamePlaceholder')}
+            autoCapitalize="sentences"
+            returnKeyType="next"
+            maxLength={120}
+          />
         </View>
 
         {/* Location */}
@@ -260,7 +516,11 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
             locked={!!pointCoords}
             onPickFromMap={() => {
               Keyboard.dismiss();
-              navigation.navigate('PickLocation', { initialLat: pointCoords?.lat, initialLng: pointCoords?.lng, returnTo: 'CreateEvent' });
+              navigation.navigate('PickLocation', {
+                initialLat: pointCoords?.lat,
+                initialLng: pointCoords?.lng,
+                returnTo: 'CreateEvent',
+              });
             }}
             onChangeMode={() => setPointCoords(null)}
           />
@@ -269,34 +529,102 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
         {/* Date */}
         <View style={{ rowGap: 8 }}>
           <Label>{t('events.create.date')}</Label>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ columnGap: 6 }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ columnGap: 6 }}
+          >
             {days.map((d) => (
-              <Chip key={d.key} label={d.label} on={dayKey === d.key} onPress={() => setDayKey(d.key)} radius={8} paddingHorizontal={13} />
+              <Chip
+                key={d.key}
+                label={d.label}
+                on={dayKey === d.key}
+                onPress={() => setDayKey(d.key)}
+                radius={8}
+                paddingHorizontal={13}
+              />
             ))}
+            <Chip
+              label={
+                dayKey === CUSTOM_DAY_KEY && customDay
+                  ? shortDate(t, customDay)
+                  : t('events.create.pickDate')
+              }
+              icon="calendar-plus"
+              on={dayKey === CUSTOM_DAY_KEY}
+              onPress={datePicker.open}
+              radius={8}
+              paddingHorizontal={13}
+            />
           </ScrollView>
+          {datePicker.node}
         </View>
 
         {/* Start time */}
         <View style={{ rowGap: 8 }}>
           <Label>{t('events.create.startTime')}</Label>
-          <View style={{ flexDirection: 'row', columnGap: 6 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 6, rowGap: 6 }}>
             {TIMES.map((tm) => (
-              <Chip key={tm} label={tm} on={time === tm} onPress={() => setTime(tm)} radius={8} paddingHorizontal={13} />
+              <Chip
+                key={tm}
+                label={tm}
+                on={time === tm}
+                onPress={() => setTime(tm)}
+                radius={8}
+                paddingHorizontal={13}
+              />
             ))}
+            <Chip
+              label={TIMES.includes(time) ? t('events.create.pickTime') : time}
+              icon="clock"
+              on={!TIMES.includes(time)}
+              onPress={timePicker.open}
+              radius={8}
+              paddingHorizontal={13}
+            />
           </View>
+          {timePicker.node}
+        </View>
+
+        {/* Dogs */}
+        <View style={{ rowGap: 8 }}>
+          <Label>{t('events.create.bringDogs')}</Label>
+          <DogMultiSelect selectedIds={dogIds} onToggle={toggleDog} />
         </View>
 
         {/* Capacity */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <View
+          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+        >
           <View>
             <Text style={{ fontSize: 14 }}>{t('events.create.capacity')}</Text>
-            <Text style={{ fontSize: 12, color: Ramp.neutral[500] }}>{t('events.create.capacitySub')}</Text>
+            <Text style={{ fontSize: 12, color: Ramp.neutral[500] }}>
+              {t('events.create.capacitySub')}
+            </Text>
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center', height: 44, borderWidth: 1, borderColor: DIV, borderRadius: 8 }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              height: 44,
+              borderWidth: 1,
+              borderColor: DIV,
+              borderRadius: 8,
+            }}
+          >
             <Pressable
               onPress={() => setMax((m) => Math.max(2, m - 5))}
               accessibilityLabel={t('events.create.fewer')}
-              style={({ pressed }) => ({ width: 44, height: 42, alignItems: 'center', justifyContent: 'center', borderTopLeftRadius: 7, borderBottomLeftRadius: 7, backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
+              style={({ pressed }) => ({
+                width: 44,
+                height: 42,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderTopLeftRadius: 7,
+                borderBottomLeftRadius: 7,
+                backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent',
+              })}
             >
               <Icon name="minus" size={16} color={Colors.textPrimary} />
             </Pressable>
@@ -304,7 +632,15 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
             <Pressable
               onPress={() => setMax((m) => Math.min(200, m + 5))}
               accessibilityLabel={t('events.create.more')}
-              style={({ pressed }) => ({ width: 44, height: 42, alignItems: 'center', justifyContent: 'center', borderTopRightRadius: 7, borderBottomRightRadius: 7, backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent' })}
+              style={({ pressed }) => ({
+                width: 44,
+                height: 42,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderTopRightRadius: 7,
+                borderBottomRightRadius: 7,
+                backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent',
+              })}
             >
               <Icon name="plus" size={16} color={Colors.textPrimary} />
             </Pressable>
@@ -314,12 +650,25 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
         {/* Description */}
         <View style={{ rowGap: 6 }} onLayout={trackY('desc')}>
           <Label>{t('events.create.description')}</Label>
-          <Box value={desc} onChangeText={setDesc} onFocus={reveal('desc')} placeholder={t('events.create.descriptionPlaceholder')} multiline maxLength={1000} />
+          <Box
+            value={desc}
+            onChangeText={setDesc}
+            onFocus={reveal('desc')}
+            placeholder={t('events.create.descriptionPlaceholder')}
+            multiline
+            maxLength={1000}
+          />
         </View>
       </ScrollView>
 
       {/* Footer: padding 12 20 36 with the fading divider along its top edge. */}
-      <View style={{ paddingTop: 12, paddingHorizontal: 20, paddingBottom: keyboardUp ? 12 : bottom + 2 }}>
+      <View
+        style={{
+          paddingTop: 12,
+          paddingHorizontal: 20,
+          paddingBottom: keyboardUp ? 12 : bottom + 2,
+        }}
+      >
         <Hairline tone="divider" style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
         <Pressable
           onPress={publish}
@@ -327,11 +676,24 @@ export const CreateEventScreen: React.FC<{ navigation: any; route?: any }> = ({ 
           accessibilityRole="button"
           accessibilityLabel={t('events.create.publish')}
           style={({ pressed }) => ({
-            height: 52, borderRadius: 26, borderWidth: 1, borderColor: Colors.primary, alignItems: 'center', justifyContent: 'center',
-            backgroundColor: pressed ? ACCENT_TINT : 'transparent', opacity: invalid || saving ? 0.45 : 1,
+            height: 52,
+            borderRadius: 26,
+            borderWidth: 1,
+            borderColor: Colors.primary,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: pressed ? ACCENT_TINT : 'transparent',
+            opacity: invalid || saving ? 0.45 : 1,
           })}
         >
-          <Text style={{ fontSize: 16, fontWeight: '500', color: Colors.primary }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>{saving ? t('events.create.publishing') : t('events.create.publish')}</Text>
+          <Text
+            style={{ fontSize: 16, fontWeight: '500', color: Colors.primary }}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+          >
+            {saving ? t('events.create.publishing') : t('events.create.publish')}
+          </Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>

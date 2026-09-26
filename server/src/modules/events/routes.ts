@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler';
 import { requireAuth } from '../../middleware/auth';
-import { createEventSchema } from './schema';
+import { createEventSchema, joinEventSchema } from './schema';
 import * as eventsService from './service';
 
 export const eventsRouter = Router();
@@ -54,13 +54,15 @@ eventsRouter.post(
  * @openapi
  * /events/{id}/join:
  *   post:
- *     summary: Join an event.
+ *     summary: Join an event, optionally naming which dogs you're bringing. Calling this again while already
+ *       joined replaces the dog list — that's how "edit my dogs" works.
  *     tags: [Events]
  */
 eventsRouter.post(
   '/:id/join',
   asyncHandler(async (req, res) => {
-    res.json(await eventsService.joinEvent(req.params.id, req.userId!));
+    const body = joinEventSchema.parse(req.body ?? {});
+    res.json(await eventsService.joinEvent(req.params.id, req.userId!, body.dogIds));
   }),
 );
 

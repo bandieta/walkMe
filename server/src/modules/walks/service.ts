@@ -2,20 +2,9 @@ import { prisma } from '../../lib/prisma';
 import { HttpError } from '../../middleware/errorHandler';
 import * as notificationsService from '../notifications/service';
 import { blockedUserIds } from '../blocks/service';
+import { assertCanBringDog } from '../dogs/service';
 import { toWalkDto, walkInclude } from './serialize';
 import { CreateWalkInput } from './schema';
-
-/** A dog is walkable by this user if they own it, or a shelter has accepted their request to walk it. */
-async function assertCanWalkDog(userId: string, dogId: string) {
-  const dog = await prisma.dog.findUnique({ where: { id: dogId } });
-  if (!dog) throw new HttpError(404, 'NOT_FOUND', 'Dog not found');
-  if (dog.ownerId === userId) return;
-  const approved = await prisma.dogWalkRequest.findUnique({
-    where: { dogId_requesterId: { dogId, requesterId: userId } },
-  });
-  if (approved?.status === 'accepted') return;
-  throw new HttpError(403, 'FORBIDDEN', 'You are not approved to walk this dog');
-}
 
 // Simple haversine distance in km — good enough for a first version;
 // swap for a DB-native geo query when scaling up.
@@ -70,7 +59,7 @@ async function notifyNearbyUsers(walk: { id: string; title: string; meetingPoint
 
 export async function createWalk(hostId: string, input: CreateWalkInput) {
   const { dogId, ...rest } = input;
-  if (dogId) await assertCanWalkDog(hostId, dogId);
+  if (dogId) await assertCanBringDog(hostId, dogId);
   const walk = await prisma.walk.create({
     data: {
       ...rest,
@@ -96,7 +85,7 @@ export async function joinWalk(walkId: string, userId: string, dogId?: string) {
   if (!alreadyIn && walk.participants.length >= walk.maxParticipants) {
     throw new HttpError(409, 'WALK_FULL', 'This walk is full');
   }
-  if (dogId) await assertCanWalkDog(userId, dogId);
+  if (dogId) await assertCanBringDog(userId, dogId);
   await prisma.walkParticipant.upsert({
     where: { walkId_userId: { walkId, userId } },
     update: { dogId },

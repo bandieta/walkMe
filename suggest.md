@@ -274,3 +274,42 @@ serwera: 98/98. Mobile: `tsc --noEmit` i testy jednostkowe bez zmian w wyniku.
 - Blokada nadal nie obejmuje czatu grupowego spaceru ani wydarzeń (patrz sekcja 5).
 - Filtr rozmiaru psa w Discover wymaga nowego pola w modelu `Dog`.
 - Zdjęcia w czacie nie mają podglądu pełnoekranowego po tapnięciu — tylko miniatura 200×200.
+
+## 7. Wiele psów na wydarzeniu i prawdziwe pickery daty/godziny (2026-09-26, na prośbę użytkownika)
+
+Design najpierw: mockup w Artifakcie pokazał wybór wielu psów przy dołączaniu do wydarzenia oraz kalendarz/zegar
+zastępujące (a raczej uzupełniające) sztywne listy dat i godzin — zaimplementowano dokładnie to.
+
+**7.1 Więcej niż jeden pies na wydarzenie**
+`EventParticipant` (w przeciwieństwie do `WalkParticipant.dogId?`) w ogóle nie miał pojęcia psa — dodano nowy
+model złączeniowy `EventDog(eventId, userId, dogId)`, bo RSVP na wydarzenie może wymieniać dowolną liczbę psów
+(migracja `20260926102850_add_event_dogs`).
+- `POST /events` przyjmuje opcjonalne `dogIds` dla organizatora; `POST /events/:id/join` przyjmuje `dogIds` dla
+  uczestnika — wywołanie join ponownie (już dołączony) **zastępuje** listę psów, to jest mechanizm „edytuj moje
+  psy” bez osobnego endpointu. Pominięcie `dogIds` przy join zostawia obecny wybór bez zmian.
+- Każdy pies jest weryfikowany tą samą regułą co przy spacerze (własny pies albo zatwierdzona prośba do
+  schroniska) — funkcję `assertCanWalkDog` przeniesiono z `walks/service.ts` do `dogs/service.ts` jako
+  `assertCanBringDog`, żeby oba moduły używały jednej implementacji.
+- `toEventDto` zwraca teraz `myDogIds` i `participantDogs` (mapa userId → lista psów, w liczbie mnogiej —
+  inaczej niż `participantDogs` spacerów, gdzie to pojedynczy pies).
+- Mobile: nowy `DogMultiSelect` (lista psów właściciela + zatwierdzonych psów ze schroniska, zaznaczanych
+  wielokrotnie) użyty w `CreateEventScreen` (psy organizatora) i w nowym arkuszu „Które psy zabierasz?” w
+  `EventDetailScreen`, otwieranym z przycisku „Dołącz do wydarzenia” oraz z linku „Edytuj moje psy” dla już
+  dołączonych. Szczegóły wydarzenia pokazują teraz linijkę „Psy, które przyjdą: …”.
+- Testy: `server/src/modules/events/events.test.ts` (+3 przypadki: wiele psów przy tworzeniu, zastępowanie przy
+  ponownym join, pies zatwierdzony przez schronisko vs pies bez żadnego uprawnienia → 403).
+
+**7.2 Prawdziwe pickery daty i godziny**
+Wcześniej „Dzień” i „Godzina” przy tworzeniu spaceru/wydarzenia to były wyłącznie sztywne listy: spacer miał 7
+kolejnych dni i 5 stałych godzin, wydarzenie — tylko następne 4 dni weekendowe (żaden dzień powszedni nie był
+możliwy!) i 4 inne stałe godziny. Zamiast to wymieniać, dodano ucieczkę poza te listy:
+- Nowa zależność `@react-native-community/datetimepicker` (dotąd żaden picker daty/godziny nie istniał w
+  aplikacji).
+- Współdzielony hook `mobile/src/ui/useNativeDateTimePicker.tsx`: na Androidzie otwiera natywny dialog
+  imperatywnie, na iOS renderuje spinner we własnym arkuszu z Anuluj/Gotowe (natywny inline-picker na iOS nie ma
+  wbudowanego zamykania).
+- Oba ekrany tworzenia (spacer i wydarzenie) dostały dodatkowy chip „Wybierz datę”/„Wybierz godzinę” na końcu
+  istniejących list — reszta chipów działa bez zmian, to tylko dodatkowa opcja, nie zamiennik.
+- **Uwaga**: nie testowano na prawdziwym urządzeniu/emulatorze (środowisko sesji nie buduje naprawdę aplikacji
+  mobilnej) — zweryfikowano `tsc --noEmit` i logikę łączenia daty+godziny, natywne zachowanie pickera wymaga
+  sprawdzenia na telefonie.

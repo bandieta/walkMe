@@ -4,6 +4,19 @@ import { HttpError } from '../../middleware/errorHandler';
 import { toDogDto } from './serialize';
 import { CreateDogInput, UpdateDogInput } from './schema';
 
+/** A dog is bring-able by this user (on a walk or to an event) if they own it, or a shelter has accepted their
+ * request to walk it. Shared by walks/service.ts and events/service.ts. */
+export async function assertCanBringDog(userId: string, dogId: string) {
+  const dog = await prisma.dog.findUnique({ where: { id: dogId } });
+  if (!dog) throw new HttpError(404, 'NOT_FOUND', 'Dog not found');
+  if (dog.ownerId === userId) return;
+  const approved = await prisma.dogWalkRequest.findUnique({
+    where: { dogId_requesterId: { dogId, requesterId: userId } },
+  });
+  if (approved?.status === 'accepted') return;
+  throw new HttpError(403, 'FORBIDDEN', 'You are not approved to bring this dog');
+}
+
 export async function getDogsByOwner(ownerId: string) {
   const dogs = await prisma.dog.findMany({ where: { ownerId }, orderBy: { createdAt: 'asc' } });
   return dogs.map(toDogDto);
