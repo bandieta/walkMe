@@ -89,6 +89,15 @@ describe('shelter accounts and dog walk requests', () => {
 
     const history = await request(app).get(`/api/v1/dog-requests/${requestId}/messages`).set(authHeader(walker.accessToken));
     expect(history.body.map((m: { content: string }) => m.content)).toEqual(['Can I come meet Rex?', 'Of course — this weekend?']);
+
+    const photo = await request(app)
+      .post(`/api/v1/dog-requests/${requestId}/messages`)
+      .set(authHeader(walker.accessToken))
+      .send({ content: 'https://cdn.example.com/uploads/rex.jpg', type: 'image' });
+    expect(photo.status).toBe(201);
+    expect(photo.body.type).toBe('image');
+    const shelterViewWithPhoto = await request(app).get('/api/v1/dog-requests').set(authHeader(shelter.accessToken));
+    expect(shelterViewWithPhoto.body[0].lastMessage).toBe('📷 Photo');
   });
 
   it('liking the same dog again while pending does not re-notify the shelter', async () => {

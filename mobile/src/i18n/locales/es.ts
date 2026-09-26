@@ -515,6 +515,16 @@ export default {
     startOver: 'Empezar de nuevo',
     openMap: 'Abrir mapa',
     requestSent: 'Solicitud enviada a {{shelter}} por {{dog}}',
+    filters: {
+      title: 'Filtros',
+      any: 'Cualquiera',
+      energy: 'Energía',
+      ageGroup: 'Edad',
+      distance: 'Distancia',
+      shelterOnly: 'Solo perros de refugio',
+      apply: 'Aplicar filtros',
+      clear: 'Borrar filtros',
+    },
     card: {
       breedAge: '{{breed}}, {{age}}',
       withPerson: 'con {{name}}',
@@ -539,6 +549,8 @@ export default {
     back: 'Atrás',
     messagePlaceholder: 'Mensaje',
     send: 'Enviar',
+    attachPhoto: 'Adjuntar una foto',
+    couldNotSendPhoto: 'No se pudo enviar la foto. Inténtalo de nuevo.',
     walkAction: 'Paseo',
     goingCount: '{{count}} asistentes',
     groupChatEmptyTitle: 'El chat grupal está abierto',
@@ -577,6 +589,15 @@ export default {
       emptyBodyBase: 'A ambos os gustaron los perros del otro. Sugiere un parque o una hora.',
       emptyBodyWithDistance:
         'A ambos os gustaron los perros del otro. Sugiere un parque o una hora — {{dog}} está a {{distance}}.',
+      menu: { label: 'Más opciones', unmatch: 'Deshacer match' },
+      unmatchDialog: {
+        title: '¿Deshacer el match con {{name}}?',
+        message:
+          'Esto termina el match y elimina el historial de mensajes para ambos. No se puede deshacer.',
+        confirm: 'Deshacer match',
+      },
+      unmatched: 'Match deshecho',
+      couldNotUnmatch: 'No se pudo deshacer el match. Inténtalo de nuevo.',
     },
     dogRequest: {
       details: 'Detalles del perro',

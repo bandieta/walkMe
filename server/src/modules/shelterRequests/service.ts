@@ -148,7 +148,7 @@ export async function getMessages(id: string, viewerId: string) {
   return messages.map(toMessageDto);
 }
 
-export async function sendMessage(id: string, senderId: string, content: string) {
+export async function sendMessage(id: string, senderId: string, content: string, type: 'text' | 'image' = 'text') {
   const request = await getRequestOrThrow(id);
   assertParticipant(request, senderId);
   if (request.status !== 'accepted') {
@@ -157,13 +157,14 @@ export async function sendMessage(id: string, senderId: string, content: string)
   const other = senderId === request.requesterId ? request.shelterId : request.requesterId;
   if (await isBlockedPair(senderId, other)) throw new HttpError(403, 'BLOCKED', 'You cannot message this conversation');
 
-  const message = await prisma.message.create({ data: { roomId: id, senderId, content, type: 'text' }, include: { sender: true } });
+  const message = await prisma.message.create({ data: { roomId: id, senderId, content, type }, include: { sender: true } });
 
+  const preview = type === 'image' ? '📷 Photo' : content.length > 80 ? `${content.slice(0, 80)}…` : content;
   const senderIsRequester = request.requesterId === senderId;
   await prisma.dogWalkRequest.update({
     where: { id },
     data: {
-      lastMessage: content,
+      lastMessage: preview,
       lastMessageAt: new Date(),
       ...(senderIsRequester ? { unreadForShelter: { increment: 1 } } : { unreadForRequester: { increment: 1 } }),
     },
@@ -173,7 +174,7 @@ export async function sendMessage(id: string, senderId: string, content: string)
   await notificationsService.notify(
     recipientId,
     'message',
-    { name: message.sender.displayName, preview: content.length > 80 ? `${content.slice(0, 80)}…` : content },
+    { name: message.sender.displayName, preview },
     { tab: 'ChatTab', screen: 'DogRequestChat', params: { requestId: id } },
   );
 

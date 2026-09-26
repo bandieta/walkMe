@@ -515,6 +515,16 @@ export default {
     startOver: 'Zacznij od nowa',
     openMap: 'Otwórz mapę',
     requestSent: 'Prośba wysłana do {{shelter}} w sprawie {{dog}}',
+    filters: {
+      title: 'Filtry',
+      any: 'Dowolny',
+      energy: 'Energia',
+      ageGroup: 'Wiek',
+      distance: 'Odległość',
+      shelterOnly: 'Tylko psy ze schroniska',
+      apply: 'Zastosuj filtry',
+      clear: 'Wyczyść filtry',
+    },
     card: {
       breedAge: '{{breed}}, {{age}}',
       withPerson: 'z {{name}}',
@@ -538,6 +548,8 @@ export default {
     back: 'Wstecz',
     messagePlaceholder: 'Wiadomość',
     send: 'Wyślij',
+    attachPhoto: 'Dodaj zdjęcie',
+    couldNotSendPhoto: 'Nie udało się wysłać zdjęcia. Spróbuj ponownie.',
     walkAction: 'Spacer',
     goingCount: '{{count}} uczestniczy',
     groupChatEmptyTitle: 'Czat grupowy jest otwarty',
@@ -576,6 +588,15 @@ export default {
       emptyBodyBase: 'Oboje polubiliście swoje psy. Zaproponuj park lub godzinę.',
       emptyBodyWithDistance:
         'Oboje polubiliście swoje psy. Zaproponuj park lub godzinę — {{dog}} jest {{distance}} stąd.',
+      menu: { label: 'Więcej opcji', unmatch: 'Cofnij dopasowanie' },
+      unmatchDialog: {
+        title: 'Cofnąć dopasowanie z {{name}}?',
+        message:
+          'To kończy dopasowanie i usuwa historię wiadomości u obu stron. Tej operacji nie można cofnąć.',
+        confirm: 'Cofnij dopasowanie',
+      },
+      unmatched: 'Dopasowanie cofnięte',
+      couldNotUnmatch: 'Nie udało się cofnąć dopasowania. Spróbuj ponownie.',
     },
     dogRequest: {
       details: 'Szczegóły psa',

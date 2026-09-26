@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { app, authHeader, devLoginAs, unique } from '../../../test/helpers';
+import { app, authHeader, devLoginAs, devLoginAsShelter, unique } from '../../../test/helpers';
 import { prisma } from '../../lib/prisma';
 
 describe('matches & discover', () => {
@@ -44,6 +44,26 @@ describe('matches & discover', () => {
     await request(app).post(`/api/v1/matches/${matchId}/read`).set(authHeader(b.accessToken));
     const bMatchesAfter = await request(app).get('/api/v1/matches').set(authHeader(b.accessToken));
     expect(bMatchesAfter.body.find((m: { userId: string }) => m.userId === a.user.id).unread).toBe(0);
+  });
+
+  it('sends an image message and shows a friendly preview instead of the raw URL', async () => {
+    const a = await devLoginAs(unique('PhotoA'));
+    const b = await devLoginAs(unique('PhotoB'));
+    await request(app).post(`/api/v1/discover/${b.user.id}/swipe-right`).set(authHeader(a.accessToken));
+    await request(app).post(`/api/v1/discover/${a.user.id}/swipe-right`).set(authHeader(b.accessToken));
+    const aMatches = await request(app).get('/api/v1/matches').set(authHeader(a.accessToken));
+    const matchId = aMatches.body.find((m: { userId: string }) => m.userId === b.user.id).id;
+
+    const sent = await request(app)
+      .post(`/api/v1/matches/${matchId}/messages`)
+      .set(authHeader(a.accessToken))
+      .send({ content: 'https://cdn.example.com/uploads/dog.jpg', type: 'image' });
+    expect(sent.status).toBe(201);
+    expect(sent.body.type).toBe('image');
+    expect(sent.body.content).toBe('https://cdn.example.com/uploads/dog.jpg');
+
+    const bMatches = await request(app).get('/api/v1/matches').set(authHeader(b.accessToken));
+    expect(bMatches.body.find((m: { userId: string }) => m.userId === a.user.id).lastMessage).toBe('📷 Photo');
   });
 
   it('excludes already-swiped users from the discover deck', async () => {
@@ -99,11 +119,68 @@ describe('matches & discover', () => {
     }
   });
 
+  it('unmatch ends the match and deletes the message history for both sides', async () => {
+    const a = await devLoginAs(unique('UnmatchA'));
+    const b = await devLoginAs(unique('UnmatchB'));
+    await request(app).post(`/api/v1/discover/${b.user.id}/swipe-right`).set(authHeader(a.accessToken));
+    await request(app).post(`/api/v1/discover/${a.user.id}/swipe-right`).set(authHeader(b.accessToken));
+    const aMatches = await request(app).get('/api/v1/matches').set(authHeader(a.accessToken));
+    const matchId = aMatches.body.find((m: { userId: string }) => m.userId === b.user.id).id;
+    await request(app).post(`/api/v1/matches/${matchId}/messages`).set(authHeader(a.accessToken)).send({ content: 'hey' });
+
+    const other = await devLoginAs(unique('UnmatchOther'));
+    const forbidden = await request(app).delete(`/api/v1/matches/${matchId}`).set(authHeader(other.accessToken));
+    expect(forbidden.status).toBe(403);
+
+    const unmatch = await request(app).delete(`/api/v1/matches/${matchId}`).set(authHeader(a.accessToken));
+    expect(unmatch.status).toBe(200);
+    expect(unmatch.body.success).toBe(true);
+
+    const aAfter = await request(app).get('/api/v1/matches').set(authHeader(a.accessToken));
+    expect(aAfter.body.some((m: { userId: string }) => m.userId === b.user.id)).toBe(false);
+    const bAfter = await request(app).get('/api/v1/matches').set(authHeader(b.accessToken));
+    expect(bAfter.body.some((m: { userId: string }) => m.userId === a.user.id)).toBe(false);
+
+    const messagesGone = await request(app).get(`/api/v1/matches/${matchId}/messages`).set(authHeader(a.accessToken));
+    expect(messagesGone.status).toBe(404);
+  });
+
   it('returns 404 when swiping on a user that does not exist', async () => {
     const a = await devLoginAs(unique('Ghost'));
     const res = await request(app).post('/api/v1/discover/00000000-0000-0000-0000-000000000000/swipe-right').set(authHeader(a.accessToken));
     expect(res.status).toBe(404);
   });
+  it('filters the deck by dog energy, age group and shelter-only', async () => {
+    const viewer = await devLoginAs(unique('FilterViewer'));
+    const calmOwner = await devLoginAs(unique('CalmOwner'));
+    await request(app).post('/api/v1/dogs').set(authHeader(calmOwner.accessToken)).send({
+      name: 'Sleepy', breed: 'Basset', age: 8, energy: 'Calm', ageGroup: 'Senior', personality: [],
+    });
+    const highOwner = await devLoginAs(unique('HighOwner'));
+    await request(app).post('/api/v1/dogs').set(authHeader(highOwner.accessToken)).send({
+      name: 'Zoomies', breed: 'Border Collie', age: 1, energy: 'High', ageGroup: 'Puppy', personality: [],
+    });
+    const shelter = await devLoginAsShelter(unique('FilterShelter'));
+    const shelterDog = await request(app).post('/api/v1/dogs').set(authHeader(shelter.accessToken)).send({
+      name: 'Shelter Calm', breed: 'Mixed', age: 6, energy: 'Calm', ageGroup: 'Senior', personality: [],
+    });
+
+    const calmOnly = await request(app).get('/api/v1/discover/deck').query({ energy: 'Calm' }).set(authHeader(viewer.accessToken));
+    const calmIds = calmOnly.body.map((c: { id: string }) => c.id);
+    expect(calmIds).toContain(calmOwner.user.id);
+    expect(calmIds).not.toContain(highOwner.user.id);
+    expect(calmIds).toContain(shelterDog.body.id);
+
+    const puppyOnly = await request(app).get('/api/v1/discover/deck').query({ ageGroup: 'Puppy' }).set(authHeader(viewer.accessToken));
+    const puppyIds = puppyOnly.body.map((c: { id: string }) => c.id);
+    expect(puppyIds).toContain(highOwner.user.id);
+    expect(puppyIds).not.toContain(calmOwner.user.id);
+
+    const shelterOnly = await request(app).get('/api/v1/discover/deck').query({ shelterOnly: 'true' }).set(authHeader(viewer.accessToken));
+    expect(shelterOnly.body.every((c: { kind: string }) => c.kind === 'shelterDog')).toBe(true);
+    expect(shelterOnly.body.some((c: { id: string }) => c.id === shelterDog.body.id)).toBe(true);
+  });
+
   it('keeps showing newly joined and nearby people once there are more than a deck of candidates', async () => {
     for (let i = 0; i < 55; i += 1) await devLoginAs(unique('Crowd'));
     const viewer = await devLoginAs(unique('CrowdViewer'));

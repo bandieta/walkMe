@@ -1,16 +1,23 @@
 import React, { useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { RootState, AppDispatch } from '../../store';
-import { walksApi } from '../../services/api';
+import { walksApi, storageApi } from '../../services/api';
 import {
-  fetchMessages, sendWalkMessage, receiveMessage, setActiveRoom, markRoomRead, ChatMessage,
+  fetchMessages,
+  sendWalkMessage,
+  receiveMessage,
+  setActiveRoom,
+  markRoomRead,
+  ChatMessage,
 } from '../../store/slices/chatSlice';
 import { categoryIcon, IconName } from '../../components/Icon';
 import { ThreadView } from './ThreadView';
 import { useChatRoom } from './useChatRoom';
 import { useTypingIndicator } from './useTypingIndicator';
 import { walkWhen } from './threadFormat';
+import { useToast } from '../../components/Toast';
 
 const NO_MESSAGES: ChatMessage[] = [];
 
@@ -24,7 +31,10 @@ interface WalkInfo {
 }
 
 /** Group chat of a walk. Reached from the walk detail, the chat list or the profile's walks. */
-export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
+export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({
+  route,
+  navigation,
+}) => {
   const { t } = useTranslation();
   const { walkId, walkTitle } = route.params as { walkId: string; walkTitle?: string };
   const dispatch = useDispatch<AppDispatch>();
@@ -32,13 +42,18 @@ export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ rout
   const messages = useSelector((s: RootState) => s.chat.messages[walkId]) ?? NO_MESSAGES;
   const [walk, setWalk] = useState<WalkInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sendingImage, setSendingImage] = useState(false);
+  const { show: showToast, element: toastElement } = useToast();
 
   useEffect(() => {
     let alive = true;
     dispatch(setActiveRoom(walkId));
     dispatch(markRoomRead(walkId));
     dispatch(fetchMessages(walkId)).finally(() => alive && setLoading(false));
-    walksApi.getById(walkId).then((res) => alive && setWalk(res.data as WalkInfo)).catch(() => undefined);
+    walksApi
+      .getById(walkId)
+      .then((res) => alive && setWalk(res.data as WalkInfo))
+      .catch(() => undefined);
     return () => {
       alive = false;
       dispatch(setActiveRoom(null));
@@ -52,48 +67,114 @@ export const WalkChatScreen: React.FC<{ route: any; navigation: any }> = ({ rout
   const title = walk?.title ?? walkTitle ?? '';
   const going = walk ? (walk.participantIds ?? walk.participants ?? []).length : 0;
   const when = walk ? walkWhen(t, walk.scheduledAt, walk.status) : '';
-  const subtitle = walk ? [t('chat.goingCount', { count: going }), when].filter(Boolean).join(' · ') : '';
+  const subtitle = walk
+    ? [t('chat.goingCount', { count: going }), when].filter(Boolean).join(' · ')
+    : '';
   const icon = categoryIcon(walk?.category);
 
   const goBack = () => {
-    if (navigation.canGoBack()) navigation.goBack();
-    else navigation.navigate(navigation.getState().routeNames[0]);
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate(navigation.getState().routeNames[0]);
+    }
   };
 
   // "Walk" opens the walk detail: straight back when we came from it, otherwise onto the map stack (the chat tab has none).
   const openWalk = () => {
     const state = navigation.getState();
     const previous = state.routes[state.index - 1];
-    if (previous?.name === 'WalkDetail' && previous.params?.walkId === walkId) navigation.goBack();
-    else if (state.routeNames.includes('WalkDetail')) navigation.navigate('WalkDetail', { walkId });
-    else navigation.navigate('MapTab', { screen: 'WalkDetail', params: { walkId } });
+    if (previous?.name === 'WalkDetail' && previous.params?.walkId === walkId) {
+      navigation.goBack();
+    } else if (state.routeNames.includes('WalkDetail')) {
+      navigation.navigate('WalkDetail', { walkId });
+    } else {
+      navigation.navigate('MapTab', { screen: 'WalkDetail', params: { walkId } });
+    }
   };
 
   const send = async (content: string) => {
-    if (!user) return false;
-    const result = await dispatch(sendWalkMessage({ walkId, content, sender: { id: user.id, name: user.displayName } }));
+    if (!user) {
+      return false;
+    }
+    const result = await dispatch(
+      sendWalkMessage({ walkId, content, sender: { id: user.id, name: user.displayName } }),
+    );
     return !sendWalkMessage.rejected.match(result);
   };
 
+  const pickAndSendImage = async () => {
+    if (!user || sendingImage) {
+      return;
+    }
+    let picker: any;
+    try {
+      picker = require('react-native-image-picker');
+    } catch {
+      Alert.alert(t('dogs.form.photosUnavailableTitle'), t('dogs.form.photosUnavailableBody'));
+      return;
+    }
+    try {
+      const res = await picker.launchImageLibrary({
+        mediaType: 'photo',
+        selectionLimit: 1,
+        quality: 0.8,
+        maxWidth: 1600,
+        maxHeight: 1600,
+      });
+      const asset = res?.assets?.[0];
+      if (!asset?.uri) {
+        return;
+      }
+      setSendingImage(true);
+      const up = await storageApi.upload({
+        uri: asset.uri,
+        name: asset.fileName ?? `photo-${Date.now()}.jpg`,
+        type: asset.type ?? 'image/jpeg',
+      });
+      const url = up.data.url as string;
+      const result = await dispatch(
+        sendWalkMessage({
+          walkId,
+          content: url,
+          type: 'image',
+          sender: { id: user.id, name: user.displayName },
+        }),
+      );
+      if (sendWalkMessage.rejected.match(result)) {
+        showToast(t('chat.couldNotSendPhoto'), 'error');
+      }
+    } catch {
+      showToast(t('chat.couldNotSendPhoto'), 'error');
+    } finally {
+      setSendingImage(false);
+    }
+  };
+
   return (
-    <ThreadView
-      kind="group"
-      title={title}
-      subtitle={subtitle}
-      avatarIcon={(icon === 'map-pin' ? 'path' : icon) as IconName}
-      actionLabel={t('chat.walkAction')}
-      actionIcon="info"
-      onAction={openWalk}
-      onBack={goBack}
-      messages={messages}
-      myId={user?.id}
-      loading={loading}
-      emptyTitle={t('chat.groupChatEmptyTitle')}
-      emptyBody={t('chat.groupChatEmptyBody', { title: title || t('chat.defaultWalk') })}
-      onSend={send}
-      otherTyping={remoteTyping}
-      onTyping={notifyTyping}
-      onStoppedTyping={notifyStoppedTyping}
-    />
+    <>
+      <ThreadView
+        kind="group"
+        title={title}
+        subtitle={subtitle}
+        avatarIcon={(icon === 'map-pin' ? 'path' : icon) as IconName}
+        actionLabel={t('chat.walkAction')}
+        actionIcon="info"
+        onAction={openWalk}
+        onBack={goBack}
+        messages={messages}
+        myId={user?.id}
+        loading={loading}
+        emptyTitle={t('chat.groupChatEmptyTitle')}
+        emptyBody={t('chat.groupChatEmptyBody', { title: title || t('chat.defaultWalk') })}
+        onSend={send}
+        onPickImage={pickAndSendImage}
+        sendingImage={sendingImage}
+        otherTyping={remoteTyping}
+        onTyping={notifyTyping}
+        onStoppedTyping={notifyStoppedTyping}
+      />
+      {toastElement}
+    </>
   );
 };

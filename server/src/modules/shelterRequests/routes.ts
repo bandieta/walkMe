@@ -88,7 +88,7 @@ shelterRequestsRouter.post(
   '/:id/messages',
   asyncHandler(async (req, res) => {
     const body = sendDogRequestMessageSchema.parse(req.body);
-    const message = await shelterRequestsService.sendMessage(req.params.id, req.userId!, body.content);
+    const message = await shelterRequestsService.sendMessage(req.params.id, req.userId!, body.content, body.type);
     req.app.get('io')?.of(CHAT_NAMESPACE).to(req.params.id).emit('chat:message:receive', message);
     res.status(201).json(message);
   }),

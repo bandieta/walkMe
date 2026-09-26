@@ -74,7 +74,7 @@ export async function getMatchMessages(matchId: string, viewerId: string) {
   return messages.map(toMessageDto);
 }
 
-export async function sendMatchMessage(matchId: string, senderId: string, content: string) {
+export async function sendMatchMessage(matchId: string, senderId: string, content: string, type: 'text' | 'image' = 'text') {
   const match = await getMatchOrThrow(matchId);
   assertParticipant(match, senderId);
   if (await isBlockedPair(senderId, otherUserId(match, senderId))) {
@@ -82,15 +82,16 @@ export async function sendMatchMessage(matchId: string, senderId: string, conten
   }
 
   const message = await prisma.message.create({
-    data: { roomId: matchId, senderId, content, type: 'text' },
+    data: { roomId: matchId, senderId, content, type },
     include: { sender: true },
   });
 
+  const preview = type === 'image' ? '📷 Photo' : content.length > 80 ? `${content.slice(0, 80)}…` : content;
   const senderIsA = match.userAId === senderId;
   await prisma.match.update({
     where: { id: matchId },
     data: {
-      lastMessage: content,
+      lastMessage: preview,
       lastMessageAt: new Date(),
       ...(senderIsA ? { unreadForB: { increment: 1 } } : { unreadForA: { increment: 1 } }),
     },
@@ -99,7 +100,7 @@ export async function sendMatchMessage(matchId: string, senderId: string, conten
   const recipientId = otherUserId(match, senderId);
   await notificationsService.notify(recipientId, 'message', {
     name: message.sender.displayName,
-    preview: content.length > 80 ? `${content.slice(0, 80)}…` : content,
+    preview,
   }, { tab: 'ChatTab', screen: 'DirectMessage', params: { matchId, userName: message.sender.displayName } });
 
   return toMessageDto(message);
@@ -113,6 +114,19 @@ export async function markMatchRead(matchId: string, viewerId: string) {
     where: { id: matchId },
     data: viewerIsA ? { unreadForA: 0 } : { unreadForB: 0 },
   });
+}
+
+/**
+ * Ends a match: deletes its whole message history and the Match row itself, for both sides. The two people's
+ * Swipe rows are left as they are, so they don't immediately re-match — same as any other already-swiped pair,
+ * they'd need `resetSwipes` (Discover's "Start over") to see each other again.
+ */
+export async function unmatch(matchId: string, viewerId: string) {
+  const match = await getMatchOrThrow(matchId);
+  assertParticipant(match, viewerId);
+  await prisma.message.deleteMany({ where: { roomId: matchId } });
+  await prisma.match.delete({ where: { id: matchId } });
+  return { success: true };
 }
 
 /** Great-circle distance in km. */
@@ -163,13 +177,25 @@ async function nearbyPeople(
     .map(({ u }) => u);
 }
 
-export async function getSwipeDeck(userId: string) {
-  const [viewer, swiped, requested, blocked] = await Promise.all([
+export interface DeckFilters {
+  /** Only a dog with this energy level counts as a match (a person qualifies if any of their dogs does). */
+  energy?: string;
+  ageGroup?: string;
+  /** Skip person candidates entirely — only shelter dogs looking for adopters. */
+  shelterOnly?: boolean;
+  /** Overrides the viewer's saved walking radius for this call only (doesn't persist to their profile). */
+  radiusKm?: number;
+}
+
+export async function getSwipeDeck(userId: string, filters: DeckFilters = {}) {
+  const [storedViewer, swiped, requested, blocked] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { lat: true, lng: true, radiusKm: true } }),
     prisma.swipe.findMany({ where: { fromUserId: userId }, select: { toUserId: true } }),
     prisma.dogWalkRequest.findMany({ where: { requesterId: userId }, select: { dogId: true } }),
     blockedUserIds(userId),
   ]);
+  const viewer =
+    filters.radiusKm && storedViewer ? { ...storedViewer, radiusKm: filters.radiusKm } : storedViewer;
   const swipedIds = new Set(swiped.map((s) => s.toUserId));
   const requestedDogIds = new Set(requested.map((r) => r.dogId));
 
@@ -178,24 +204,42 @@ export async function getSwipeDeck(userId: string) {
     return hasGeo ? Math.round(haversineKm(viewer!.lat!, viewer!.lng!, lat!, lng!) * 10) / 10 : undefined;
   };
 
-  // Blocked (either direction) is excluded the same way already-swiped people are — never shown again,
-  // rather than shown-but-unswipeable.
-  const personWhere = { id: { not: userId, notIn: [...swipedIds, ...blocked] }, provider: { not: 'filler' }, accountType: 'person' };
-  const nearby = await nearbyPeople(viewer, personWhere, distanceTo);
-  // The rest of the deck is the newest accounts, so people who just joined are seen instead of waiting behind
-  // everyone who signed up before them.
-  const newest = await prisma.user.findMany({
-    where: { ...personWhere, id: { ...personWhere.id, notIn: [...swipedIds, ...blocked, ...nearby.map((u) => u.id)] } },
-    include: { dogs: true },
-    orderBy: { createdAt: 'desc' },
-    take: DECK_SIZE - nearby.length,
-  });
-  const personCandidates = [...nearby, ...newest];
+  const dogFilter =
+    filters.energy || filters.ageGroup
+      ? { some: { ...(filters.energy ? { energy: filters.energy } : {}), ...(filters.ageGroup ? { ageGroup: filters.ageGroup } : {}) } }
+      : undefined;
+
+  let personCandidates: Awaited<ReturnType<typeof nearbyPeople>> = [];
+  if (!filters.shelterOnly) {
+    // Blocked (either direction) is excluded the same way already-swiped people are — never shown again,
+    // rather than shown-but-unswipeable.
+    const personWhere = {
+      id: { not: userId, notIn: [...swipedIds, ...blocked] },
+      provider: { not: 'filler' },
+      accountType: 'person',
+      ...(dogFilter ? { dogs: dogFilter } : {}),
+    };
+    const nearby = await nearbyPeople(viewer, personWhere, distanceTo);
+    // The rest of the deck is the newest accounts, so people who just joined are seen instead of waiting behind
+    // everyone who signed up before them.
+    const newest = await prisma.user.findMany({
+      where: { ...personWhere, id: { ...personWhere.id, notIn: [...swipedIds, ...blocked, ...nearby.map((u) => u.id)] } },
+      include: { dogs: true },
+      orderBy: { createdAt: 'desc' },
+      take: DECK_SIZE - nearby.length,
+    });
+    personCandidates = [...nearby, ...newest];
+  }
 
   const shelterDogs = await prisma.dog.findMany({
     // shelterId != userId also excludes personal dogs (shelterId is null there, and SQL NULL != x is never
     // true) and the viewer's own shelter's dogs in one filter, without a separate "not null" check.
-    where: { shelterId: { not: userId, notIn: blocked }, id: { notIn: [...requestedDogIds] } },
+    where: {
+      shelterId: { not: userId, notIn: blocked },
+      id: { notIn: [...requestedDogIds] },
+      ...(filters.energy ? { energy: filters.energy } : {}),
+      ...(filters.ageGroup ? { ageGroup: filters.ageGroup } : {}),
+    },
     include: { shelter: true },
     orderBy: { createdAt: 'desc' },
     take: 30,

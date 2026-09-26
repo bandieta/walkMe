@@ -226,8 +226,51 @@ nie zbudowane — patrz niżej):
   Wyłączony w środowisku testowym (`env.isTest`), żeby nie kolidował z 79+ testami odpalanymi w pętli.
 
 **Wciąż do zrobienia (nie zaczęte w tej sesji)**
-- Mobile UI: przycisk „Zgłoś”/„Zablokuj” w `PersonProfileScreen`, menu wątku czatu i menu profilu; ekran „Zablokowani
-  użytkownicy”; przepływ „Usuń konto” w Profil → Prywatność i bezpieczeństwo z potwierdzeniem.
-- Klient API (`mobile/src/services/api`) dla powyższych endpointów.
-- Tłumaczenia i18n (en/pl/es/de) dla nowych ekranów/komunikatów.
-- Rozważenie, czy blokada powinna też obejmować czat grupowy spaceru i wydarzenia (patrz wyżej).
+- ~~Mobile UI: przycisk „Zgłoś”/„Zablokuj” w `PersonProfileScreen`, menu wątku czatu i menu profilu; ekran
+  „Zablokowani użytkownicy”; przepływ „Usuń konto”.~~ Zrobione tego samego dnia, patrz sekcja 6.
+- ~~Klient API i tłumaczenia i18n dla powyższego.~~ Zrobione, patrz sekcja 6.
+- Rozważenie, czy blokada powinna też obejmować czat grupowy spaceru i wydarzenia — wciąż otwarte.
+
+## 6. Kolejna runda z tej samej sesji (2026-09-26, później tego samego dnia)
+
+Dokończono mobile UI z sekcji 5 i zaimplementowano trzy kolejne pozycje P1 z sekcji 3:
+
+**Mobile UI dla blokowania/zgłaszania/usuwania konta (dopięcie sekcji 5)**
+- `PersonProfileScreen`: ikona „…” w nagłówku otwiera menu (Zgłoś / Zablokuj-Odblokuj), `ReportDialog` (wybór
+  powodu + opcjonalne szczegóły) i `ConfirmDialog` dla blokady.
+- Nowy `BlockedUsersScreen` (Profil → Prywatność i bezpieczeństwo → Zablokowani użytkownicy) i przepływ „Usuń
+  konto” z `ConfirmDialog tone="danger"` w tym samym miejscu (wcześniej pokazywało tylko alert-zaślepkę).
+- Klient API (`blocksApi`, `reportsApi`, `usersApi.deleteAccount`) i tłumaczenia i18n (en/pl/es/de).
+- Scalono powtarzający się układ menu w `OptionsSheet` (reużyty potem w 6.2 dla `DirectMessageScreen`).
+
+**6.1 Cofnięcie dopasowania — unmatch (3.10)**
+- `DELETE /matches/:id` — kasuje wątek i dopasowanie dla obu stron; zostawia `Swipe`, więc nie dochodzi do
+  natychmiastowego ponownego dopasowania (jak w `resetSwipes`, wymaga świadomego „zacznij od nowa”).
+- Mobile: menu w `DirectMessageScreen` (nagłówek → „…”) z opcjami Zgłoś / Zablokuj / Cofnij dopasowanie —
+  wcześniej `PersonProfileScreen` był jedynym miejscem z tymi akcjami, ale dotyczył tylko rozmów z psem ze
+  schroniska, nie dopasowań 1:1, które są głównym miejscem, gdzie ktoś chciałby zablokować/zgłosić/cofnąć kontakt.
+
+**6.2 Zdjęcia w czacie (3.11)**
+- Serwer: pole `type` (`text`/`image`) dodane do wysyłania wiadomości w dopasowaniach i w czacie z psem ze
+  schroniska (czat grupowy spaceru już to miał). Podgląd ostatniej wiadomości pokazuje „📷 Photo” zamiast
+  surowego URL-a.
+- Mobile: przycisk aparatu w `ThreadView` (wspólny dla wszystkich trzech typów czatu), wybór zdjęcia przez
+  `react-native-image-picker` → upload → wysłanie jako `type: 'image'`; dymki renderują miniaturę 200×200.
+
+**6.3 Filtry w Discover (3.12)**
+- Serwer: `GET /discover/deck` przyjmuje `energy`, `ageGroup`, `shelterOnly`, `radiusKm` (nadpisuje promień
+  zapisany w profilu tylko na potrzeby tego zapytania).
+- Mobile: `DiscoverFiltersSheet` (energia / wiek / dystans jako `Segmented`, „tylko schronisko” jako `Toggle`)
+  otwierany z istniejącej ikony `sliders-horizontal` w nagłówku Discover — wcześniej ta ikona otwierała ekran
+  rytmu spacerów (Profil → Rytm spacerów), teraz otwiera panel filtrów; ustawienia rytmu spacerów wciąż dostępne
+  z Profilu jak dotąd.
+- Bez filtra rozmiaru psa: model `Dog` nie ma pola `size` (tylko `weight`, opcjonalne) — dodanie go wymagałoby
+  migracji i zmian w formularzu dodawania psa, celowo poza zakresem tej rundy.
+
+**Testy**: `matches.test.ts` (+unmatch, +zdjęcie, +filtry), `shelterRequests.test.ts` (+zdjęcie). Pełny zestaw
+serwera: 98/98. Mobile: `tsc --noEmit` i testy jednostkowe bez zmian w wyniku.
+
+**Wciąż do zrobienia**
+- Blokada nadal nie obejmuje czatu grupowego spaceru ani wydarzeń (patrz sekcja 5).
+- Filtr rozmiaru psa w Discover wymaga nowego pola w modelu `Dog`.
+- Zdjęcia w czacie nie mają podglądu pełnoekranowego po tapnięciu — tylko miniatura 200×200.
