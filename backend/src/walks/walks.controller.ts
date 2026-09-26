@@ -8,8 +8,6 @@ import {
   Query,
   UseGuards,
   Request,
-  ParseFloatPipe,
-  Optional,
 } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -67,11 +65,7 @@ export class WalksController {
 
   @Patch(':id/status')
   @ApiOperation({ summary: 'Update walk status (host only)' })
-  updateStatus(
-    @Param('id') id: string,
-    @Request() req: any,
-    @Body() body: { status: WalkStatus },
-  ) {
+  updateStatus(@Param('id') id: string, @Request() req: any, @Body() body: { status: WalkStatus }) {
     return this.walksService.updateStatus(id, req.user.id, body.status);
   }
 }
