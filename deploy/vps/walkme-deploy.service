@@ -1,0 +1,12 @@
+[Unit]
+Description=walkMe deploy agent (deploys CI-tested commits of main)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# GH_TOKEN=<token with repo scope> — see README.md
+EnvironmentFile=/etc/walkme-deploy.env
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/root/walkMe/deploy/vps/walkme-deploy.sh
+TimeoutStartSec=30min

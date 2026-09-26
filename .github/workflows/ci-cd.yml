@@ -1,0 +1,136 @@
+name: CI/CD
+
+# Tests every PR and every push to main, then builds the Android APK and an iOS
+# simulator build. Deployment is pull-based: the deploy agent on the VPS
+# (deploy/vps/) watches for completed runs of this workflow on main whose Test
+# job passed, and deploys that exact commit plus these build artifacts. Nothing
+# here needs server credentials, and the repo being public can't expose the VPS.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    # The deploy agent looks this job up by name — keep it "Test".
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            admin/package-lock.json
+      - run: npm ci --no-audit --no-fund
+
+      - name: Server — generate Prisma client
+        working-directory: server
+        run: npx prisma generate
+      - name: Server — tests
+        working-directory: server
+        run: npm test
+      - name: Server — build
+        working-directory: server
+        run: npm run build
+
+      - name: Admin panel — install and build
+        working-directory: admin
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      - name: Mobile — type-check
+        working-directory: mobile
+        run: npx tsc --noEmit
+
+  android:
+    name: Android APK
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build release APK
+        working-directory: mobile/android
+        run: >
+          ./gradlew assembleRelease --no-daemon
+          -PwalkmeVersionCode=${{ github.run_number }}
+          -PwalkmeVersionName=1.0.${{ github.run_number }}
+
+      - name: Name the APK after the build
+        run: |
+          mkdir -p out
+          cp mobile/android/app/build/outputs/apk/release/app-release.apk "out/walkMe-1.0.${{ github.run_number }}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: out/*.apk
+          retention-days: 30
+
+  ios:
+    # Unsigned simulator build: proves the iOS app compiles and runs in the
+    # Simulator. Installing on a real iPhone needs Apple signing (a paid Apple
+    # Developer account) — see deploy/vps/README.md.
+    name: iOS (simulator build)
+    needs: test
+    runs-on: macos-14
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+
+      - name: Install CocoaPods dependencies
+        working-directory: mobile/ios
+        run: pod install
+
+      - name: Build for the iOS Simulator
+        working-directory: mobile/ios
+        run: >
+          xcodebuild -quiet
+          -workspace WalkMe.xcworkspace
+          -scheme WalkMe
+          -configuration Release
+          -sdk iphonesimulator
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build
+          CODE_SIGNING_ALLOWED=NO
+
+      - name: Package the .app
+        run: |
+          mkdir -p out
+          ditto -c -k --keepParent mobile/ios/build/Build/Products/Release-iphonesimulator/WalkMe.app \
+            "out/walkMe-1.0.${{ github.run_number }}-ios-simulator.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator
+          path: out/*.zip
+          retention-days: 30
