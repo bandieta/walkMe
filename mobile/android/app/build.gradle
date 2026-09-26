@@ -76,8 +76,9 @@ android {
         applicationId "com.walkme"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // CI passes -PwalkmeVersionCode=<run number> so every build installs as an update over the last one.
+        versionCode((project.findProperty("walkmeVersionCode") ?: "1") as Integer)
+        versionName((project.findProperty("walkmeVersionName") ?: "1.0") as String)
     }
     signingConfigs {
         debug {
