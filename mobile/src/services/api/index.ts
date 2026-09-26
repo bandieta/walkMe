@@ -93,7 +93,10 @@ export const eventsApi = {
   list: () => apiClient.get('/events'),
   getById: (id: string) => apiClient.get(`/events/${id}`),
   create: (data: Record<string, unknown>) => apiClient.post('/events', data),
-  join: (id: string) => apiClient.post(`/events/${id}/join`),
+  // Omitting dogIds leaves an existing dog selection alone; passing an array (including []) replaces it —
+  // that's how "edit my dogs" works, from the same call as joining.
+  join: (id: string, dogIds?: string[]) =>
+    apiClient.post(`/events/${id}/join`, dogIds !== undefined ? { dogIds } : undefined),
   leave: (id: string) => apiClient.post(`/events/${id}/leave`),
 };
 

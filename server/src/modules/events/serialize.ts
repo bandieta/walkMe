@@ -1,12 +1,20 @@
-import { Event, User, EventParticipant } from '@prisma/client';
+import { Event, User, EventParticipant, EventDog, Dog } from '@prisma/client';
 import { toPublicUser } from '../users/serialize';
+import { toDogDto } from '../dogs/serialize';
 
 type EventWithRelations = Event & {
   organizer: User;
   participants: EventParticipant[];
+  dogs: (EventDog & { dog: Dog })[];
 };
 
 export function toEventDto(event: EventWithRelations, viewerId?: string) {
+  // Grouped by participant: unlike Walk's one-dog-per-participant column, an event RSVP can name several dogs,
+  // so this is an array per userId rather than a single DogDto.
+  const participantDogs: Record<string, ReturnType<typeof toDogDto>[]> = {};
+  for (const ed of event.dogs) {
+    (participantDogs[ed.userId] ??= []).push(toDogDto(ed.dog));
+  }
   return {
     id: event.id,
     title: event.title,
@@ -20,6 +28,8 @@ export function toEventDto(event: EventWithRelations, viewerId?: string) {
     participantCount: event.participants.length,
     maxParticipants: event.maxParticipants,
     isJoined: viewerId ? event.participants.some((p) => p.userId === viewerId) : false,
+    myDogIds: viewerId ? (participantDogs[viewerId] ?? []).map((d) => d.id) : [],
+    participantDogs,
     status: event.status,
     category: event.category,
     emoji: event.emoji ?? undefined,
@@ -32,4 +42,5 @@ export function toEventDto(event: EventWithRelations, viewerId?: string) {
 export const eventInclude = {
   organizer: true,
   participants: true,
+  dogs: { include: { dog: true } },
 } as const;

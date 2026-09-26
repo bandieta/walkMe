@@ -1,5 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, Pressable, Image, Alert, Platform, ActivityIndicator, StatusBar, useWindowDimensions } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  Pressable,
+  Image,
+  Alert,
+  Modal,
+  Platform,
+  ActivityIndicator,
+  StatusBar,
+  useWindowDimensions,
+} from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect } from 'react-native-svg';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
@@ -9,9 +21,11 @@ import { Colors, Ramp } from '../../utils/theme';
 import { Icon } from '../../components/Icon';
 import { Toast } from '../../components/Toast';
 import { Hairline, Placeholder, Btn, useScreenInsets } from '../../ui';
+import { cssLine } from '../../ui/cssLine';
 import { whenLong } from '../Map/mapFormat';
 import { resolveMediaUrl } from '../../utils/media';
 import { eventCategoryLabel } from '../../utils/categoryLabels';
+import { DogMultiSelect } from '../../components/DogMultiSelect';
 
 const DIVIDER = 'rgba(233,233,237,0.16)';
 const MONO = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
@@ -20,26 +34,67 @@ const lh = (fs: number) => Math.round(fs * 1.55 * 3) / 3;
 
 /** The prototype's `.tag` (11px, padding 3/9, radius 6). Local so its 17px line box is exact (the shared Tag lets RN round it up). */
 const Chip: React.FC<{ label: string; accent?: boolean }> = ({ label, accent }) => (
-  <View style={{ paddingVertical: 3, paddingHorizontal: 9, borderRadius: 6, backgroundColor: accent ? Ramp.accent[800] : Ramp.neutral[800] }}>
-    <Text style={{ fontSize: 11, lineHeight: 17, color: accent ? Ramp.accent[100] : Ramp.neutral[100], transform: [{ translateY: -1 }] }}>{label}</Text>
+  <View
+    style={{
+      paddingVertical: 3,
+      paddingHorizontal: 9,
+      borderRadius: 6,
+      backgroundColor: accent ? Ramp.accent[800] : Ramp.neutral[800],
+    }}
+  >
+    <Text
+      style={{
+        fontSize: 11,
+        lineHeight: 17,
+        color: accent ? Ramp.accent[100] : Ramp.neutral[100],
+        transform: [{ translateY: -1 }],
+      }}
+    >
+      {label}
+    </Text>
   </View>
 );
 
 /** Photo stand-in: 260px striped block, mono caption at (20, 130), 90px fade into the ground. */
-const PhotoHeader: React.FC<{ caption?: string; photoUrl?: string; width: number }> = ({ caption, photoUrl, width }) => {
+const PhotoHeader: React.FC<{ caption?: string; photoUrl?: string; width: number }> = ({
+  caption,
+  photoUrl,
+  width,
+}) => {
   const [imgFailed, setImgFailed] = useState(false);
   const uri = resolveMediaUrl(photoUrl);
   const showImage = !!uri && !imgFailed;
   return (
     <Placeholder colors={['#1c1e2c', '#212332']} stripe={10} style={{ height: 260 }}>
       {showImage ? (
-        <Image source={{ uri }} style={{ position: 'absolute', top: 0, left: 0, width, height: 260 }} resizeMode="cover" onError={() => setImgFailed(true)} />
+        <Image
+          source={{ uri }}
+          style={{ position: 'absolute', top: 0, left: 0, width, height: 260 }}
+          resizeMode="cover"
+          onError={() => setImgFailed(true)}
+        />
       ) : (
-        <Text style={{ position: 'absolute', left: 20, top: 128, fontFamily: MONO, fontSize: 10, fontWeight: '400', lineHeight: 15.5, color: Ramp.neutral[500] }}>
+        <Text
+          style={{
+            position: 'absolute',
+            left: 20,
+            top: 128,
+            fontFamily: MONO,
+            fontSize: 10,
+            fontWeight: '400',
+            lineHeight: 15.5,
+            color: Ramp.neutral[500],
+          }}
+        >
           {caption ? `event photo — ${caption}` : 'event photo'}
         </Text>
       )}
-      <Svg width={width} height={90} style={{ position: 'absolute', left: 0, bottom: 0 }} pointerEvents="none">
+      <Svg
+        width={width}
+        height={90}
+        style={{ position: 'absolute', left: 0, bottom: 0 }}
+        pointerEvents="none"
+      >
         <Defs>
           <LinearGradient id="evFade" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={Colors.backgroundDark} stopOpacity={0} />
@@ -53,19 +108,52 @@ const PhotoHeader: React.FC<{ caption?: string; photoUrl?: string; width: number
 };
 
 /** 44px round surface button floating over the photo (its 1px #3f424d ring sits just outside). */
-const BackButton: React.FC<{ top: number; onPress: () => void; label: string }> = ({ top, onPress, label }) => (
+const BackButton: React.FC<{ top: number; onPress: () => void; label: string }> = ({
+  top,
+  onPress,
+  label,
+}) => (
   <Pressable
     accessibilityRole="button"
     accessibilityLabel={label}
     onPress={onPress}
-    style={{ position: 'absolute', top: top - 4, left: 14, width: 44, height: 44, borderRadius: 22, backgroundColor: Colors.surfaceDark, alignItems: 'center', justifyContent: 'center' }}
+    style={{
+      position: 'absolute',
+      top: top - 4,
+      left: 14,
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: Colors.surfaceDark,
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
   >
-    <View pointerEvents="none" style={{ position: 'absolute', top: -1, left: -1, width: 46, height: 46, borderRadius: 23, borderWidth: 1, borderColor: Ramp.neutral[800] }} />
-    <Icon name={Platform.OS === 'ios' ? 'caret-left' : 'arrow-left'} size={19} color={Colors.textPrimary} />
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: -1,
+        left: -1,
+        width: 46,
+        height: 46,
+        borderRadius: 23,
+        borderWidth: 1,
+        borderColor: Ramp.neutral[800],
+      }}
+    />
+    <Icon
+      name={Platform.OS === 'ios' ? 'caret-left' : 'arrow-left'}
+      size={19}
+      color={Colors.textPrimary}
+    />
   </Pressable>
 );
 
-export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ route, navigation }) => {
+export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({
+  route,
+  navigation,
+}) => {
   const { t } = useTranslation();
   const { eventId } = route.params as { eventId: string };
   const dispatch = useDispatch<AppDispatch>();
@@ -76,44 +164,96 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
   const [toast, setToast] = useState<{ text: string; n: number } | null>(null);
+  const [dogPickerOpen, setDogPickerOpen] = useState(false);
+  const [pendingDogIds, setPendingDogIds] = useState<string[]>([]);
 
   useEffect(() => {
     setFailed(false);
-    dispatch(fetchEventById(eventId)).unwrap().catch(() => setFailed(true));
+    dispatch(fetchEventById(eventId))
+      .unwrap()
+      .catch(() => setFailed(true));
   }, [eventId, dispatch]);
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
 
   const view = useMemo(() => {
-    if (!event) return null;
+    if (!event) {
+      return null;
+    }
     const ended = event.status === 'ended';
     const live = event.status === 'live';
     const left = Math.max(0, event.maxParticipants - event.participantCount);
     const full = left === 0;
     const isOrganiser = event.organizerId === user?.id || event.organizer?.id === user?.id;
     return {
-      ended, live, full, isOrganiser,
-      statusLabel: live ? t('events.detail.statusLive') : ended ? t('events.detail.statusEnded') : t('events.detail.statusUpcoming'),
+      ended,
+      live,
+      full,
+      isOrganiser,
+      statusLabel: live
+        ? t('events.detail.statusLive')
+        : ended
+          ? t('events.detail.statusEnded')
+          : t('events.detail.statusUpcoming'),
       canJoin: !ended && !event.isJoined && !full,
       joined: !ended && event.isJoined,
       blocked: ended || (!event.isJoined && full),
       blockedLabel: ended ? t('events.detail.blockedEnded') : t('events.detail.blockedFull'),
       when: whenLong(t, event.date),
-      organiser: isOrganiser ? null : event.organizer?.displayName ?? '',
+      organiser: isOrganiser ? null : (event.organizer?.displayName ?? ''),
       left,
       pct: Math.min(100, Math.round((event.participantCount / (event.maxParticipants || 1)) * 100)),
     };
   }, [event, user, t]);
 
-  const toggle = async () => {
-    if (!event || busy) return;
-    const joining = !event.isJoined;
+  // Every dog any participant is bringing, for the "who's coming" line — an event RSVP can name several, unlike
+  // a walk's single dog, so this flattens participantDogs' per-user arrays into one list.
+  const dogsComing = useMemo(() => Object.values(event?.participantDogs ?? {}).flat(), [event]);
+
+  const openDogPicker = () => {
+    setPendingDogIds(event?.myDogIds ?? []);
+    setDogPickerOpen(true);
+  };
+  const togglePendingDog = (dogId: string) =>
+    setPendingDogIds((cur) =>
+      cur.includes(dogId) ? cur.filter((id) => id !== dogId) : [...cur, dogId],
+    );
+
+  const confirmJoin = async () => {
+    if (!event || busy) {
+      return;
+    }
+    const wasJoined = event.isJoined;
     setBusy(true);
     try {
-      await (joining ? dispatch(joinEvent(eventId)) : dispatch(leaveEvent(eventId))).unwrap();
-      setToast({ text: joining ? t('events.detail.joinedToast', { title: event.title }) : t('events.detail.leftToast'), n: Date.now() });
+      await dispatch(joinEvent({ eventId, dogIds: pendingDogIds })).unwrap();
+      setDogPickerOpen(false);
+      if (!wasJoined) {
+        setToast({ text: t('events.detail.joinedToast', { title: event.title }), n: Date.now() });
+      }
     } catch (e: any) {
-      Alert.alert(t('events.detail.errorTitle'), typeof e === 'string' ? e : e?.message ?? t('events.detail.errorMessage'));
+      Alert.alert(
+        t('events.detail.errorTitle'),
+        typeof e === 'string' ? e : (e?.message ?? t('events.detail.errorMessage')),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const leave = async () => {
+    if (!event || busy) {
+      return;
+    }
+    setBusy(true);
+    try {
+      await dispatch(leaveEvent(eventId)).unwrap();
+      setToast({ text: t('events.detail.leftToast'), n: Date.now() });
+    } catch (e: any) {
+      Alert.alert(
+        t('events.detail.errorTitle'),
+        typeof e === 'string' ? e : (e?.message ?? t('events.detail.errorMessage')),
+      );
     } finally {
       setBusy(false);
     }
@@ -121,12 +261,30 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
 
   if (!event || !view) {
     return (
-      <View style={{ flex: 1, backgroundColor: Colors.backgroundDark, alignItems: 'center', justifyContent: 'center' }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.backgroundDark,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <StatusBar barStyle="light-content" />
         {failed ? (
           <View style={{ alignItems: 'center', rowGap: 14 }}>
-            <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[400] }}>{t('events.detail.loadFailed')}</Text>
-            <Btn label={t('events.detail.tryAgain')} variant="neutral" onPress={() => { setFailed(false); dispatch(fetchEventById(eventId)).unwrap().catch(() => setFailed(true)); }} />
+            <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[400] }}>
+              {t('events.detail.loadFailed')}
+            </Text>
+            <Btn
+              label={t('events.detail.tryAgain')}
+              variant="neutral"
+              onPress={() => {
+                setFailed(false);
+                dispatch(fetchEventById(eventId))
+                  .unwrap()
+                  .catch(() => setFailed(true));
+              }}
+            />
           </View>
         ) : (
           <ActivityIndicator color={Colors.primary} />
@@ -150,9 +308,25 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
           <View style={{ rowGap: 8 }}>
             <View style={{ flexDirection: 'row', columnGap: 6 }}>
               <Chip label={view.statusLabel} accent={view.live} />
-              <Chip label={event.category ? eventCategoryLabel(t, event.category) : t('events.detail.fallbackCategory')} />
+              <Chip
+                label={
+                  event.category
+                    ? eventCategoryLabel(t, event.category)
+                    : t('events.detail.fallbackCategory')
+                }
+              />
             </View>
-            <Text style={{ fontSize: 26, fontWeight: '500', lineHeight: 29, letterSpacing: -0.39, transform: [{ translateY: 0.67 }] }}>{event.title}</Text>
+            <Text
+              style={{
+                fontSize: 26,
+                fontWeight: '500',
+                lineHeight: 29,
+                letterSpacing: -0.39,
+                transform: [{ translateY: 0.67 }],
+              }}
+            >
+              {event.title}
+            </Text>
           </View>
 
           {/* when / where / who */}
@@ -163,74 +337,226 @@ export const EventDetailScreen: React.FC<{ route: any; navigation: any }> = ({ r
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 10 }}>
               <Icon name="map-pin" size={17} color={Ramp.neutral[400]} />
-              <Text style={{ fontSize: 14, lineHeight: lh(14), flexShrink: 1 }}>{event.location}</Text>
+              <Text style={{ fontSize: 14, lineHeight: lh(14), flexShrink: 1 }}>
+                {event.location}
+              </Text>
             </View>
             <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 10 }}>
               <Icon name="user" size={17} color={Ramp.neutral[400]} />
               {view.organiser ? (
                 <>
-                  <Text style={{ fontSize: 14, lineHeight: lh(14) }}>{t('events.detail.organisedByLabel')}</Text>
-                  <Text style={{ fontSize: 14, lineHeight: lh(14), flexShrink: 1 }} numberOfLines={1}>{view.organiser}</Text>
+                  <Text style={{ fontSize: 14, lineHeight: lh(14) }}>
+                    {t('events.detail.organisedByLabel')}
+                  </Text>
+                  <Text
+                    style={{ fontSize: 14, lineHeight: lh(14), flexShrink: 1 }}
+                    numberOfLines={1}
+                  >
+                    {view.organiser}
+                  </Text>
                 </>
               ) : (
-                <Text style={{ fontSize: 14, lineHeight: lh(14), flexShrink: 1 }} numberOfLines={1}>{t('events.detail.organisedByYou')}</Text>
+                <Text style={{ fontSize: 14, lineHeight: lh(14), flexShrink: 1 }} numberOfLines={1}>
+                  {t('events.detail.organisedByYou')}
+                </Text>
               )}
             </View>
+            {dogsComing.length > 0 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 10 }}>
+                <Icon name="paw-print" size={17} color={Ramp.neutral[400]} />
+                <Text style={{ fontSize: 14, lineHeight: lh(14), flexShrink: 1 }} numberOfLines={2}>
+                  {t('events.detail.dogsComing', {
+                    list: dogsComing.map((d) => d.name).join(', '),
+                  })}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* going */}
           <View style={{ rowGap: 8 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', transform: [{ translateY: -0.67 }] }}>
-              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500' }}>{t('events.detail.going', { count: event.participantCount })}</Text>
-              <Text style={{ fontSize: 13, lineHeight: lh(13), color: Ramp.neutral[400] }}>{t('events.detail.spotsLeft', { count: view.left })}</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'baseline',
+                transform: [{ translateY: -0.67 }],
+              }}
+            >
+              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500' }}>
+                {t('events.detail.going', { count: event.participantCount })}
+              </Text>
+              <Text style={{ fontSize: 13, lineHeight: lh(13), color: Ramp.neutral[400] }}>
+                {t('events.detail.spotsLeft', { count: view.left })}
+              </Text>
             </View>
             <View style={{ height: 3, borderRadius: 2, backgroundColor: Ramp.neutral[900] }}>
-              <View style={{ width: `${view.pct}%`, height: 3, borderRadius: 2, backgroundColor: Colors.primary }} />
+              <View
+                style={{
+                  width: `${view.pct}%`,
+                  height: 3,
+                  borderRadius: 2,
+                  backgroundColor: Colors.primary,
+                }}
+              />
             </View>
           </View>
 
           {/* about */}
           {!!event.description && (
             <View style={{ rowGap: 6 }}>
-              <Text style={{ fontSize: 15, lineHeight: lh(15), fontWeight: '500', transform: [{ translateY: -1 }] }}>{t('events.detail.about')}</Text>
-              <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[300] }}>{event.description}</Text>
+              <Text
+                style={{
+                  fontSize: 15,
+                  lineHeight: lh(15),
+                  fontWeight: '500',
+                  transform: [{ translateY: -1 }],
+                }}
+              >
+                {t('events.detail.about')}
+              </Text>
+              <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[300] }}>
+                {event.description}
+              </Text>
             </View>
           )}
         </View>
       </ScrollView>
 
       {/* action bar: 12/20/36 padding, divider hairline along the top edge */}
-      <View style={{ paddingTop: 12, paddingHorizontal: 20, paddingBottom: bottom + 2, flexDirection: 'row', alignItems: 'center', columnGap: 10 }}>
+      <View
+        style={{
+          paddingTop: 12,
+          paddingHorizontal: 20,
+          paddingBottom: bottom + 2,
+          flexDirection: 'row',
+          alignItems: 'center',
+          columnGap: 10,
+        }}
+      >
         <Hairline tone="divider" style={{ position: 'absolute', top: 0, left: 0, right: 0 }} />
-        {view.canJoin && <Btn label={t('events.detail.joinEvent')} shape="pill" onPress={toggle} loading={busy} style={{ flex: 1 }} />}
+        {view.canJoin && (
+          <Btn
+            label={t('events.detail.joinEvent')}
+            shape="pill"
+            onPress={openDogPicker}
+            loading={busy}
+            style={{ flex: 1 }}
+          />
+        )}
         {view.joined && (
           <>
-            <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', columnGap: 8 }}>
-              <Icon name="check-circle" weight="fill" size={18} color={Ramp.accent[300]} />
-              <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.accent[300] }}>{t('events.detail.youreGoing')}</Text>
+            <View style={{ flex: 1, rowGap: 2 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', columnGap: 8 }}>
+                <Icon name="check-circle" weight="fill" size={18} color={Ramp.accent[300]} />
+                <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.accent[300] }}>
+                  {t('events.detail.youreGoing')}
+                </Text>
+              </View>
+              <Pressable onPress={openDogPicker} hitSlop={6} style={{ alignSelf: 'flex-start' }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    lineHeight: lh(12),
+                    color: Ramp.neutral[500],
+                    textDecorationLine: 'underline',
+                  }}
+                >
+                  {event.myDogIds?.length
+                    ? t('events.detail.editMyDogs')
+                    : t('events.detail.addMyDogs')}
+                </Text>
+              </Pressable>
             </View>
             {!view.isOrganiser && (
               <Pressable
-                onPress={toggle}
+                onPress={leave}
                 disabled={busy}
                 style={({ pressed }) => ({
-                  height: 50, paddingHorizontal: 20, borderRadius: 25, borderWidth: 1, borderColor: DIVIDER, alignItems: 'center', justifyContent: 'center',
-                  backgroundColor: pressed ? 'rgba(233,233,237,0.14)' : 'transparent', opacity: busy ? 0.45 : 1,
+                  height: 50,
+                  paddingHorizontal: 20,
+                  borderRadius: 25,
+                  borderWidth: 1,
+                  borderColor: DIVIDER,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: pressed ? 'rgba(233,233,237,0.14)' : 'transparent',
+                  opacity: busy ? 0.45 : 1,
                 })}
               >
-                <Text style={{ fontSize: 14, lineHeight: lh(14) }}>{t('events.detail.cantMakeIt')}</Text>
+                <Text style={{ fontSize: 14, lineHeight: lh(14) }}>
+                  {t('events.detail.cantMakeIt')}
+                </Text>
               </Pressable>
             )}
           </>
         )}
         {view.blocked && (
-          <View style={{ flex: 1, height: 50, borderRadius: 25, borderWidth: 1, borderColor: DIVIDER, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[400] }}>{view.blockedLabel}</Text>
+          <View
+            style={{
+              flex: 1,
+              height: 50,
+              borderRadius: 25,
+              borderWidth: 1,
+              borderColor: DIVIDER,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Text style={{ fontSize: 14, lineHeight: lh(14), color: Ramp.neutral[400] }}>
+              {view.blockedLabel}
+            </Text>
           </View>
         )}
       </View>
 
       <Toast visible={!!toast} message={toast?.text ?? ''} onHide={() => setToast(null)} />
+
+      <Modal
+        visible={dogPickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDogPickerOpen(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(41,43,49,0.6)', justifyContent: 'flex-end' }}
+          onPress={() => setDogPickerOpen(false)}
+        >
+          <Pressable
+            style={{
+              backgroundColor: Colors.surfaceDark,
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              padding: 18,
+              paddingBottom: bottom + 18,
+              rowGap: 14,
+              maxHeight: '75%',
+            }}
+          >
+            <Text style={{ fontSize: 17, lineHeight: cssLine(17), fontWeight: '500' }}>
+              {t('events.detail.dogPickerTitle')}
+            </Text>
+            <Text
+              style={{
+                fontSize: 12.5,
+                lineHeight: cssLine(12.5),
+                color: Ramp.neutral[500],
+                marginTop: -8,
+              }}
+            >
+              {t('events.detail.dogPickerSubtitle')}
+            </Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <DogMultiSelect selectedIds={pendingDogIds} onToggle={togglePendingDog} />
+            </ScrollView>
+            <Btn
+              label={t('events.detail.dogPickerConfirm', { count: pendingDogIds.length })}
+              onPress={confirmJoin}
+              loading={busy}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 };
