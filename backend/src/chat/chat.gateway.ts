@@ -7,7 +7,6 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { UseGuards } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { SOCKET_EVENTS } from '@walkme/shared';
@@ -28,19 +27,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage(SOCKET_EVENTS.JOIN_WALK_ROOM)
-  handleJoinRoom(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { walkId: string },
-  ) {
+  handleJoinRoom(@ConnectedSocket() client: Socket, @MessageBody() data: { walkId: string }) {
     client.join(`walk:${data.walkId}`);
     client.emit('joined', { walkId: data.walkId });
   }
 
   @SubscribeMessage(SOCKET_EVENTS.LEAVE_WALK_ROOM)
-  handleLeaveRoom(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { walkId: string },
-  ) {
+  handleLeaveRoom(@ConnectedSocket() client: Socket, @MessageBody() data: { walkId: string }) {
     client.leave(`walk:${data.walkId}`);
   }
 

@@ -33,8 +33,29 @@ export default {
     startingNow: 'Zaczyna się teraz',
     inMinutes: 'Za {{count}} min',
     inHours: 'Za {{count}} godz.',
-    weekdaysShort: { sun: 'Nd', mon: 'Pon', tue: 'Wt', wed: 'Śr', thu: 'Czw', fri: 'Pt', sat: 'Sob' },
-    monthsShort: { jan: 'sty', feb: 'lut', mar: 'mar', apr: 'kwi', may: 'maj', jun: 'cze', jul: 'lip', aug: 'sie', sep: 'wrz', oct: 'paź', nov: 'lis', dec: 'gru' },
+    weekdaysShort: {
+      sun: 'Nd',
+      mon: 'Pon',
+      tue: 'Wt',
+      wed: 'Śr',
+      thu: 'Czw',
+      fri: 'Pt',
+      sat: 'Sob',
+    },
+    monthsShort: {
+      jan: 'sty',
+      feb: 'lut',
+      mar: 'mar',
+      apr: 'kwi',
+      may: 'maj',
+      jun: 'cze',
+      jul: 'lip',
+      aug: 'sie',
+      sep: 'wrz',
+      oct: 'paź',
+      nov: 'lis',
+      dec: 'gru',
+    },
   },
   settings: {
     language: {
@@ -65,12 +86,22 @@ export default {
       personSub: 'Chodź na spacery z własnym psem i poznawaj sąsiadów',
       shelter: 'Schronisko lub fundacja',
       shelterSub: 'Dodawaj psy do adopcji, które ludzie mogą wyprowadzać',
-      shelterConfirm: 'Potwierdzam, że to konto reprezentuje schronisko lub organizację ratującą zwierzęta.',
+      shelterConfirm:
+        'Potwierdzam, że to konto reprezentuje schronisko lub organizację ratującą zwierzęta.',
     },
     slides: {
-      '1': { title: 'Każdy dobry spacer zaczyna się blisko.', body: 'Zobacz, kto właśnie wyszedł z psem, i dołącz.' },
-      '2': { title: 'Najpierw dopasowanie\npsów.', body: 'Przeglądaj psy w pobliżu. Gdy oboje chcecie iść na spacer, zacznij czat.' },
-      '3': { title: 'Zaplanuj spacer w minutę.', body: 'Wybierz park, godzinę i liczbę osób. Sąsiedzi dołączają z mapy.' },
+      '1': {
+        title: 'Każdy dobry spacer zaczyna się blisko.',
+        body: 'Zobacz, kto właśnie wyszedł z psem, i dołącz.',
+      },
+      '2': {
+        title: 'Najpierw dopasowanie\npsów.',
+        body: 'Przeglądaj psy w pobliżu. Gdy oboje chcecie iść na spacer, zacznij czat.',
+      },
+      '3': {
+        title: 'Zaplanuj spacer w minutę.',
+        body: 'Wybierz park, godzinę i liczbę osób. Sąsiedzi dołączają z mapy.',
+      },
     },
     emailAuth: {
       titleNew: 'Jaki jest Twój e-mail?',
@@ -96,13 +127,21 @@ export default {
     title: 'Profil',
     edit: 'Edytuj',
     stats: { walks: 'Spacery', walkFriends: 'Znajomi ze spacerów', kmTogether: 'km razem' },
-    dogs: { title: 'Twoje psy', shelterTitle: 'Psy pod Twoją opieką', manage: 'Zarządzaj', addDog: 'Dodaj psa' },
+    dogs: {
+      title: 'Twoje psy',
+      shelterTitle: 'Psy pod Twoją opieką',
+      manage: 'Zarządzaj',
+      addDog: 'Dodaj psa',
+    },
     shelterDogs: {
       title: 'Psy, które możesz wyprowadzić',
     },
     preferences: {
       title: 'Preferencje',
-      shareLocation: { label: 'Udostępniaj lokalizację', desc: 'Widoczna dla osób na Twoich spacerach' },
+      shareLocation: {
+        label: 'Udostępniaj lokalizację',
+        desc: 'Widoczna dla osób na Twoich spacerach',
+      },
     },
     account: {
       title: 'Konto',
@@ -110,8 +149,12 @@ export default {
       rhythm: 'Rytm spacerów',
       language: 'Język',
       notifications: 'Powiadomienia',
-      privacy: { label: 'Prywatność i bezpieczeństwo', alertTitle: 'Prywatność i bezpieczeństwo', alertBody: 'Ustawienia prywatności pojawią się w kolejnej wersji.' },
-      help: { label: 'Pomoc i wsparcie', alertTitle: 'Pomoc i wsparcie', alertBody: 'Centrum pomocy pojawi się w kolejnej wersji.' },
+      privacy: { label: 'Prywatność i bezpieczeństwo' },
+      help: {
+        label: 'Pomoc i wsparcie',
+        alertTitle: 'Pomoc i wsparcie',
+        alertBody: 'Centrum pomocy pojawi się w kolejnej wersji.',
+      },
       signOut: 'Wyloguj się',
     },
     editProfile: {
@@ -129,6 +172,25 @@ export default {
       confirm: 'Wyloguj się',
     },
   },
+  privacySafety: {
+    title: 'Prywatność i bezpieczeństwo',
+    blockedUsers: { label: 'Zablokowani użytkownicy' },
+    deleteAccount: {
+      label: 'Usuń konto',
+      dialogTitle: 'Usunąć konto?',
+      dialogMessage:
+        'To trwale usunie Twój profil, psy, dopasowania i wiadomości. Tej operacji nie można cofnąć.',
+      confirm: 'Usuń konto',
+      failed: 'Nie udało się usunąć konta. Spróbuj ponownie.',
+    },
+  },
+  blockedUsers: {
+    title: 'Zablokowani użytkownicy',
+    empty: 'Nikogo jeszcze nie zablokowałeś.',
+    unblock: 'Odblokuj',
+    unblocked: '{{name}} odblokowany(a)',
+    couldNotUnblock: 'Nie udało się odblokować. Spróbuj ponownie.',
+  },
   personProfile: {
     title: 'Profil',
     memberSince: 'Na WalkMe od {{date}}',
@@ -136,15 +198,56 @@ export default {
     providers: { google: 'Google', facebook: 'Facebook', apple: 'Apple', email: 'e-mail' },
     statsTitle: 'Na WalkMe',
     stats: { walks: 'Ukończone spacery', friends: 'Znajomi ze spacerów', km: 'Przespacerowane km' },
-    trustNote: 'Pokazujemy to, żebyś mógł ocenić, czy ta osoba pasuje do psa pod Twoją opieką. Te liczby pochodzą z aktywności w WalkMe — nikt nie wystawia ocen.',
+    trustNote:
+      'Pokazujemy to, żebyś mógł ocenić, czy ta osoba pasuje do psa pod Twoją opieką. Te liczby pochodzą z aktywności w WalkMe — nikt nie wystawia ocen.',
     dogsTitle: 'Jej psy',
-    footerNote: '{{name}} nie widzi tej strony — tylko to, co widziałbyś na jej karcie w Discover lub w tym czacie.',
+    footerNote:
+      '{{name}} nie widzi tej strony — tylko to, co widziałbyś na jej karcie w Discover lub w tym czacie.',
     loadFailed: 'Nie udało się wczytać tego profilu.',
     tryAgain: 'Spróbuj ponownie',
+    menu: {
+      label: 'Więcej opcji',
+      block: 'Zablokuj {{name}}',
+      unblock: 'Odblokuj {{name}}',
+      report: 'Zgłoś {{name}}',
+    },
+    blockDialog: {
+      title: 'Zablokować {{name}}?',
+      message:
+        '{{name}} nie będzie mógł(mogła) wysyłać Ci wiadomości ani widzieć Twojego profilu, a Wy nie zobaczycie się nawzajem w Discover ani na spacerach.',
+      confirm: 'Zablokuj',
+    },
+    unblockDialog: { title: 'Odblokować {{name}}?', confirm: 'Odblokuj' },
+    blocked: '{{name}} zablokowany(a)',
+    unblocked: '{{name}} odblokowany(a)',
+    couldNotBlock: 'Nie udało się tego wykonać. Spróbuj ponownie.',
+  },
+  report: {
+    title: 'Zgłoś {{name}}',
+    reasonPrompt: 'Dlaczego zgłaszasz ten profil?',
+    reasons: {
+      harassment: 'Nękanie lub zastraszanie',
+      spam: 'Spam',
+      fake_profile: 'Fałszywy profil',
+      inappropriate_content: 'Nieodpowiednia treść',
+      safety_concern: 'Zagrożenie bezpieczeństwa',
+      other: 'Coś innego',
+    },
+    detailsPlaceholder: 'Dodaj szczegóły (opcjonalnie)',
+    submit: 'Wyślij zgłoszenie',
+    submitted: 'Zgłoszenie wysłane — dziękujemy',
+    couldNotSubmit: 'Nie udało się wysłać zgłoszenia. Spróbuj ponownie.',
   },
   onboarding: {
     stepOf: 'Krok {{step}} z {{total}}',
-    walkTimes: { early: 'Wcześnie rano', morning: 'Rano', midday: 'W południe', afternoon: 'Po południu', evening: 'Wieczorem', night: 'W nocy' },
+    walkTimes: {
+      early: 'Wcześnie rano',
+      morning: 'Rano',
+      midday: 'W południe',
+      afternoon: 'Po południu',
+      evening: 'Wieczorem',
+      night: 'W nocy',
+    },
     rhythm: {
       title: 'Kiedy zwykle chodzisz na spacery?',
       subtitle: 'Pokażemy Ci spacery i osoby dopasowane do Twojego harmonogramu.',
@@ -156,7 +259,8 @@ export default {
     },
     location: {
       title: 'Pokaż spacery w Twojej okolicy',
-      subtitle: 'WalkMe używa Twojej lokalizacji, aby znaleźć spacery i osoby w promieniu {{radius}}. Możesz to wyłączyć w profilu.',
+      subtitle:
+        'WalkMe używa Twojej lokalizacji, aby znaleźć spacery i osoby w promieniu {{radius}}. Możesz to wyłączyć w profilu.',
       mapPreview: 'podgląd mapy — promień {{radius}}',
       allow: 'Zezwól na lokalizację',
       notNow: 'Nie teraz',
@@ -165,9 +269,20 @@ export default {
   },
   dogs: {
     form: {
-      onboarding: { title: 'Opowiedz nam o swoim psie', body: 'Dopasowania zaczynają się od Twojego psa, potem od Ciebie.' },
-      add: { title: 'Kolejny pies w rodzinie', body: 'Każdy pies ma własną kartę w Odkrywaniu.', cta: 'Zapisz psa' },
-      edit: { title: 'Edytuj profil psa', body: 'Zmiany pojawiają się na jego karcie od razu.', cta: 'Zapisz zmiany' },
+      onboarding: {
+        title: 'Opowiedz nam o swoim psie',
+        body: 'Dopasowania zaczynają się od Twojego psa, potem od Ciebie.',
+      },
+      add: {
+        title: 'Kolejny pies w rodzinie',
+        body: 'Każdy pies ma własną kartę w Odkrywaniu.',
+        cta: 'Zapisz psa',
+      },
+      edit: {
+        title: 'Edytuj profil psa',
+        body: 'Zmiany pojawiają się na jego karcie od razu.',
+        cta: 'Zapisz zmiany',
+      },
       addDog: 'Dodaj psa',
       editDog: 'Edytuj psa',
       dogPhoto: 'Zdjęcie psa',
@@ -186,7 +301,8 @@ export default {
       energy: 'Energia',
       temperament: 'Temperament',
       note: 'Notatka o Twoim psie',
-      notePlaceholder: 'Coś, co powinien wiedzieć opiekun spaceru — zwyczaje, ulubione trasy, uwagi zdrowotne…',
+      notePlaceholder:
+        'Coś, co powinien wiedzieć opiekun spaceru — zwyczaje, ulubione trasy, uwagi zdrowotne…',
       skipForNow: 'Pomiń na razie',
       couldNotSaveTitle: 'Nie udało się zapisać psa',
     },
@@ -210,7 +326,14 @@ export default {
     },
   },
   walks: {
-    categories: { park: 'Park', trail: 'Szlak', lake: 'Jezioro', beach: 'Plaża', cafe: 'Kawiarnia', city: 'Miasto' },
+    categories: {
+      park: 'Park',
+      trail: 'Szlak',
+      lake: 'Jezioro',
+      beach: 'Plaża',
+      cafe: 'Kawiarnia',
+      city: 'Miasto',
+    },
     mine: {
       title: 'Spacery i wydarzenia',
       upcoming: 'Nadchodzące',
@@ -280,7 +403,13 @@ export default {
     },
   },
   events: {
-    categories: { meetup: 'Spotkanie', playdate: 'Zabawa', competition: 'Zawody', wellness: 'Wellness', walk: 'Spacer' },
+    categories: {
+      meetup: 'Spotkanie',
+      playdate: 'Zabawa',
+      competition: 'Zawody',
+      wellness: 'Wellness',
+      walk: 'Spacer',
+    },
     detail: {
       back: 'Wstecz',
       loadFailed: 'Nie udało się wczytać tego wydarzenia.',
@@ -343,7 +472,11 @@ export default {
   },
   map: {
     segments: { walks: 'Spacery', events: 'Wydarzenia', places: 'Miejsca' },
-    searchPlaceholder: { walks: 'Szukaj spacerów i parków', events: 'Szukaj wydarzeń', places: 'Parki, kawiarnie, weterynarze' },
+    searchPlaceholder: {
+      walks: 'Szukaj spacerów i parków',
+      events: 'Szukaj wydarzeń',
+      places: 'Parki, kawiarnie, weterynarze',
+    },
     chips: { liveNow: 'Na żywo', today: 'Dziś', nearby: 'Poniżej 2 km', joined: 'Dołączono' },
     recenter: 'Wyśrodkuj',
     centredOn: 'Wyśrodkowano na {{area}}',
@@ -377,7 +510,8 @@ export default {
     savedToShortlist: '{{name}} zapisany na Twojej liście',
     defaultDogName: 'Pies',
     emptyTitle: 'Zobaczyłeś już wszystkich w pobliżu',
-    emptyBody: 'Nowi spacerowicze dołączają codziennie. Zwiększ zasięg, by zobaczyć więcej, albo sprawdź mapę, gdzie właśnie trwają spacery.',
+    emptyBody:
+      'Nowi spacerowicze dołączają codziennie. Zwiększ zasięg, by zobaczyć więcej, albo sprawdź mapę, gdzie właśnie trwają spacery.',
     startOver: 'Zacznij od nowa',
     openMap: 'Otwórz mapę',
     requestSent: 'Prośba wysłana do {{shelter}} w sprawie {{dog}}',
@@ -440,7 +574,8 @@ export default {
       walkWithTitleAndDog: 'Spacer z {{name}} i {{dog}}',
       sayHelloTo: 'Przywitaj się z {{name}}',
       emptyBodyBase: 'Oboje polubiliście swoje psy. Zaproponuj park lub godzinę.',
-      emptyBodyWithDistance: 'Oboje polubiliście swoje psy. Zaproponuj park lub godzinę — {{dog}} jest {{distance}} stąd.',
+      emptyBodyWithDistance:
+        'Oboje polubiliście swoje psy. Zaproponuj park lub godzinę — {{dog}} jest {{distance}} stąd.',
     },
     dogRequest: {
       details: 'Szczegóły psa',
@@ -459,7 +594,10 @@ export default {
       subtitle: 'Wybierz, o czym chcesz wiedzieć. Możesz to zmienić w dowolnym momencie.',
       matches: { label: 'Nowe dopasowania', desc: 'Gdy ktoś się z Tobą dopasuje' },
       messages: { label: 'Wiadomości', desc: 'Nowe wiadomości w Twoich czatach' },
-      walks: { label: 'Aktywność na spacerach', desc: 'Gdy ktoś dołączy do Twojego spaceru lub go opuści' },
+      walks: {
+        label: 'Aktywność na spacerach',
+        desc: 'Gdy ktoś dołączy do Twojego spaceru lub go opuści',
+      },
       events: { label: 'Aktywność wydarzeń', desc: 'Gdy ktoś dołączy do Twojego wydarzenia' },
       shelterRequests: { label: 'Prośby o spacer', desc: 'Aktywność próśb o spacer ze schroniska' },
       nearby: { label: 'Pobliskie spacery', desc: 'Gdy w pobliżu zaczyna się nowy spacer' },
@@ -468,11 +606,23 @@ export default {
       match: { title: 'To dopasowanie!', body: 'Ty i {{name}} możecie teraz porozmawiać.' },
       walkJoined: { title: 'Nowy uczestnik', body: '{{name}} dołączył(a) do {{walkTitle}}.' },
       walkLeft: { title: 'Ktoś opuścił Twój spacer', body: '{{name}} opuścił(a) {{walkTitle}}.' },
-      walkNearby: { title: 'Nowy spacer w pobliżu', body: '„{{walkTitle}}” zaczyna się blisko {{meetingPoint}}.' },
+      walkNearby: {
+        title: 'Nowy spacer w pobliżu',
+        body: '„{{walkTitle}}” zaczyna się blisko {{meetingPoint}}.',
+      },
       eventJoined: { title: 'Nowy uczestnik', body: '{{name}} dołączył(a) do {{eventTitle}}.' },
-      shelterRequest: { title: 'Nowa prośba o spacer', body: '{{name}} chce wyprowadzić {{dogName}}.' },
-      shelterAccepted: { title: 'Prośba zaakceptowana', body: '{{shelterName}} się zgodził(a) — możesz już porozmawiać o {{dogName}}.' },
-      shelterDeclined: { title: 'Prośba odrzucona', body: '{{shelterName}} odrzucił(a) Twoją prośbę dotyczącą {{dogName}}.' },
+      shelterRequest: {
+        title: 'Nowa prośba o spacer',
+        body: '{{name}} chce wyprowadzić {{dogName}}.',
+      },
+      shelterAccepted: {
+        title: 'Prośba zaakceptowana',
+        body: '{{shelterName}} się zgodził(a) — możesz już porozmawiać o {{dogName}}.',
+      },
+      shelterDeclined: {
+        title: 'Prośba odrzucona',
+        body: '{{shelterName}} odrzucił(a) Twoją prośbę dotyczącą {{dogName}}.',
+      },
     },
   },
   nav: {

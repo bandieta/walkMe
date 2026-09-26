@@ -1,6 +1,7 @@
 import { prisma } from '../../lib/prisma';
 import { HttpError } from '../../middleware/errorHandler';
 import * as notificationsService from '../notifications/service';
+import { blockedUserIds } from '../blocks/service';
 import { toWalkDto, walkInclude } from './serialize';
 import { CreateWalkInput } from './schema';
 
@@ -28,14 +29,16 @@ function distanceKm(lat1: number, lng1: number, lat2: number, lng2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export async function listWalks(near?: { lat: number; lng: number; radiusKm: number }) {
+export async function listWalks(viewerId: string, near?: { lat: number; lng: number; radiusKm: number }) {
+  const blocked = new Set(await blockedUserIds(viewerId));
   const walks = await prisma.walk.findMany({
     include: walkInclude,
     orderBy: { scheduledAt: 'asc' },
   });
+  const visible = blocked.size ? walks.filter((w) => !blocked.has(w.hostId)) : walks;
   const filtered = near
-    ? walks.filter((w) => distanceKm(near.lat, near.lng, w.meetingLat, w.meetingLng) <= near.radiusKm)
-    : walks;
+    ? visible.filter((w) => distanceKm(near.lat, near.lng, w.meetingLat, w.meetingLng) <= near.radiusKm)
+    : visible;
   return filtered.map(toWalkDto);
 }
 

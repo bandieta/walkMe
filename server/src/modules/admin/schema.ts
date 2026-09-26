@@ -110,3 +110,14 @@ export const auditQuerySchema = z.object({
   targetType: z.string().optional(),
   ...pageParams,
 });
+
+export const reportQuerySchema = z.object({
+  status: z.enum(['open', 'reviewed', 'dismissed']).optional(),
+  targetType: z.string().optional(),
+  ...pageParams,
+});
+
+export const updateReportSchema = z.object({
+  status: z.enum(['open', 'reviewed', 'dismissed']),
+});
+export type UpdateReportInput = z.infer<typeof updateReportSchema>;

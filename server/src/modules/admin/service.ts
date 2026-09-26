@@ -7,6 +7,7 @@ import { HttpError } from '../../middleware/errorHandler';
 import { signAdminToken } from '../../lib/adminJwt';
 import { fromJsonArray, toJsonArray } from '../../lib/json';
 import { toSelfUser } from '../users/serialize';
+import { deleteAccount } from '../users/service';
 import { toDogDto } from '../dogs/serialize';
 import {
   CreateAdminInput,
@@ -202,11 +203,10 @@ export async function updateUser(id: string, input: UpdateUserInput) {
   return { ...toSelfUser(updated), provider: updated.provider, status: updated.status };
 }
 
-export async function deleteUser(id: string) {
-  const user = await prisma.user.findUnique({ where: { id } });
-  if (!user) throw new HttpError(404, 'NOT_FOUND', 'User not found');
-  await prisma.user.delete({ where: { id } });
-}
+// Shares the same cleanup as self-service account deletion (message reassignment, walk/event host handoff,
+// Match/Swipe cleanup) rather than a bare prisma.user.delete — see users/service.ts's deleteAccount for why a
+// plain delete leaves orphaned rows and destroys other people's walks/events.
+export const deleteUser = deleteAccount;
 
 // ── dogs ─────────────────────────────────────────────────────────────────────
 
@@ -531,6 +531,50 @@ export async function deleteUpload(name: string) {
   } catch {
     throw new HttpError(404, 'NOT_FOUND', 'File not found');
   }
+}
+
+// ── reports (moderation queue) ────────────────────────────────────────────────
+// targetId is never a foreign key (see the schema comment on Report), so a report whose target has since been
+// deleted still loads here — the admin UI just has nothing to link to for it.
+
+export async function listReports(status: string | undefined, targetType: string | undefined, page: number, pageSize: number) {
+  const where = {
+    ...(status ? { status } : {}),
+    ...(targetType ? { targetType } : {}),
+  };
+  const [rows, total] = await Promise.all([
+    prisma.report.findMany({
+      where,
+      include: { reporter: { select: { id: true, displayName: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.report.count({ where }),
+  ]);
+  const items = rows.map((r) => ({
+    id: r.id,
+    reporterId: r.reporterId,
+    reporterName: r.reporter.displayName,
+    targetType: r.targetType,
+    targetId: r.targetId,
+    reason: r.reason,
+    details: r.details ?? undefined,
+    status: r.status,
+    reviewedAt: r.reviewedAt?.toISOString(),
+    createdAt: r.createdAt.toISOString(),
+  }));
+  return paginate(items, total, page, pageSize);
+}
+
+export async function updateReportStatus(id: string, status: string) {
+  const report = await prisma.report.findUnique({ where: { id } });
+  if (!report) throw new HttpError(404, 'NOT_FOUND', 'Report not found');
+  const updated = await prisma.report.update({
+    where: { id },
+    data: { status, reviewedAt: status === 'open' ? null : new Date() },
+  });
+  return { id: updated.id, status: updated.status, reviewedAt: updated.reviewedAt?.toISOString() };
 }
 
 // ── admin accounts ───────────────────────────────────────────────────────────

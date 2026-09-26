@@ -4,6 +4,7 @@ import { HttpError } from '../../middleware/errorHandler';
 import { toMessageDto } from '../chat/serialize';
 import { toDogDto } from '../dogs/serialize';
 import * as notificationsService from '../notifications/service';
+import { blockedUserIds, isBlockedPair } from '../blocks/service';
 import { toDogRequestDto } from './serialize';
 
 async function getRequestOrThrow(id: string) {
@@ -38,6 +39,9 @@ export async function likeDog(requesterId: string, dogId: string) {
   if (!dog) throw new HttpError(404, 'NOT_FOUND', 'Dog not found');
   if (!dog.shelterId) throw new HttpError(400, 'NOT_A_SHELTER_DOG', 'This dog is not listed by a shelter');
   if (dog.shelterId === requesterId) throw new HttpError(400, 'INVALID_TARGET', 'You cannot request your own dog');
+  if (await isBlockedPair(requesterId, dog.shelterId)) {
+    throw new HttpError(403, 'BLOCKED', 'You cannot contact this shelter');
+  }
 
   const existing = await prisma.dogWalkRequest.findUnique({
     where: { dogId_requesterId: { dogId, requesterId } },
@@ -71,10 +75,17 @@ export async function listForUser(userId: string) {
   const viewer = await prisma.user.findUnique({ where: { id: userId } });
   if (!viewer) throw new HttpError(404, 'NOT_FOUND', 'User not found');
   const isShelter = viewer.accountType === 'shelter';
-  const requests = await prisma.dogWalkRequest.findMany({
-    where: isShelter ? { shelterId: userId } : { requesterId: userId },
-    orderBy: { lastMessageAt: 'desc' },
-  });
+  const [allRequests, blocked] = await Promise.all([
+    prisma.dogWalkRequest.findMany({
+      where: isShelter ? { shelterId: userId } : { requesterId: userId },
+      orderBy: { lastMessageAt: 'desc' },
+    }),
+    blockedUserIds(userId),
+  ]);
+  const blockedSet = new Set(blocked);
+  // Same rule as matches: a block hides the thread from both sides immediately, even though nothing about the
+  // request row itself changes.
+  const requests = allRequests.filter((r) => !blockedSet.has(isShelter ? r.requesterId : r.shelterId));
   if (!requests.length) return [];
   const dogIds = [...new Set(requests.map((r) => r.dogId))];
   const otherIds = [...new Set(requests.map((r) => (isShelter ? r.requesterId : r.shelterId)))];
@@ -143,6 +154,8 @@ export async function sendMessage(id: string, senderId: string, content: string)
   if (request.status !== 'accepted') {
     throw new HttpError(400, 'NOT_ACCEPTED', 'The shelter needs to accept this request before you can message each other');
   }
+  const other = senderId === request.requesterId ? request.shelterId : request.requesterId;
+  if (await isBlockedPair(senderId, other)) throw new HttpError(403, 'BLOCKED', 'You cannot message this conversation');
 
   const message = await prisma.message.create({ data: { roomId: id, senderId, content, type: 'text' }, include: { sender: true } });
 

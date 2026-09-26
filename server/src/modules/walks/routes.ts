@@ -22,7 +22,7 @@ walksRouter.get(
       query.lat !== undefined && query.lng !== undefined
         ? { lat: query.lat, lng: query.lng, radiusKm: query.radiusKm ?? 20 }
         : undefined;
-    res.json(await walksService.listWalks(near));
+    res.json(await walksService.listWalks(req.userId!, near));
   }),
 );
 
