@@ -13,6 +13,9 @@ react {
     reactNativeDir = file("../../../node_modules/react-native")
     codegenDir = file("../../../node_modules/@react-native/codegen")
     cliFile = file("../../../node_modules/react-native/cli.js")
+    // react-native is hoisted to the monorepo root, but the plugin only looks for hermesc under
+    // <root>/node_modules — without this, release builds fail at createBundleReleaseJsAndAssets.
+    hermesCommand = file("../../../node_modules/react-native/sdks/hermesc").absolutePath + "/%OS-BIN%/hermesc"
 
     /* Variants */
     //   The list of variants to that are debuggable. For those we're going to
