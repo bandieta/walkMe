@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { asyncHandler } from '../../middleware/errorHandler';
 import { requireAuth } from '../../middleware/auth';
-import { sendMatchMessageSchema } from './schema';
+import { sendMatchMessageSchema, deckQuerySchema } from './schema';
 import * as matchesService from './service';
 import { CHAT_NAMESPACE } from '../chat/socket';
 
@@ -47,7 +47,7 @@ matchesRouter.post(
   '/matches/:id/messages',
   asyncHandler(async (req, res) => {
     const body = sendMatchMessageSchema.parse(req.body);
-    const message = await matchesService.sendMatchMessage(req.params.id, req.userId!, body.content);
+    const message = await matchesService.sendMatchMessage(req.params.id, req.userId!, body.content, body.type);
     req.app.get('io')?.of(CHAT_NAMESPACE).to(req.params.id).emit('chat:message:receive', message);
     res.status(201).json(message);
   }),
@@ -70,6 +70,20 @@ matchesRouter.post(
 
 /**
  * @openapi
+ * /matches/{id}:
+ *   delete:
+ *     summary: Unmatch — ends the match and deletes its message history for both sides.
+ *     tags: [Matches]
+ */
+matchesRouter.delete(
+  '/matches/:id',
+  asyncHandler(async (req, res) => {
+    res.json(await matchesService.unmatch(req.params.id, req.userId!));
+  }),
+);
+
+/**
+ * @openapi
  * /discover/deck:
  *   get:
  *     summary: Get the next batch of swipe candidates.
@@ -78,7 +92,8 @@ matchesRouter.post(
 matchesRouter.get(
   '/discover/deck',
   asyncHandler(async (req, res) => {
-    res.json(await matchesService.getSwipeDeck(req.userId!));
+    const q = deckQuerySchema.parse(req.query);
+    res.json(await matchesService.getSwipeDeck(req.userId!, q));
   }),
 );
 

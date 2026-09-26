@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { shelterRequestsApi } from '../../services/api';
+import { shelterRequestsApi, MessageType } from '../../services/api';
 import type { MatchDog, MatchUser } from './matchesSlice';
 
 export interface DogRequest {
@@ -47,32 +47,41 @@ const initialState: ShelterRequestsState = {
   activeRequestId: null,
 };
 
-export const fetchDogRequests = createAsyncThunk('shelterRequests/fetchAll', async (_, { rejectWithValue }) => {
-  try {
-    const res = await shelterRequestsApi.getAll();
-    return res.data as DogRequest[];
-  } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error?.message ?? 'Failed to load requests');
-  }
-});
+export const fetchDogRequests = createAsyncThunk(
+  'shelterRequests/fetchAll',
+  async (_, { rejectWithValue }) => {
+    try {
+      const res = await shelterRequestsApi.getAll();
+      return res.data as DogRequest[];
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.error?.message ?? 'Failed to load requests');
+    }
+  },
+);
 
-export const acceptDogRequest = createAsyncThunk('shelterRequests/accept', async (id: string, { rejectWithValue }) => {
-  try {
-    const res = await shelterRequestsApi.accept(id);
-    return res.data as DogRequest;
-  } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error?.message ?? 'Failed to accept');
-  }
-});
+export const acceptDogRequest = createAsyncThunk(
+  'shelterRequests/accept',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const res = await shelterRequestsApi.accept(id);
+      return res.data as DogRequest;
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.error?.message ?? 'Failed to accept');
+    }
+  },
+);
 
-export const declineDogRequest = createAsyncThunk('shelterRequests/decline', async (id: string, { rejectWithValue }) => {
-  try {
-    const res = await shelterRequestsApi.decline(id);
-    return res.data as DogRequest;
-  } catch (err: any) {
-    return rejectWithValue(err?.response?.data?.error?.message ?? 'Failed to decline');
-  }
-});
+export const declineDogRequest = createAsyncThunk(
+  'shelterRequests/decline',
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const res = await shelterRequestsApi.decline(id);
+      return res.data as DogRequest;
+    } catch (err: any) {
+      return rejectWithValue(err?.response?.data?.error?.message ?? 'Failed to decline');
+    }
+  },
+);
 
 export const fetchDogRequestMessages = createAsyncThunk(
   'shelterRequests/fetchMessages',
@@ -90,27 +99,45 @@ export const fetchDogRequestMessages = createAsyncThunk(
 export const sendDogRequestMessage = createAsyncThunk(
   'shelterRequests/sendMessage',
   async (
-    { requestId, content }: { requestId: string; content: string; sender?: { id: string; name: string } },
+    {
+      requestId,
+      content,
+      type = 'text',
+    }: {
+      requestId: string;
+      content: string;
+      type?: MessageType;
+      sender?: { id: string; name: string };
+    },
     { rejectWithValue },
   ) => {
     try {
-      const res = await shelterRequestsApi.sendMessage(requestId, content);
+      const res = await shelterRequestsApi.sendMessage(requestId, content, type);
       return { requestId, message: res.data as DogRequestMessage };
     } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.error?.message ?? err?.message ?? 'Failed to send message');
+      return rejectWithValue(
+        err?.response?.data?.error?.message ?? err?.message ?? 'Failed to send message',
+      );
     }
   },
 );
 
-export const markDogRequestRead = createAsyncThunk('shelterRequests/markRead', async (requestId: string) => {
-  await shelterRequestsApi.markRead(requestId);
-  return requestId;
-});
+export const markDogRequestRead = createAsyncThunk(
+  'shelterRequests/markRead',
+  async (requestId: string) => {
+    await shelterRequestsApi.markRead(requestId);
+    return requestId;
+  },
+);
 
 /** Same dedupe/optimistic-replace rule as chatSlice/matchesSlice — see their addIncoming for why it returns `isNew`. */
 function addIncoming(list: DogRequestMessage[], msg: DogRequestMessage): boolean {
-  if (list.some((m) => m.id === msg.id)) return false;
-  const pending = list.findIndex((m) => m.pending && m.senderId === msg.senderId && m.content === msg.content);
+  if (list.some((m) => m.id === msg.id)) {
+    return false;
+  }
+  const pending = list.findIndex(
+    (m) => m.pending && m.senderId === msg.senderId && m.content === msg.content,
+  );
   if (pending >= 0) {
     list[pending] = msg;
     return false;
@@ -128,43 +155,72 @@ const shelterRequestsSlice = createSlice({
     },
     receiveDogRequestMessage(state, action: PayloadAction<DogRequestMessage>) {
       const msg = action.payload;
-      if (!state.messages[msg.roomId]) state.messages[msg.roomId] = [];
+      if (!state.messages[msg.roomId]) {
+        state.messages[msg.roomId] = [];
+      }
       const isNew = addIncoming(state.messages[msg.roomId], msg);
       const request = state.requests.find((r) => r.id === msg.roomId);
       if (request) {
         request.lastMessage = msg.content;
         request.lastMessageAt = msg.createdAt;
-        if (isNew && state.activeRequestId !== msg.roomId) request.unread += 1;
+        if (isNew && state.activeRequestId !== msg.roomId) {
+          request.unread += 1;
+        }
       }
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchDogRequests.pending, (state) => { state.loading = true; state.error = null; })
-      .addCase(fetchDogRequests.fulfilled, (state, action) => { state.loading = false; state.requests = action.payload; })
-      .addCase(fetchDogRequests.rejected, (state, action) => { state.loading = false; state.error = action.payload as string; })
+      .addCase(fetchDogRequests.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchDogRequests.fulfilled, (state, action) => {
+        state.loading = false;
+        state.requests = action.payload;
+      })
+      .addCase(fetchDogRequests.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
       .addCase(acceptDogRequest.fulfilled, (state, action) => {
         const i = state.requests.findIndex((r) => r.id === action.payload.id);
-        if (i >= 0) state.requests[i] = action.payload;
+        if (i >= 0) {
+          state.requests[i] = action.payload;
+        }
       })
       .addCase(declineDogRequest.fulfilled, (state, action) => {
         const i = state.requests.findIndex((r) => r.id === action.payload.id);
-        if (i >= 0) state.requests[i] = action.payload;
+        if (i >= 0) {
+          state.requests[i] = action.payload;
+        }
       })
       .addCase(fetchDogRequestMessages.fulfilled, (state, action) => {
         const { requestId, messages } = action.payload;
         const ids = new Set(messages.map((m) => m.id));
         const newest = messages.length ? messages[messages.length - 1].createdAt : '';
-        const extra = (state.messages[requestId] ?? []).filter((m) => !ids.has(m.id) && (m.pending || m.createdAt > newest));
+        const extra = (state.messages[requestId] ?? []).filter(
+          (m) => !ids.has(m.id) && (m.pending || m.createdAt > newest),
+        );
         state.messages[requestId] = [...messages, ...extra];
       })
       .addCase(sendDogRequestMessage.pending, (state, action) => {
-        const { requestId, content, sender } = action.meta.arg;
-        if (!sender) return;
-        if (!state.messages[requestId]) state.messages[requestId] = [];
+        const { requestId, content, type, sender } = action.meta.arg;
+        if (!sender) {
+          return;
+        }
+        if (!state.messages[requestId]) {
+          state.messages[requestId] = [];
+        }
         state.messages[requestId].push({
-          id: `pending-${action.meta.requestId}`, roomId: requestId, senderId: sender.id, senderName: sender.name, content,
-          createdAt: new Date().toISOString(), pending: true,
+          id: `pending-${action.meta.requestId}`,
+          roomId: requestId,
+          senderId: sender.id,
+          senderName: sender.name,
+          content,
+          type,
+          createdAt: new Date().toISOString(),
+          pending: true,
         });
       })
       .addCase(sendDogRequestMessage.fulfilled, (state, action) => {
@@ -172,19 +228,31 @@ const shelterRequestsSlice = createSlice({
         const list = state.messages[requestId] ?? (state.messages[requestId] = []);
         const at = list.findIndex((m) => m.id === `pending-${action.meta.requestId}`);
         if (list.some((m) => m.id === message.id)) {
-          if (at >= 0) list.splice(at, 1);
-        } else if (at >= 0) list[at] = message;
-        else list.push(message);
+          if (at >= 0) {
+            list.splice(at, 1);
+          }
+        } else if (at >= 0) {
+          list[at] = message;
+        } else {
+          list.push(message);
+        }
         const request = state.requests.find((r) => r.id === requestId);
-        if (request) { request.lastMessage = message.content; request.lastMessageAt = message.createdAt; }
+        if (request) {
+          request.lastMessage = message.type === 'image' ? '📷 Photo' : message.content;
+          request.lastMessageAt = message.createdAt;
+        }
       })
       .addCase(sendDogRequestMessage.rejected, (state, action) => {
         const { requestId } = action.meta.arg;
-        state.messages[requestId] = (state.messages[requestId] ?? []).filter((m) => m.id !== `pending-${action.meta.requestId}`);
+        state.messages[requestId] = (state.messages[requestId] ?? []).filter(
+          (m) => m.id !== `pending-${action.meta.requestId}`,
+        );
       })
       .addCase(markDogRequestRead.fulfilled, (state, action) => {
         const request = state.requests.find((r) => r.id === action.payload);
-        if (request) request.unread = 0;
+        if (request) {
+          request.unread = 0;
+        }
       });
   },
 });

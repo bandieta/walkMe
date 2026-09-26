@@ -97,20 +97,30 @@ export const eventsApi = {
   leave: (id: string) => apiClient.post(`/events/${id}/leave`),
 };
 
+export type MessageType = 'text' | 'image';
+
 export const chatApi = {
   getRooms: () => apiClient.get('/chat/rooms'),
   getMessages: (roomId: string) => apiClient.get(`/chat/${roomId}/messages`),
-  sendMessage: (roomId: string, content: string) =>
-    apiClient.post(`/chat/${roomId}/messages`, { content }),
+  sendMessage: (roomId: string, content: string, type: MessageType = 'text') =>
+    apiClient.post(`/chat/${roomId}/messages`, { content, type }),
 };
+
+export interface DeckFilters {
+  energy?: 'Calm' | 'Balanced' | 'High';
+  ageGroup?: 'Puppy' | 'Adult' | 'Senior';
+  shelterOnly?: boolean;
+  radiusKm?: number;
+}
 
 export const matchesApi = {
   getAll: () => apiClient.get('/matches'),
   getMessages: (matchId: string) => apiClient.get(`/matches/${matchId}/messages`),
-  sendMessage: (matchId: string, content: string) =>
-    apiClient.post(`/matches/${matchId}/messages`, { content }),
+  sendMessage: (matchId: string, content: string, type: MessageType = 'text') =>
+    apiClient.post(`/matches/${matchId}/messages`, { content, type }),
   markRead: (matchId: string) => apiClient.post(`/matches/${matchId}/read`),
-  getSwipeDeck: () => apiClient.get('/discover/deck'),
+  unmatch: (matchId: string) => apiClient.delete(`/matches/${matchId}`),
+  getSwipeDeck: (filters?: DeckFilters) => apiClient.get('/discover/deck', { params: filters }),
   swipeRight: (userId: string) => apiClient.post(`/discover/${userId}/swipe-right`),
   swipeLeft: (userId: string) => apiClient.post(`/discover/${userId}/swipe-left`),
   resetSwipes: () => apiClient.post('/discover/reset'),
@@ -121,8 +131,8 @@ export const shelterRequestsApi = {
   accept: (id: string) => apiClient.post(`/dog-requests/${id}/accept`),
   decline: (id: string) => apiClient.post(`/dog-requests/${id}/decline`),
   getMessages: (id: string) => apiClient.get(`/dog-requests/${id}/messages`),
-  sendMessage: (id: string, content: string) =>
-    apiClient.post(`/dog-requests/${id}/messages`, { content }),
+  sendMessage: (id: string, content: string, type: MessageType = 'text') =>
+    apiClient.post(`/dog-requests/${id}/messages`, { content, type }),
   markRead: (id: string) => apiClient.post(`/dog-requests/${id}/read`),
 };
 

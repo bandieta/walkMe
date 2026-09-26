@@ -512,6 +512,16 @@ export default {
     startOver: 'Start over',
     openMap: 'Open map',
     requestSent: 'Request sent to {{shelter}} for {{dog}}',
+    filters: {
+      title: 'Filters',
+      any: 'Any',
+      energy: 'Energy',
+      ageGroup: 'Age',
+      distance: 'Distance',
+      shelterOnly: 'Shelter dogs only',
+      apply: 'Apply filters',
+      clear: 'Clear filters',
+    },
     card: {
       breedAge: '{{breed}}, {{age}}',
       withPerson: 'with {{name}}',
@@ -535,6 +545,8 @@ export default {
     back: 'Back',
     messagePlaceholder: 'Message',
     send: 'Send',
+    attachPhoto: 'Attach a photo',
+    couldNotSendPhoto: 'Could not send the photo. Try again.',
     walkAction: 'Walk',
     goingCount: '{{count}} going',
     groupChatEmptyTitle: 'Group chat is open',
@@ -573,6 +585,15 @@ export default {
       emptyBodyBase: 'You both liked each other’s dogs. Suggest a park or a time.',
       emptyBodyWithDistance:
         'You both liked each other’s dogs. Suggest a park or a time — {{dog}} is {{distance}} away.',
+      menu: { label: 'More options', unmatch: 'Unmatch' },
+      unmatchDialog: {
+        title: 'Unmatch {{name}}?',
+        message:
+          'This ends the match and deletes your message history for both of you. You can’t undo this.',
+        confirm: 'Unmatch',
+      },
+      unmatched: 'Unmatched',
+      couldNotUnmatch: 'Could not unmatch. Try again.',
     },
     dogRequest: {
       details: 'Dog details',

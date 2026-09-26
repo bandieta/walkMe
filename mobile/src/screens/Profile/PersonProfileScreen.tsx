@@ -7,14 +7,13 @@ import {
   Image,
   Platform,
   ActivityIndicator,
-  Modal,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { usersApi, blocksApi } from '../../services/api';
 import { Icon, IconName } from '../../components/Icon';
 import { Placeholder, PrettyText, Btn, useScreenInsets } from '../../ui';
-import { cssText, cssLine } from '../../ui/cssLine';
+import { cssText } from '../../ui/cssLine';
 import { ProfileAvatar } from './ProfileAvatar';
 import { resolveMediaUrl } from '../../utils/media';
 import { ageGroupFromAge } from '../../utils/dogLabels';
@@ -22,6 +21,7 @@ import { firstName } from '../Discover/DogCard';
 import { Colors, Ramp } from '../../utils/theme';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { ReportDialog } from '../../components/ReportDialog';
+import { OptionsSheet } from '../../components/OptionsSheet';
 import { useToast } from '../../components/Toast';
 
 const backIcon = Platform.OS === 'ios' ? 'caret-left' : 'arrow-left';
@@ -466,71 +466,33 @@ export const PersonProfileScreen: React.FC<{ navigation: any; route: any }> = ({
         </ScrollView>
       )}
 
-      <Modal
+      <OptionsSheet
         visible={menuOpen}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMenuOpen(false)}
-      >
-        <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(41,43,49,0.6)', justifyContent: 'flex-end' }}
-          onPress={() => setMenuOpen(false)}
-        >
-          <Pressable
-            style={{
-              backgroundColor: Colors.surfaceDark,
-              borderTopLeftRadius: 16,
-              borderTopRightRadius: 16,
-              paddingTop: 8,
-              paddingBottom: 24,
-              paddingHorizontal: 8,
-            }}
-          >
-            <Pressable
-              onPress={() => {
-                setMenuOpen(false);
-                setReportOpen(true);
-              }}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                columnGap: 12,
-                paddingVertical: 14,
-                paddingHorizontal: 12,
-                borderRadius: 10,
-                backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent',
-              })}
-            >
-              <Icon name="warning" size={18} color={Colors.textPrimary} />
-              <Text style={{ fontSize: 14, lineHeight: cssLine(14), color: Colors.textPrimary }}>
-                {t('personProfile.menu.report', { name: firstName(displayName) })}
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setMenuOpen(false);
-                setBlockDialogOpen(true);
-              }}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                columnGap: 12,
-                paddingVertical: 14,
-                paddingHorizontal: 12,
-                borderRadius: 10,
-                backgroundColor: pressed ? 'rgba(224,131,127,0.12)' : 'transparent',
-              })}
-            >
-              <Icon name="shield" size={18} color={Colors.error} />
-              <Text style={{ fontSize: 14, lineHeight: cssLine(14), color: Colors.error }}>
-                {isBlocked
-                  ? t('personProfile.menu.unblock', { name: firstName(displayName) })
-                  : t('personProfile.menu.block', { name: firstName(displayName) })}
-              </Text>
-            </Pressable>
-          </Pressable>
-        </Pressable>
-      </Modal>
+        onClose={() => setMenuOpen(false)}
+        options={[
+          {
+            key: 'report',
+            icon: 'warning',
+            label: t('personProfile.menu.report', { name: firstName(displayName) }),
+            onPress: () => {
+              setMenuOpen(false);
+              setReportOpen(true);
+            },
+          },
+          {
+            key: 'block',
+            icon: 'shield',
+            tone: 'danger',
+            label: isBlocked
+              ? t('personProfile.menu.unblock', { name: firstName(displayName) })
+              : t('personProfile.menu.block', { name: firstName(displayName) }),
+            onPress: () => {
+              setMenuOpen(false);
+              setBlockDialogOpen(true);
+            },
+          },
+        ]}
+      />
 
       <ConfirmDialog
         visible={blockDialogOpen}

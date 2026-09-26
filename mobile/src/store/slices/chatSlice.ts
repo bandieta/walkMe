@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { chatApi } from '../../services/api';
+import { chatApi, MessageType } from '../../services/api';
 
 export interface ChatMessage {
   id: string;
@@ -73,14 +73,25 @@ export const fetchMessages = createAsyncThunk(
 export const sendWalkMessage = createAsyncThunk(
   'chat/sendMessage',
   async (
-    { walkId, content }: { walkId: string; content: string; sender?: { id: string; name: string } },
+    {
+      walkId,
+      content,
+      type = 'text',
+    }: {
+      walkId: string;
+      content: string;
+      type?: MessageType;
+      sender?: { id: string; name: string };
+    },
     { rejectWithValue },
   ) => {
     try {
-      const res = await chatApi.sendMessage(walkId, content);
+      const res = await chatApi.sendMessage(walkId, content, type);
       return { walkId, message: res.data as ChatMessage };
     } catch (err: any) {
-      return rejectWithValue(err?.response?.data?.message ?? err?.message ?? 'Failed to send message');
+      return rejectWithValue(
+        err?.response?.data?.message ?? err?.message ?? 'Failed to send message',
+      );
     }
   },
 );
@@ -92,8 +103,12 @@ export const sendWalkMessage = createAsyncThunk(
  * send being confirmed — which is what unread-count bumps should key off, so a message is never double-counted.
  */
 function addIncoming(list: ChatMessage[], msg: ChatMessage): boolean {
-  if (list.some((m) => m.id === msg.id)) return false;
-  const pending = list.findIndex((m) => m.pending && m.senderId === msg.senderId && m.content === msg.content);
+  if (list.some((m) => m.id === msg.id)) {
+    return false;
+  }
+  const pending = list.findIndex(
+    (m) => m.pending && m.senderId === msg.senderId && m.content === msg.content,
+  );
   if (pending >= 0) {
     list[pending] = msg;
     return false;
@@ -117,7 +132,7 @@ const chatSlice = createSlice({
       }
       const isNew = addIncoming(state.messages[walkId], { ...msg, walkId });
 
-      const room = state.rooms.find(r => r.walkId === walkId);
+      const room = state.rooms.find((r) => r.walkId === walkId);
       if (room) {
         room.lastMessage = msg;
         if (isNew && state.activeRoomId !== walkId) {
@@ -126,16 +141,18 @@ const chatSlice = createSlice({
       }
     },
     markRoomRead(state, action: PayloadAction<string>) {
-      const room = state.rooms.find(r => r.walkId === action.payload);
-      if (room) room.unreadCount = 0;
+      const room = state.rooms.find((r) => r.walkId === action.payload);
+      if (room) {
+        room.unreadCount = 0;
+      }
     },
     clearChatError(state) {
       state.error = null;
     },
   },
-  extraReducers: builder => {
+  extraReducers: (builder) => {
     builder
-      .addCase(fetchChatRooms.pending, state => {
+      .addCase(fetchChatRooms.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
@@ -147,7 +164,7 @@ const chatSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(fetchMessages.pending, state => {
+      .addCase(fetchMessages.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
@@ -157,7 +174,9 @@ const chatSlice = createSlice({
         // Keep what arrived while the history was loading (an optimistic send, a socket message newer than the history).
         const ids = new Set(messages.map((m) => m.id));
         const newest = messages.length ? messages[messages.length - 1].createdAt : '';
-        const extra = (state.messages[walkId] ?? []).filter((m) => !ids.has(m.id) && (m.pending || m.createdAt > newest));
+        const extra = (state.messages[walkId] ?? []).filter(
+          (m) => !ids.has(m.id) && (m.pending || m.createdAt > newest),
+        );
         state.messages[walkId] = [...messages, ...extra];
       })
       .addCase(fetchMessages.rejected, (state, action) => {
@@ -165,12 +184,22 @@ const chatSlice = createSlice({
         state.error = action.payload as string;
       })
       .addCase(sendWalkMessage.pending, (state, action) => {
-        const { walkId, content, sender } = action.meta.arg;
-        if (!sender) return;
-        if (!state.messages[walkId]) state.messages[walkId] = [];
+        const { walkId, content, type, sender } = action.meta.arg;
+        if (!sender) {
+          return;
+        }
+        if (!state.messages[walkId]) {
+          state.messages[walkId] = [];
+        }
         state.messages[walkId].push({
-          id: `pending-${action.meta.requestId}`, walkId, senderId: sender.id, senderName: sender.name, content,
-          createdAt: new Date().toISOString(), pending: true,
+          id: `pending-${action.meta.requestId}`,
+          walkId,
+          senderId: sender.id,
+          senderName: sender.name,
+          content,
+          type,
+          createdAt: new Date().toISOString(),
+          pending: true,
         });
       })
       .addCase(sendWalkMessage.fulfilled, (state, action) => {
@@ -179,15 +208,24 @@ const chatSlice = createSlice({
         const at = list.findIndex((m) => m.id === `pending-${action.meta.requestId}`);
         if (list.some((m) => m.id === message.id)) {
           // The socket echo already delivered it.
-          if (at >= 0) list.splice(at, 1);
-        } else if (at >= 0) list[at] = { ...message, walkId };
-        else list.push({ ...message, walkId });
+          if (at >= 0) {
+            list.splice(at, 1);
+          }
+        } else if (at >= 0) {
+          list[at] = { ...message, walkId };
+        } else {
+          list.push({ ...message, walkId });
+        }
         const room = state.rooms.find((r) => r.walkId === walkId);
-        if (room) room.lastMessage = message;
+        if (room) {
+          room.lastMessage = message;
+        }
       })
       .addCase(sendWalkMessage.rejected, (state, action) => {
         const { walkId } = action.meta.arg;
-        state.messages[walkId] = (state.messages[walkId] ?? []).filter((m) => m.id !== `pending-${action.meta.requestId}`);
+        state.messages[walkId] = (state.messages[walkId] ?? []).filter(
+          (m) => m.id !== `pending-${action.meta.requestId}`,
+        );
       });
   },
 });

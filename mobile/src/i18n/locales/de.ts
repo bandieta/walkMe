@@ -509,6 +509,16 @@ export default {
     startOver: 'Neu starten',
     openMap: 'Karte öffnen',
     requestSent: 'Anfrage an {{shelter}} für {{dog}} gesendet',
+    filters: {
+      title: 'Filter',
+      any: 'Alle',
+      energy: 'Energie',
+      ageGroup: 'Alter',
+      distance: 'Entfernung',
+      shelterOnly: 'Nur Tierheim-Hunde',
+      apply: 'Filter anwenden',
+      clear: 'Filter zurücksetzen',
+    },
     card: {
       breedAge: '{{breed}}, {{age}}',
       withPerson: 'mit {{name}}',
@@ -534,6 +544,8 @@ export default {
     back: 'Zurück',
     messagePlaceholder: 'Nachricht',
     send: 'Senden',
+    attachPhoto: 'Foto anhängen',
+    couldNotSendPhoto: 'Das Foto konnte nicht gesendet werden. Versuche es erneut.',
     walkAction: 'Spaziergang',
     goingCount: '{{count}} dabei',
     groupChatEmptyTitle: 'Der Gruppenchat ist offen',
@@ -573,6 +585,15 @@ export default {
         'Ihr habt euch beide die Hunde des anderen gemocht. Schlag einen Park oder eine Uhrzeit vor.',
       emptyBodyWithDistance:
         'Ihr habt euch beide die Hunde des anderen gemocht. Schlag einen Park oder eine Uhrzeit vor — {{dog}} ist {{distance}} entfernt.',
+      menu: { label: 'Weitere Optionen', unmatch: 'Match aufheben' },
+      unmatchDialog: {
+        title: 'Match mit {{name}} aufheben?',
+        message:
+          'Das beendet das Match und löscht den Nachrichtenverlauf für beide Seiten. Das kann nicht rückgängig gemacht werden.',
+        confirm: 'Match aufheben',
+      },
+      unmatched: 'Match aufgehoben',
+      couldNotUnmatch: 'Das Match konnte nicht aufgehoben werden. Versuche es erneut.',
     },
     dogRequest: {
       details: 'Hundedetails',
