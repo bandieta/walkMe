@@ -5,6 +5,7 @@ import { toPublicUser } from '../users/serialize';
 import { toDogDto } from '../dogs/serialize';
 import { toMessageDto } from '../chat/serialize';
 import * as notificationsService from '../notifications/service';
+import { blockedUserIds, isBlockedPair } from '../blocks/service';
 import { orderedPair, otherUserId, toMatchDto } from './serialize';
 
 async function getMatchOrThrow(matchId: string) {
@@ -20,10 +21,15 @@ function assertParticipant(match: { userAId: string; userBId: string }, viewerId
 }
 
 export async function getMatchesForUser(userId: string) {
-  const matches = await prisma.match.findMany({
+  const blocked = new Set(await blockedUserIds(userId));
+  const allMatches = await prisma.match.findMany({
     where: { OR: [{ userAId: userId }, { userBId: userId }] },
     orderBy: { lastMessageAt: 'desc' },
   });
+  // A block takes effect immediately, in both directions: neither side should keep seeing a thread with
+  // someone they've blocked or been blocked by, even though the Match row itself survives (see
+  // users/service.ts's deleteAccount, which is the only thing that actually removes a Match).
+  const matches = allMatches.filter((m) => !blocked.has(otherUserId(m, userId)));
   const otherIds = matches.map((m) => otherUserId(m, userId));
   const [viewer, otherUsers] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { lat: true, lng: true } }),
@@ -71,6 +77,9 @@ export async function getMatchMessages(matchId: string, viewerId: string) {
 export async function sendMatchMessage(matchId: string, senderId: string, content: string) {
   const match = await getMatchOrThrow(matchId);
   assertParticipant(match, senderId);
+  if (await isBlockedPair(senderId, otherUserId(match, senderId))) {
+    throw new HttpError(403, 'BLOCKED', 'You cannot message this person');
+  }
 
   const message = await prisma.message.create({
     data: { roomId: matchId, senderId, content, type: 'text' },
@@ -155,10 +164,11 @@ async function nearbyPeople(
 }
 
 export async function getSwipeDeck(userId: string) {
-  const [viewer, swiped, requested] = await Promise.all([
+  const [viewer, swiped, requested, blocked] = await Promise.all([
     prisma.user.findUnique({ where: { id: userId }, select: { lat: true, lng: true, radiusKm: true } }),
     prisma.swipe.findMany({ where: { fromUserId: userId }, select: { toUserId: true } }),
     prisma.dogWalkRequest.findMany({ where: { requesterId: userId }, select: { dogId: true } }),
+    blockedUserIds(userId),
   ]);
   const swipedIds = new Set(swiped.map((s) => s.toUserId));
   const requestedDogIds = new Set(requested.map((r) => r.dogId));
@@ -168,12 +178,14 @@ export async function getSwipeDeck(userId: string) {
     return hasGeo ? Math.round(haversineKm(viewer!.lat!, viewer!.lng!, lat!, lng!) * 10) / 10 : undefined;
   };
 
-  const personWhere = { id: { not: userId, notIn: [...swipedIds] }, provider: { not: 'filler' }, accountType: 'person' };
+  // Blocked (either direction) is excluded the same way already-swiped people are — never shown again,
+  // rather than shown-but-unswipeable.
+  const personWhere = { id: { not: userId, notIn: [...swipedIds, ...blocked] }, provider: { not: 'filler' }, accountType: 'person' };
   const nearby = await nearbyPeople(viewer, personWhere, distanceTo);
   // The rest of the deck is the newest accounts, so people who just joined are seen instead of waiting behind
   // everyone who signed up before them.
   const newest = await prisma.user.findMany({
-    where: { ...personWhere, id: { ...personWhere.id, notIn: [...swipedIds, ...nearby.map((u) => u.id)] } },
+    where: { ...personWhere, id: { ...personWhere.id, notIn: [...swipedIds, ...blocked, ...nearby.map((u) => u.id)] } },
     include: { dogs: true },
     orderBy: { createdAt: 'desc' },
     take: DECK_SIZE - nearby.length,
@@ -183,7 +195,7 @@ export async function getSwipeDeck(userId: string) {
   const shelterDogs = await prisma.dog.findMany({
     // shelterId != userId also excludes personal dogs (shelterId is null there, and SQL NULL != x is never
     // true) and the viewer's own shelter's dogs in one filter, without a separate "not null" check.
-    where: { shelterId: { not: userId }, id: { notIn: [...requestedDogIds] } },
+    where: { shelterId: { not: userId, notIn: blocked }, id: { notIn: [...requestedDogIds] } },
     include: { shelter: true },
     orderBy: { createdAt: 'desc' },
     take: 30,
@@ -221,6 +233,9 @@ export async function swipe(fromUserId: string, toUserId: string, direction: 'le
   }
   const target = await prisma.user.findUnique({ where: { id: toUserId }, select: { id: true } });
   if (!target) throw new HttpError(404, 'NOT_FOUND', 'User not found');
+  // The deck already excludes blocked people, so the normal app flow never reaches this — this is only a
+  // backstop against calling the endpoint directly with an id from outside the deck.
+  if (await isBlockedPair(fromUserId, toUserId)) throw new HttpError(403, 'BLOCKED', 'You cannot swipe on this person');
   await prisma.swipe.upsert({
     where: { fromUserId_toUserId: { fromUserId, toUserId } },
     update: { direction },

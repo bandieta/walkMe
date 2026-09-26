@@ -53,6 +53,9 @@ model User {
   shelterRequests  DogWalkRequest[]        @relation("DogRequestShelter")
   notifications    Notification[]
   notificationPref NotificationPreference?
+  blocksMade       Block[]                 @relation("Blocker")
+  blocksReceived   Block[]                 @relation("Blocked")
+  reportsMade      Report[]                @relation("Reporter")
 
   @@unique([provider, providerId])
 }
@@ -281,6 +284,40 @@ model Place {
   isOpen      Boolean @default(true)
   description String?
   emoji       String?
+}
+
+// A one-way "I don't want to see or hear from this person" — enforcement (see modules/blocks/service.ts's
+// isBlockedPair/blockedUserIds) always checks both directions, so from the product's point of view blocking is
+// mutual even though only one side had to act: Discover, matches, dog-request threads and walk listings all
+// hide each other from both people, and messaging between them stops either way.
+model Block {
+  id        String   @id @default(uuid())
+  blockerId String
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+}
+
+// A flag for the admin panel's moderation queue — never actioned automatically (unlike Block, which takes
+// effect immediately). targetId's meaning depends on targetType and is never a foreign key at the database
+// level, the same trade-off Message.roomId already makes, so a report survives even if its target is later
+// deleted (the admin view just shows "deleted" instead of failing to load).
+model Report {
+  id         String    @id @default(uuid())
+  reporterId String
+  reporter   User      @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType String // "user" | "dog" | "walk" | "event" | "message"
+  targetId   String
+  reason     String // short machine key, e.g. "harassment" | "spam" | "fake_profile" | "inappropriate_content" | "safety_concern" | "other"
+  details    String?
+  status     String    @default("open") // "open" | "reviewed" | "dismissed"
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([status, createdAt])
 }
 
 // ── Admin panel ───────────────────────────────────────────────────────────

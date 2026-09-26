@@ -84,6 +84,22 @@ usersRouter.patch(
 
 /**
  * @openapi
+ * /users/me:
+ *   delete:
+ *     summary: Permanently delete the current user's account (App Store / Play Store require this be
+ *       possible in-app, not admin-only).
+ *     tags: [Users]
+ */
+usersRouter.delete(
+  '/me',
+  asyncHandler(async (req, res) => {
+    await usersService.deleteAccount(req.userId!);
+    res.json({ success: true });
+  }),
+);
+
+/**
+ * @openapi
  * /users/me/fcm-token:
  *   post:
  *     summary: Register a push notification token (stub for now).

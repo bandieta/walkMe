@@ -7,18 +7,22 @@ import {
   Image,
   Platform,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { usersApi } from '../../services/api';
+import { usersApi, blocksApi } from '../../services/api';
 import { Icon, IconName } from '../../components/Icon';
 import { Placeholder, PrettyText, Btn, useScreenInsets } from '../../ui';
-import { cssText } from '../../ui/cssLine';
+import { cssText, cssLine } from '../../ui/cssLine';
 import { ProfileAvatar } from './ProfileAvatar';
 import { resolveMediaUrl } from '../../utils/media';
 import { ageGroupFromAge } from '../../utils/dogLabels';
 import { firstName } from '../Discover/DogCard';
 import { Colors, Ramp } from '../../utils/theme';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { ReportDialog } from '../../components/ReportDialog';
+import { useToast } from '../../components/Toast';
 
 const backIcon = Platform.OS === 'ios' ? 'caret-left' : 'arrow-left';
 const MONTH_KEYS = [
@@ -93,6 +97,11 @@ export const PersonProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const [loading, setLoading] = useState(true);
   // Bumped by the "Try again" button to force the effect below to refetch without duplicating its body.
   const [reloadTick, setReloadTick] = useState(0);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [blockDialogOpen, setBlockDialogOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const { show: showToast, element: toastElement } = useToast();
 
   useEffect(() => {
     let alive = true;
@@ -108,6 +117,19 @@ export const PersonProfileScreen: React.FC<{ navigation: any; route: any }> = ({
     };
   }, [userId, reloadTick]);
 
+  useEffect(() => {
+    let alive = true;
+    blocksApi
+      .list()
+      .then(
+        (res) => alive && setIsBlocked((res.data as { id: string }[]).some((b) => b.id === userId)),
+      )
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [userId]);
+
   const load = () => setReloadTick((n) => n + 1);
 
   const displayName = person?.displayName ?? name ?? '';
@@ -115,6 +137,25 @@ export const PersonProfileScreen: React.FC<{ navigation: any; route: any }> = ({
   const providerLabel =
     person?.provider && t(`personProfile.providers.${person.provider}`, { defaultValue: '' });
   const showVerified = !!providerIcon && !!providerLabel;
+
+  const toggleBlock = async () => {
+    setBlockDialogOpen(false);
+    setMenuOpen(false);
+    try {
+      if (isBlocked) {
+        await blocksApi.unblock(userId);
+        setIsBlocked(false);
+        showToast(t('personProfile.unblocked', { name: firstName(displayName) }));
+      } else {
+        await blocksApi.block(userId);
+        setIsBlocked(true);
+        showToast(t('personProfile.blocked', { name: firstName(displayName) }));
+        navigation.goBack();
+      }
+    } catch {
+      showToast(t('personProfile.couldNotBlock'), 'error');
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: Colors.backgroundDark }}>
@@ -144,6 +185,20 @@ export const PersonProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           <Icon name={backIcon} size={20} color={Colors.textPrimary} />
         </Pressable>
         <Text style={{ fontSize: 17, fontWeight: '500', flex: 1 }}>{t('personProfile.title')}</Text>
+        <Pressable
+          onPress={() => setMenuOpen(true)}
+          accessibilityLabel={t('personProfile.menu.label')}
+          style={({ pressed }) => ({
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent',
+          })}
+        >
+          <Icon name="more" size={20} color={Colors.textPrimary} />
+        </Pressable>
       </View>
 
       {loading && !person ? (
@@ -410,6 +465,111 @@ export const PersonProfileScreen: React.FC<{ navigation: any; route: any }> = ({
           </Text>
         </ScrollView>
       )}
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(41,43,49,0.6)', justifyContent: 'flex-end' }}
+          onPress={() => setMenuOpen(false)}
+        >
+          <Pressable
+            style={{
+              backgroundColor: Colors.surfaceDark,
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+              paddingTop: 8,
+              paddingBottom: 24,
+              paddingHorizontal: 8,
+            }}
+          >
+            <Pressable
+              onPress={() => {
+                setMenuOpen(false);
+                setReportOpen(true);
+              }}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                columnGap: 12,
+                paddingVertical: 14,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                backgroundColor: pressed ? 'rgba(233,233,237,0.07)' : 'transparent',
+              })}
+            >
+              <Icon name="warning" size={18} color={Colors.textPrimary} />
+              <Text style={{ fontSize: 14, lineHeight: cssLine(14), color: Colors.textPrimary }}>
+                {t('personProfile.menu.report', { name: firstName(displayName) })}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                setMenuOpen(false);
+                setBlockDialogOpen(true);
+              }}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                columnGap: 12,
+                paddingVertical: 14,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                backgroundColor: pressed ? 'rgba(224,131,127,0.12)' : 'transparent',
+              })}
+            >
+              <Icon name="shield" size={18} color={Colors.error} />
+              <Text style={{ fontSize: 14, lineHeight: cssLine(14), color: Colors.error }}>
+                {isBlocked
+                  ? t('personProfile.menu.unblock', { name: firstName(displayName) })
+                  : t('personProfile.menu.block', { name: firstName(displayName) })}
+              </Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      <ConfirmDialog
+        visible={blockDialogOpen}
+        tone="danger"
+        title={
+          isBlocked
+            ? t('personProfile.unblockDialog.title', { name: firstName(displayName) })
+            : t('personProfile.blockDialog.title', { name: firstName(displayName) })
+        }
+        message={
+          isBlocked
+            ? undefined
+            : t('personProfile.blockDialog.message', { name: firstName(displayName) })
+        }
+        confirmLabel={
+          isBlocked
+            ? t('personProfile.unblockDialog.confirm')
+            : t('personProfile.blockDialog.confirm')
+        }
+        onCancel={() => setBlockDialogOpen(false)}
+        onConfirm={toggleBlock}
+      />
+
+      <ReportDialog
+        visible={reportOpen}
+        targetType="user"
+        targetId={userId}
+        subjectName={firstName(displayName)}
+        onClose={() => setReportOpen(false)}
+        onSubmitted={(success) => {
+          setReportOpen(false);
+          showToast(
+            success ? t('report.submitted') : t('report.couldNotSubmit'),
+            success ? 'success' : 'error',
+          );
+        }}
+      />
+
+      {toastElement}
     </View>
   );
 };

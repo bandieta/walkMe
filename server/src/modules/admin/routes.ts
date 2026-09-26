@@ -18,6 +18,8 @@ import {
   updateWalkSchema,
   userQuerySchema,
   walkQuerySchema,
+  reportQuerySchema,
+  updateReportSchema,
 } from './schema';
 
 export const adminRouter = Router();
@@ -328,5 +330,25 @@ adminRouter.delete(
     await adminService.deleteAdmin(req.params.id, req.adminId!);
     await adminService.logAction(req.adminId!, 'admin.delete', 'AdminUser', req.params.id);
     res.json({ success: true });
+  }),
+);
+
+// ── reports (moderation queue) ────────────────────────────────────────────────
+
+adminRouter.get(
+  '/reports',
+  asyncHandler(async (req, res) => {
+    const q = reportQuerySchema.parse(req.query);
+    res.json(await adminService.listReports(q.status, q.targetType, q.page, q.pageSize));
+  }),
+);
+
+adminRouter.patch(
+  '/reports/:id',
+  asyncHandler(async (req, res) => {
+    const body = updateReportSchema.parse(req.body);
+    const updated = await adminService.updateReportStatus(req.params.id, body.status);
+    await adminService.logAction(req.adminId!, 'report.update', 'Report', req.params.id, body);
+    res.json(updated);
   }),
 );

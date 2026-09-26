@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Linking } from 'react-native';
 import { readDevLaunch } from '../utils/devLaunch';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
@@ -36,6 +36,8 @@ import { LanguageScreen } from '../screens/Profile/LanguageScreen';
 import { NotificationsScreen } from '../screens/Profile/NotificationsScreen';
 import { NotificationSettingsScreen } from '../screens/Profile/NotificationSettingsScreen';
 import { PersonProfileScreen } from '../screens/Profile/PersonProfileScreen';
+import { PrivacySafetyScreen } from '../screens/Profile/PrivacySafetyScreen';
+import { BlockedUsersScreen } from '../screens/Profile/BlockedUsersScreen';
 import { PickLocationScreen } from '../screens/Location/PickLocationScreen';
 
 // ─── Param lists ─────────────────────────────────────────────────────────────
@@ -47,10 +49,17 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Welcome: undefined;
-  EmailAuth: { mode: 'new' | 'existing'; accountType?: 'person' | 'shelter'; shelterConfirmed?: boolean };
+  EmailAuth: {
+    mode: 'new' | 'existing';
+    accountType?: 'person' | 'shelter';
+    shelterConfirmed?: boolean;
+  };
   EmailCode: {
-    email: string; mode: 'new' | 'existing'; devCode?: string;
-    accountType?: 'person' | 'shelter'; shelterConfirmed?: boolean;
+    email: string;
+    mode: 'new' | 'existing';
+    devCode?: string;
+    accountType?: 'person' | 'shelter';
+    shelterConfirmed?: boolean;
   };
 };
 
@@ -100,6 +109,8 @@ export type ProfileStackParamList = {
   PickLocation: { initialLat?: number; initialLng?: number; returnTo: string };
   DogRequestChat: { requestId: string };
   PersonProfile: { userId: string; name?: string; photoUrl?: string };
+  PrivacySafety: undefined;
+  BlockedUsers: undefined;
 };
 
 export type MainTabParamList = {
@@ -150,14 +161,26 @@ const linking: LinkingOptions<RootStackParamList> = {
               Language: 'language',
               Notifications: 'notifications',
               NotificationSettings: 'notifications/settings',
+              PrivacySafety: 'privacy-safety',
+              BlockedUsers: 'blocked-users',
             },
           },
         },
       },
       Onboarding: {
-        screens: { DogProfile: 'onboarding/dog', Rhythm: 'onboarding/rhythm', Location: 'onboarding/location' },
+        screens: {
+          DogProfile: 'onboarding/dog',
+          Rhythm: 'onboarding/rhythm',
+          Location: 'onboarding/location',
+        },
       },
-      Auth: { screens: { Welcome: 'welcome', EmailAuth: 'welcome/email', EmailCode: 'welcome/email/code' } },
+      Auth: {
+        screens: {
+          Welcome: 'welcome',
+          EmailAuth: 'welcome/email',
+          EmailCode: 'welcome/email/code',
+        },
+      },
     },
   },
 };
@@ -214,6 +237,8 @@ const ProfileStackScreen: React.FC = () => (
     <ProfileStack.Screen name="PickLocation" component={PickLocationScreen} />
     <ProfileStack.Screen name="DogRequestChat" component={DogRequestChatScreen} />
     <ProfileStack.Screen name="PersonProfile" component={PersonProfileScreen} />
+    <ProfileStack.Screen name="PrivacySafety" component={PrivacySafetyScreen} />
+    <ProfileStack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
   </ProfileStack.Navigator>
 );
 
@@ -221,7 +246,10 @@ const ProfileStackScreen: React.FC = () => (
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const MainTabs: React.FC = () => (
-  <Tab.Navigator screenOptions={{ headerShown: false }} tabBar={(props) => <FloatingTabBar {...props} />}>
+  <Tab.Navigator
+    screenOptions={{ headerShown: false }}
+    tabBar={(props) => <FloatingTabBar {...props} />}
+  >
     <Tab.Screen name="MapTab" component={MapStackScreen} />
     <Tab.Screen name="DiscoverTab" component={DiscoverStackScreen} />
     <Tab.Screen name="ChatTab" component={ChatStackScreen} />
@@ -262,8 +290,11 @@ export const AppNavigator: React.FC = () => {
     }
     if (__DEV__) {
       const { login: name } = await readDevLaunch();
-      if (name === '__logout__') await dispatch(logoutAndInvalidate());
-      else if (name) await dispatch(devLogin(String(name)));
+      if (name === '__logout__') {
+        await dispatch(logoutAndInvalidate());
+      } else if (name) {
+        await dispatch(devLogin(String(name)));
+      }
     }
     setSplashDone(true);
   };
@@ -271,17 +302,17 @@ export const AppNavigator: React.FC = () => {
   return (
     <View style={{ flex: 1, backgroundColor: Colors.backgroundDark }}>
       {splashDone && (
-      <NavigationContainer linking={linking}>
-        <RootStack.Navigator screenOptions={{ headerShown: false }}>
-          {!user ? (
-            <RootStack.Screen name="Auth" component={AuthStackScreen} />
-          ) : !user.onboarded ? (
-            <RootStack.Screen name="Onboarding" component={OnboardingStackScreen} />
-          ) : (
-            <RootStack.Screen name="Main" component={MainTabs} />
-          )}
-        </RootStack.Navigator>
-      </NavigationContainer>
+        <NavigationContainer linking={linking}>
+          <RootStack.Navigator screenOptions={{ headerShown: false }}>
+            {!user ? (
+              <RootStack.Screen name="Auth" component={AuthStackScreen} />
+            ) : !user.onboarded ? (
+              <RootStack.Screen name="Onboarding" component={OnboardingStackScreen} />
+            ) : (
+              <RootStack.Screen name="Main" component={MainTabs} />
+            )}
+          </RootStack.Navigator>
+        </NavigationContainer>
       )}
       {!splashDone && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>

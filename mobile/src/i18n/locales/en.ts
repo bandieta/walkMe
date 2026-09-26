@@ -35,8 +35,29 @@ export default {
     startingNow: 'Starting now',
     inMinutes: 'In {{count}} min',
     inHours: 'In {{count}} h',
-    weekdaysShort: { sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' },
-    monthsShort: { jan: 'Jan', feb: 'Feb', mar: 'Mar', apr: 'Apr', may: 'May', jun: 'Jun', jul: 'Jul', aug: 'Aug', sep: 'Sep', oct: 'Oct', nov: 'Nov', dec: 'Dec' },
+    weekdaysShort: {
+      sun: 'Sun',
+      mon: 'Mon',
+      tue: 'Tue',
+      wed: 'Wed',
+      thu: 'Thu',
+      fri: 'Fri',
+      sat: 'Sat',
+    },
+    monthsShort: {
+      jan: 'Jan',
+      feb: 'Feb',
+      mar: 'Mar',
+      apr: 'Apr',
+      may: 'May',
+      jun: 'Jun',
+      jul: 'Jul',
+      aug: 'Aug',
+      sep: 'Sep',
+      oct: 'Oct',
+      nov: 'Nov',
+      dec: 'Dec',
+    },
   },
   settings: {
     language: {
@@ -70,9 +91,18 @@ export default {
       shelterConfirm: 'I confirm this account represents an animal shelter or rescue organisation.',
     },
     slides: {
-      '1': { title: 'Every good walk starts nearby.', body: 'See who’s out with their dog right now, and join them.' },
-      '2': { title: 'Match on the\ndogs first.', body: 'Browse dogs nearby. When you both want to walk, start a chat.' },
-      '3': { title: 'Plan the walk in a minute.', body: 'Pick a park, a time and how many can come. Neighbours join from the map.' },
+      '1': {
+        title: 'Every good walk starts nearby.',
+        body: 'See who’s out with their dog right now, and join them.',
+      },
+      '2': {
+        title: 'Match on the\ndogs first.',
+        body: 'Browse dogs nearby. When you both want to walk, start a chat.',
+      },
+      '3': {
+        title: 'Plan the walk in a minute.',
+        body: 'Pick a park, a time and how many can come. Neighbours join from the map.',
+      },
     },
     emailAuth: {
       titleNew: 'What’s your email?',
@@ -98,7 +128,12 @@ export default {
     title: 'Profile',
     edit: 'Edit',
     stats: { walks: 'Walks', walkFriends: 'Walk friends', kmTogether: 'km together' },
-    dogs: { title: 'Your dogs', shelterTitle: 'Dogs in your care', manage: 'Manage', addDog: 'Add a dog' },
+    dogs: {
+      title: 'Your dogs',
+      shelterTitle: 'Dogs in your care',
+      manage: 'Manage',
+      addDog: 'Add a dog',
+    },
     shelterDogs: {
       title: 'Dogs you can walk',
     },
@@ -112,8 +147,12 @@ export default {
       rhythm: 'Walking rhythm',
       language: 'Language',
       notifications: 'Notifications',
-      privacy: { label: 'Privacy & safety', alertTitle: 'Privacy & safety', alertBody: 'Privacy settings come in the next round.' },
-      help: { label: 'Help & support', alertTitle: 'Help & support', alertBody: 'The help centre comes in the next round.' },
+      privacy: { label: 'Privacy & safety' },
+      help: {
+        label: 'Help & support',
+        alertTitle: 'Help & support',
+        alertBody: 'The help centre comes in the next round.',
+      },
       signOut: 'Sign out',
     },
     editProfile: {
@@ -131,6 +170,25 @@ export default {
       confirm: 'Sign out',
     },
   },
+  privacySafety: {
+    title: 'Privacy & safety',
+    blockedUsers: { label: 'Blocked users' },
+    deleteAccount: {
+      label: 'Delete account',
+      dialogTitle: 'Delete your account?',
+      dialogMessage:
+        'This permanently deletes your profile, dogs, matches and messages. This can’t be undone.',
+      confirm: 'Delete account',
+      failed: 'Could not delete your account. Try again.',
+    },
+  },
+  blockedUsers: {
+    title: 'Blocked users',
+    empty: 'You haven’t blocked anyone.',
+    unblock: 'Unblock',
+    unblocked: '{{name}} unblocked',
+    couldNotUnblock: 'Could not unblock. Try again.',
+  },
   personProfile: {
     title: 'Profile',
     memberSince: 'On WalkMe since {{date}}',
@@ -138,15 +196,56 @@ export default {
     providers: { google: 'Google', facebook: 'Facebook', apple: 'Apple', email: 'email' },
     statsTitle: 'On WalkMe',
     stats: { walks: 'Walks completed', friends: 'Walk friends', km: 'Km walked' },
-    trustNote: 'Shown so you can decide who’s a good fit for a dog in your care. These numbers come from their WalkMe activity — no one leaves a rating.',
+    trustNote:
+      'Shown so you can decide who’s a good fit for a dog in your care. These numbers come from their WalkMe activity — no one leaves a rating.',
     dogsTitle: 'Their dogs',
-    footerNote: '{{name}} can’t see this page — only what you’d see on their Discover card or in this chat.',
+    footerNote:
+      '{{name}} can’t see this page — only what you’d see on their Discover card or in this chat.',
     loadFailed: 'Could not load this profile.',
     tryAgain: 'Try again',
+    menu: {
+      label: 'More options',
+      block: 'Block {{name}}',
+      unblock: 'Unblock {{name}}',
+      report: 'Report {{name}}',
+    },
+    blockDialog: {
+      title: 'Block {{name}}?',
+      message:
+        '{{name}} won’t be able to message you or see your profile, and you won’t see each other in Discover or on walks.',
+      confirm: 'Block',
+    },
+    unblockDialog: { title: 'Unblock {{name}}?', confirm: 'Unblock' },
+    blocked: '{{name}} blocked',
+    unblocked: '{{name}} unblocked',
+    couldNotBlock: 'Could not do that. Try again.',
+  },
+  report: {
+    title: 'Report {{name}}',
+    reasonPrompt: 'Why are you reporting this profile?',
+    reasons: {
+      harassment: 'Harassment or bullying',
+      spam: 'Spam',
+      fake_profile: 'Fake profile',
+      inappropriate_content: 'Inappropriate content',
+      safety_concern: 'Safety concern',
+      other: 'Something else',
+    },
+    detailsPlaceholder: 'Add details (optional)',
+    submit: 'Submit report',
+    submitted: 'Report sent — thank you',
+    couldNotSubmit: 'Could not send your report. Try again.',
   },
   onboarding: {
     stepOf: 'Step {{step}} of {{total}}',
-    walkTimes: { early: 'Early', morning: 'Morning', midday: 'Midday', afternoon: 'Afternoon', evening: 'Evening', night: 'Night' },
+    walkTimes: {
+      early: 'Early',
+      morning: 'Morning',
+      midday: 'Midday',
+      afternoon: 'Afternoon',
+      evening: 'Evening',
+      night: 'Night',
+    },
     rhythm: {
       title: 'When do you usually walk?',
       subtitle: 'We’ll surface walks and people on your schedule.',
@@ -158,7 +257,8 @@ export default {
     },
     location: {
       title: 'Show walks around you',
-      subtitle: 'WalkMe uses your location to find walks and people within {{radius}}. You can switch this off in your profile.',
+      subtitle:
+        'WalkMe uses your location to find walks and people within {{radius}}. You can switch this off in your profile.',
       mapPreview: 'map preview — {{radius}} radius',
       allow: 'Allow location',
       notNow: 'Not now',
@@ -167,9 +267,20 @@ export default {
   },
   dogs: {
     form: {
-      onboarding: { title: 'Tell us about your dog', body: 'Matches start with your dog, then you.' },
-      add: { title: 'Another dog in the family', body: 'Each dog gets their own card in Discover.', cta: 'Save dog' },
-      edit: { title: 'Edit dog profile', body: 'Changes show up on their card right away.', cta: 'Save changes' },
+      onboarding: {
+        title: 'Tell us about your dog',
+        body: 'Matches start with your dog, then you.',
+      },
+      add: {
+        title: 'Another dog in the family',
+        body: 'Each dog gets their own card in Discover.',
+        cta: 'Save dog',
+      },
+      edit: {
+        title: 'Edit dog profile',
+        body: 'Changes show up on their card right away.',
+        cta: 'Save changes',
+      },
       addDog: 'Add a dog',
       editDog: 'Edit dog',
       dogPhoto: 'Dog photo',
@@ -212,7 +323,14 @@ export default {
     },
   },
   walks: {
-    categories: { park: 'Park', trail: 'Trail', lake: 'Lake', beach: 'Beach', cafe: 'Café', city: 'City' },
+    categories: {
+      park: 'Park',
+      trail: 'Trail',
+      lake: 'Lake',
+      beach: 'Beach',
+      cafe: 'Café',
+      city: 'City',
+    },
     mine: {
       title: 'Walks & events',
       upcoming: 'Upcoming',
@@ -282,7 +400,13 @@ export default {
     },
   },
   events: {
-    categories: { meetup: 'Meetup', playdate: 'Playdate', competition: 'Competition', wellness: 'Wellness', walk: 'Walk' },
+    categories: {
+      meetup: 'Meetup',
+      playdate: 'Playdate',
+      competition: 'Competition',
+      wellness: 'Wellness',
+      walk: 'Walk',
+    },
     detail: {
       back: 'Back',
       loadFailed: 'We couldn’t load this event.',
@@ -345,7 +469,11 @@ export default {
   },
   map: {
     segments: { walks: 'Walks', events: 'Events', places: 'Places' },
-    searchPlaceholder: { walks: 'Search walks and parks', events: 'Search events', places: 'Parks, cafés, vets' },
+    searchPlaceholder: {
+      walks: 'Search walks and parks',
+      events: 'Search events',
+      places: 'Parks, cafés, vets',
+    },
     chips: { liveNow: 'Live now', today: 'Today', nearby: 'Under 2 km', joined: 'Joined' },
     recenter: 'Recenter',
     centredOn: 'Centred on {{area}}',
@@ -379,7 +507,8 @@ export default {
     savedToShortlist: '{{name}} saved to your shortlist',
     defaultDogName: 'Dog',
     emptyTitle: 'You’ve seen everyone nearby',
-    emptyBody: 'New walkers join every day. Widen your distance to see more, or check the map for walks happening now.',
+    emptyBody:
+      'New walkers join every day. Widen your distance to see more, or check the map for walks happening now.',
     startOver: 'Start over',
     openMap: 'Open map',
     requestSent: 'Request sent to {{shelter}} for {{dog}}',
@@ -442,7 +571,8 @@ export default {
       walkWithTitleAndDog: 'Walk with {{name}} & {{dog}}',
       sayHelloTo: 'Say hello to {{name}}',
       emptyBodyBase: 'You both liked each other’s dogs. Suggest a park or a time.',
-      emptyBodyWithDistance: 'You both liked each other’s dogs. Suggest a park or a time — {{dog}} is {{distance}} away.',
+      emptyBodyWithDistance:
+        'You both liked each other’s dogs. Suggest a park or a time — {{dog}} is {{distance}} away.',
     },
     dogRequest: {
       details: 'Dog details',
@@ -470,11 +600,20 @@ export default {
       match: { title: 'It’s a match!', body: 'You and {{name}} can now chat.' },
       walkJoined: { title: 'New walk guest', body: '{{name}} joined {{walkTitle}}.' },
       walkLeft: { title: 'Someone left your walk', body: '{{name}} left {{walkTitle}}.' },
-      walkNearby: { title: 'New walk nearby', body: '“{{walkTitle}}” starts near {{meetingPoint}}.' },
+      walkNearby: {
+        title: 'New walk nearby',
+        body: '“{{walkTitle}}” starts near {{meetingPoint}}.',
+      },
       eventJoined: { title: 'New attendee', body: '{{name}} joined {{eventTitle}}.' },
       shelterRequest: { title: 'New walk request', body: '{{name}} wants to walk {{dogName}}.' },
-      shelterAccepted: { title: 'Request accepted', body: '{{shelterName}} said yes — you can chat about {{dogName}} now.' },
-      shelterDeclined: { title: 'Request declined', body: '{{shelterName}} declined your request for {{dogName}}.' },
+      shelterAccepted: {
+        title: 'Request accepted',
+        body: '{{shelterName}} said yes — you can chat about {{dogName}} now.',
+      },
+      shelterDeclined: {
+        title: 'Request declined',
+        body: '{{shelterName}} declined your request for {{dogName}}.',
+      },
     },
   },
   nav: {

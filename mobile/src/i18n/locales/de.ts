@@ -34,7 +34,20 @@ export default {
     inMinutes: 'In {{count}} Min.',
     inHours: 'In {{count}} Std.',
     weekdaysShort: { sun: 'So', mon: 'Mo', tue: 'Di', wed: 'Mi', thu: 'Do', fri: 'Fr', sat: 'Sa' },
-    monthsShort: { jan: 'Jan', feb: 'Feb', mar: 'Mär', apr: 'Apr', may: 'Mai', jun: 'Jun', jul: 'Jul', aug: 'Aug', sep: 'Sep', oct: 'Okt', nov: 'Nov', dec: 'Dez' },
+    monthsShort: {
+      jan: 'Jan',
+      feb: 'Feb',
+      mar: 'Mär',
+      apr: 'Apr',
+      may: 'Mai',
+      jun: 'Jun',
+      jul: 'Jul',
+      aug: 'Aug',
+      sep: 'Sep',
+      oct: 'Okt',
+      nov: 'Nov',
+      dec: 'Dez',
+    },
   },
   settings: {
     language: {
@@ -53,7 +66,8 @@ export default {
     welcomeBack: 'Willkommen zurück',
     createAccount: 'Konto erstellen',
     noPasswords: 'Keine Passwörter. Wir verwenden nur deinen Namen und dein Foto.',
-    termsNotice: 'Mit der Fortsetzung stimmst du den Nutzungsbedingungen und der Datenschutzerklärung zu.',
+    termsNotice:
+      'Mit der Fortsetzung stimmst du den Nutzungsbedingungen und der Datenschutzerklärung zu.',
     getStarted: 'Loslegen',
     alreadyHaveAccount: 'Ich habe bereits ein Konto',
     signInFailed: 'Anmeldung fehlgeschlagen. Bitte versuche es erneut.',
@@ -65,12 +79,22 @@ export default {
       personSub: 'Geh mit deinem eigenen Hund spazieren und triff Nachbarn',
       shelter: 'Tierheim oder Rettungsorganisation',
       shelterSub: 'Vermittelbare Hunde eintragen, die Leute spazieren führen können',
-      shelterConfirm: 'Ich bestätige, dass dieses Konto ein Tierheim oder eine Tierschutzorganisation vertritt.',
+      shelterConfirm:
+        'Ich bestätige, dass dieses Konto ein Tierheim oder eine Tierschutzorganisation vertritt.',
     },
     slides: {
-      '1': { title: 'Jeder gute Spaziergang beginnt in der Nähe.', body: 'Sieh, wer gerade mit seinem Hund unterwegs ist, und schließ dich an.' },
-      '2': { title: 'Erst die Hunde,\ndann ihr.', body: 'Entdecke Hunde in der Nähe. Wenn ihr beide spazieren gehen wollt, startet einen Chat.' },
-      '3': { title: 'Den Spaziergang in einer Minute planen.', body: 'Wähle einen Park, eine Uhrzeit und wie viele mitkommen können. Nachbarn steigen über die Karte ein.' },
+      '1': {
+        title: 'Jeder gute Spaziergang beginnt in der Nähe.',
+        body: 'Sieh, wer gerade mit seinem Hund unterwegs ist, und schließ dich an.',
+      },
+      '2': {
+        title: 'Erst die Hunde,\ndann ihr.',
+        body: 'Entdecke Hunde in der Nähe. Wenn ihr beide spazieren gehen wollt, startet einen Chat.',
+      },
+      '3': {
+        title: 'Den Spaziergang in einer Minute planen.',
+        body: 'Wähle einen Park, eine Uhrzeit und wie viele mitkommen können. Nachbarn steigen über die Karte ein.',
+      },
     },
     emailAuth: {
       titleNew: 'Wie lautet deine E-Mail-Adresse?',
@@ -96,13 +120,21 @@ export default {
     title: 'Profil',
     edit: 'Bearbeiten',
     stats: { walks: 'Spaziergänge', walkFriends: 'Gassi-Freunde', kmTogether: 'km gemeinsam' },
-    dogs: { title: 'Deine Hunde', shelterTitle: 'Hunde in deiner Obhut', manage: 'Verwalten', addDog: 'Hund hinzufügen' },
+    dogs: {
+      title: 'Deine Hunde',
+      shelterTitle: 'Hunde in deiner Obhut',
+      manage: 'Verwalten',
+      addDog: 'Hund hinzufügen',
+    },
     shelterDogs: {
       title: 'Hunde, die du spazieren führen kannst',
     },
     preferences: {
       title: 'Einstellungen',
-      shareLocation: { label: 'Standort teilen', desc: 'Sichtbar für Personen auf deinen Spaziergängen' },
+      shareLocation: {
+        label: 'Standort teilen',
+        desc: 'Sichtbar für Personen auf deinen Spaziergängen',
+      },
     },
     account: {
       title: 'Konto',
@@ -110,8 +142,12 @@ export default {
       rhythm: 'Spazierrhythmus',
       language: 'Sprache',
       notifications: 'Benachrichtigungen',
-      privacy: { label: 'Datenschutz & Sicherheit', alertTitle: 'Datenschutz & Sicherheit', alertBody: 'Datenschutzeinstellungen folgen in der nächsten Version.' },
-      help: { label: 'Hilfe & Support', alertTitle: 'Hilfe & Support', alertBody: 'Das Hilfe-Center folgt in der nächsten Version.' },
+      privacy: { label: 'Datenschutz & Sicherheit' },
+      help: {
+        label: 'Hilfe & Support',
+        alertTitle: 'Hilfe & Support',
+        alertBody: 'Das Hilfe-Center folgt in der nächsten Version.',
+      },
       signOut: 'Abmelden',
     },
     editProfile: {
@@ -129,6 +165,25 @@ export default {
       confirm: 'Abmelden',
     },
   },
+  privacySafety: {
+    title: 'Datenschutz & Sicherheit',
+    blockedUsers: { label: 'Blockierte Nutzer' },
+    deleteAccount: {
+      label: 'Konto löschen',
+      dialogTitle: 'Konto löschen?',
+      dialogMessage:
+        'Dadurch werden dein Profil, deine Hunde, Matches und Nachrichten dauerhaft gelöscht. Das kann nicht rückgängig gemacht werden.',
+      confirm: 'Konto löschen',
+      failed: 'Dein Konto konnte nicht gelöscht werden. Versuche es erneut.',
+    },
+  },
+  blockedUsers: {
+    title: 'Blockierte Nutzer',
+    empty: 'Du hast noch niemanden blockiert.',
+    unblock: 'Entsperren',
+    unblocked: '{{name}} entsperrt',
+    couldNotUnblock: 'Entsperren fehlgeschlagen. Versuche es erneut.',
+  },
   personProfile: {
     title: 'Profil',
     memberSince: 'Bei WalkMe seit {{date}}',
@@ -136,15 +191,56 @@ export default {
     providers: { google: 'Google', facebook: 'Facebook', apple: 'Apple', email: 'E-Mail' },
     statsTitle: 'Bei WalkMe',
     stats: { walks: 'Abgeschlossene Spaziergänge', friends: 'Spazierfreunde', km: 'Gelaufene km' },
-    trustNote: 'Damit du entscheiden kannst, ob diese Person zu einem Hund in deiner Obhut passt. Diese Zahlen stammen aus der WalkMe-Aktivität — niemand vergibt eine Bewertung.',
+    trustNote:
+      'Damit du entscheiden kannst, ob diese Person zu einem Hund in deiner Obhut passt. Diese Zahlen stammen aus der WalkMe-Aktivität — niemand vergibt eine Bewertung.',
     dogsTitle: 'Ihre Hunde',
-    footerNote: '{{name}} kann diese Seite nicht sehen — nur das, was du auf ihrer Discover-Karte oder in diesem Chat sehen würdest.',
+    footerNote:
+      '{{name}} kann diese Seite nicht sehen — nur das, was du auf ihrer Discover-Karte oder in diesem Chat sehen würdest.',
     loadFailed: 'Dieses Profil konnte nicht geladen werden.',
     tryAgain: 'Erneut versuchen',
+    menu: {
+      label: 'Weitere Optionen',
+      block: '{{name}} blockieren',
+      unblock: '{{name}} entsperren',
+      report: '{{name}} melden',
+    },
+    blockDialog: {
+      title: '{{name}} blockieren?',
+      message:
+        '{{name}} kann dir dann keine Nachrichten mehr schicken oder dein Profil sehen, und ihr seht euch nicht mehr in Discover oder bei Spaziergängen.',
+      confirm: 'Blockieren',
+    },
+    unblockDialog: { title: '{{name}} entsperren?', confirm: 'Entsperren' },
+    blocked: '{{name}} blockiert',
+    unblocked: '{{name}} entsperrt',
+    couldNotBlock: 'Das hat nicht funktioniert. Versuche es erneut.',
+  },
+  report: {
+    title: '{{name}} melden',
+    reasonPrompt: 'Warum meldest du dieses Profil?',
+    reasons: {
+      harassment: 'Belästigung oder Mobbing',
+      spam: 'Spam',
+      fake_profile: 'Falsches Profil',
+      inappropriate_content: 'Unangemessene Inhalte',
+      safety_concern: 'Sicherheitsbedenken',
+      other: 'Etwas anderes',
+    },
+    detailsPlaceholder: 'Details hinzufügen (optional)',
+    submit: 'Meldung senden',
+    submitted: 'Meldung gesendet — danke',
+    couldNotSubmit: 'Deine Meldung konnte nicht gesendet werden. Versuche es erneut.',
   },
   onboarding: {
     stepOf: 'Schritt {{step}} von {{total}}',
-    walkTimes: { early: 'Früh', morning: 'Morgens', midday: 'Mittags', afternoon: 'Nachmittags', evening: 'Abends', night: 'Nachts' },
+    walkTimes: {
+      early: 'Früh',
+      morning: 'Morgens',
+      midday: 'Mittags',
+      afternoon: 'Nachmittags',
+      evening: 'Abends',
+      night: 'Nachts',
+    },
     rhythm: {
       title: 'Wann gehst du normalerweise spazieren?',
       subtitle: 'Wir zeigen dir Spaziergänge und Leute passend zu deinem Zeitplan.',
@@ -156,7 +252,8 @@ export default {
     },
     location: {
       title: 'Spaziergänge in deiner Nähe anzeigen',
-      subtitle: 'WalkMe nutzt deinen Standort, um Spaziergänge und Leute innerhalb von {{radius}} zu finden. Du kannst dies in deinem Profil deaktivieren.',
+      subtitle:
+        'WalkMe nutzt deinen Standort, um Spaziergänge und Leute innerhalb von {{radius}} zu finden. Du kannst dies in deinem Profil deaktivieren.',
       mapPreview: 'Kartenvorschau — Radius {{radius}}',
       allow: 'Standort erlauben',
       notNow: 'Nicht jetzt',
@@ -165,9 +262,20 @@ export default {
   },
   dogs: {
     form: {
-      onboarding: { title: 'Erzähl uns von deinem Hund', body: 'Matches beginnen mit deinem Hund, dann folgst du.' },
-      add: { title: 'Ein weiterer Hund in der Familie', body: 'Jeder Hund bekommt seine eigene Karte in Entdecken.', cta: 'Hund speichern' },
-      edit: { title: 'Hundeprofil bearbeiten', body: 'Änderungen erscheinen sofort auf seiner Karte.', cta: 'Änderungen speichern' },
+      onboarding: {
+        title: 'Erzähl uns von deinem Hund',
+        body: 'Matches beginnen mit deinem Hund, dann folgst du.',
+      },
+      add: {
+        title: 'Ein weiterer Hund in der Familie',
+        body: 'Jeder Hund bekommt seine eigene Karte in Entdecken.',
+        cta: 'Hund speichern',
+      },
+      edit: {
+        title: 'Hundeprofil bearbeiten',
+        body: 'Änderungen erscheinen sofort auf seiner Karte.',
+        cta: 'Änderungen speichern',
+      },
       addDog: 'Hund hinzufügen',
       editDog: 'Hund bearbeiten',
       dogPhoto: 'Hundefoto',
@@ -186,7 +294,8 @@ export default {
       energy: 'Energie',
       temperament: 'Temperament',
       note: 'Notiz zu deinem Hund',
-      notePlaceholder: 'Alles, was ein Gassigeher wissen sollte – Eigenheiten, Lieblingsrouten, gesundheitliche Hinweise…',
+      notePlaceholder:
+        'Alles, was ein Gassigeher wissen sollte – Eigenheiten, Lieblingsrouten, gesundheitliche Hinweise…',
       skipForNow: 'Vorerst überspringen',
       couldNotSaveTitle: 'Dein Hund konnte nicht gespeichert werden',
     },
@@ -210,7 +319,14 @@ export default {
     },
   },
   walks: {
-    categories: { park: 'Park', trail: 'Wanderweg', lake: 'See', beach: 'Strand', cafe: 'Café', city: 'Stadt' },
+    categories: {
+      park: 'Park',
+      trail: 'Wanderweg',
+      lake: 'See',
+      beach: 'Strand',
+      cafe: 'Café',
+      city: 'Stadt',
+    },
     mine: {
       title: 'Spaziergänge & Veranstaltungen',
       upcoming: 'Bevorstehend',
@@ -280,7 +396,13 @@ export default {
     },
   },
   events: {
-    categories: { meetup: 'Treffen', playdate: 'Spieldate', competition: 'Wettbewerb', wellness: 'Wellness', walk: 'Spaziergang' },
+    categories: {
+      meetup: 'Treffen',
+      playdate: 'Spieldate',
+      competition: 'Wettbewerb',
+      wellness: 'Wellness',
+      walk: 'Spaziergang',
+    },
     detail: {
       back: 'Zurück',
       loadFailed: 'Diese Veranstaltung konnte nicht geladen werden.',
@@ -326,7 +448,8 @@ export default {
       publish: 'Veranstaltung veröffentlichen',
       publishing: 'Wird veröffentlicht…',
       pastTimeTitle: 'Wähle eine spätere Uhrzeit',
-      pastTimeMessage: 'Diese Startzeit liegt bereits in der Vergangenheit. Wähle einen anderen Tag oder eine andere Uhrzeit.',
+      pastTimeMessage:
+        'Diese Startzeit liegt bereits in der Vergangenheit. Wähle einen anderen Tag oder eine andere Uhrzeit.',
       couldNotPublishTitle: 'Veranstaltung konnte nicht veröffentlicht werden',
       couldNotPublishMessage: 'Bitte versuche es erneut.',
     },
@@ -343,7 +466,11 @@ export default {
   },
   map: {
     segments: { walks: 'Spaziergänge', events: 'Veranstaltungen', places: 'Orte' },
-    searchPlaceholder: { walks: 'Spaziergänge und Parks suchen', events: 'Veranstaltungen suchen', places: 'Parks, Cafés, Tierärzte' },
+    searchPlaceholder: {
+      walks: 'Spaziergänge und Parks suchen',
+      events: 'Veranstaltungen suchen',
+      places: 'Parks, Cafés, Tierärzte',
+    },
     chips: { liveNow: 'Gerade live', today: 'Heute', nearby: 'Unter 2 km', joined: 'Beigetreten' },
     recenter: 'Zentrieren',
     centredOn: 'Zentriert auf {{area}}',
@@ -377,7 +504,8 @@ export default {
     savedToShortlist: '{{name}} in deiner Merkliste gespeichert',
     defaultDogName: 'Hund',
     emptyTitle: 'Du hast alle in der Nähe gesehen',
-    emptyBody: 'Jeden Tag kommen neue Spaziergänger dazu. Vergrößere deine Entfernung, um mehr zu sehen, oder schau auf der Karte nach aktuellen Spaziergängen.',
+    emptyBody:
+      'Jeden Tag kommen neue Spaziergänger dazu. Vergrößere deine Entfernung, um mehr zu sehen, oder schau auf der Karte nach aktuellen Spaziergängen.',
     startOver: 'Neu starten',
     openMap: 'Karte öffnen',
     requestSent: 'Anfrage an {{shelter}} für {{dog}} gesendet',
@@ -392,8 +520,10 @@ export default {
     match: {
       itsAMatch: 'ES IST EIN MATCH',
       title: 'Du und {{name}} wollt beide spazieren gehen.',
-      bodyApart: '{{myDog}} und {{theirDog}} sind {{dist}} voneinander entfernt. Sag hallo und wähle einen Park.',
-      bodyCloseBy: '{{myDog}} und {{theirDog}} sind ganz in der Nähe. Sag hallo und wähle einen Park.',
+      bodyApart:
+        '{{myDog}} und {{theirDog}} sind {{dist}} voneinander entfernt. Sag hallo und wähle einen Park.',
+      bodyCloseBy:
+        '{{myDog}} und {{theirDog}} sind ganz in der Nähe. Sag hallo und wähle einen Park.',
       defaultYourDog: 'Dein Hund',
       defaultTheirDog: 'ihr Hund',
       sendMessage: 'Nachricht senden',
@@ -439,13 +569,16 @@ export default {
       walkWithTitle: 'Spaziergang mit {{name}}',
       walkWithTitleAndDog: 'Spaziergang mit {{name}} & {{dog}}',
       sayHelloTo: 'Sag Hallo zu {{name}}',
-      emptyBodyBase: 'Ihr habt euch beide die Hunde des anderen gemocht. Schlag einen Park oder eine Uhrzeit vor.',
-      emptyBodyWithDistance: 'Ihr habt euch beide die Hunde des anderen gemocht. Schlag einen Park oder eine Uhrzeit vor — {{dog}} ist {{distance}} entfernt.',
+      emptyBodyBase:
+        'Ihr habt euch beide die Hunde des anderen gemocht. Schlag einen Park oder eine Uhrzeit vor.',
+      emptyBodyWithDistance:
+        'Ihr habt euch beide die Hunde des anderen gemocht. Schlag einen Park oder eine Uhrzeit vor — {{dog}} ist {{distance}} entfernt.',
     },
     dogRequest: {
       details: 'Hundedetails',
       sayHelloTo: 'Sag Hallo wegen {{name}}',
-      emptyBody: 'Du kannst jetzt über den Spaziergang mit {{dog}} chatten. Schlag eine Uhrzeit vor.',
+      emptyBody:
+        'Du kannst jetzt über den Spaziergang mit {{dog}} chatten. Schlag eine Uhrzeit vor.',
     },
   },
   notifications: {
@@ -459,20 +592,47 @@ export default {
       subtitle: 'Wähle, worüber du informiert werden möchtest. Du kannst das jederzeit ändern.',
       matches: { label: 'Neue Matches', desc: 'Wenn jemand mit dir matcht' },
       messages: { label: 'Nachrichten', desc: 'Neue Nachrichten in deinen Chats' },
-      walks: { label: 'Spaziergang-Aktivität', desc: 'Wenn jemand deinem Spaziergang beitritt oder ihn verlässt' },
-      events: { label: 'Veranstaltungs-Aktivität', desc: 'Wenn jemand deiner Veranstaltung beitritt' },
-      shelterRequests: { label: 'Spazier-Anfragen', desc: 'Aktivität bei Tierheim-Spazier-Anfragen' },
-      nearby: { label: 'Spaziergänge in der Nähe', desc: 'Wenn ein neuer Spaziergang in deiner Nähe beginnt' },
+      walks: {
+        label: 'Spaziergang-Aktivität',
+        desc: 'Wenn jemand deinem Spaziergang beitritt oder ihn verlässt',
+      },
+      events: {
+        label: 'Veranstaltungs-Aktivität',
+        desc: 'Wenn jemand deiner Veranstaltung beitritt',
+      },
+      shelterRequests: {
+        label: 'Spazier-Anfragen',
+        desc: 'Aktivität bei Tierheim-Spazier-Anfragen',
+      },
+      nearby: {
+        label: 'Spaziergänge in der Nähe',
+        desc: 'Wenn ein neuer Spaziergang in deiner Nähe beginnt',
+      },
     },
     types: {
       match: { title: 'Es ist ein Match!', body: 'Du und {{name}} könnt jetzt chatten.' },
       walkJoined: { title: 'Neuer Teilnehmer', body: '{{name}} ist {{walkTitle}} beigetreten.' },
-      walkLeft: { title: 'Jemand hat deinen Spaziergang verlassen', body: '{{name}} hat {{walkTitle}} verlassen.' },
-      walkNearby: { title: 'Neuer Spaziergang in der Nähe', body: '„{{walkTitle}}“ startet in der Nähe von {{meetingPoint}}.' },
+      walkLeft: {
+        title: 'Jemand hat deinen Spaziergang verlassen',
+        body: '{{name}} hat {{walkTitle}} verlassen.',
+      },
+      walkNearby: {
+        title: 'Neuer Spaziergang in der Nähe',
+        body: '„{{walkTitle}}“ startet in der Nähe von {{meetingPoint}}.',
+      },
       eventJoined: { title: 'Neuer Teilnehmer', body: '{{name}} ist {{eventTitle}} beigetreten.' },
-      shelterRequest: { title: 'Neue Spazier-Anfrage', body: '{{name}} möchte {{dogName}} spazieren führen.' },
-      shelterAccepted: { title: 'Anfrage angenommen', body: '{{shelterName}} hat zugesagt — du kannst jetzt über {{dogName}} chatten.' },
-      shelterDeclined: { title: 'Anfrage abgelehnt', body: '{{shelterName}} hat deine Anfrage für {{dogName}} abgelehnt.' },
+      shelterRequest: {
+        title: 'Neue Spazier-Anfrage',
+        body: '{{name}} möchte {{dogName}} spazieren führen.',
+      },
+      shelterAccepted: {
+        title: 'Anfrage angenommen',
+        body: '{{shelterName}} hat zugesagt — du kannst jetzt über {{dogName}} chatten.',
+      },
+      shelterDeclined: {
+        title: 'Anfrage abgelehnt',
+        body: '{{shelterName}} hat deine Anfrage für {{dogName}} abgelehnt.',
+      },
     },
   },
   nav: {

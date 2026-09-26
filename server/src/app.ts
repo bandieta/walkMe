@@ -17,6 +17,9 @@ import { storageRouter } from './modules/storage/routes';
 import { adminRouter } from './modules/admin/routes';
 import { shelterRequestsRouter } from './modules/shelterRequests/routes';
 import { notificationsRouter } from './modules/notifications/routes';
+import { blocksRouter } from './modules/blocks/routes';
+import { reportsRouter } from './modules/reports/routes';
+import { generalLimiter, authLimiter, uploadLimiter } from './middleware/rateLimit';
 
 export function createApp() {
   const app = express();
@@ -42,7 +45,8 @@ export function createApp() {
   app.get('/api/docs.json', (_req, res) => res.json(openapiSpec));
 
   const v1 = express.Router();
-  v1.use('/auth', authRouter);
+  v1.use(generalLimiter);
+  v1.use('/auth', authLimiter, authRouter);
   v1.use('/users', usersRouter);
   v1.use('/dogs', dogsRouter);
   v1.use('/walks', walksRouter);
@@ -58,7 +62,9 @@ export function createApp() {
   v1.use('/dog-requests', shelterRequestsRouter);
   v1.use('/notifications', notificationsRouter);
   v1.use('/places', placesRouter);
-  v1.use('/storage', storageRouter);
+  v1.use('/storage', uploadLimiter, storageRouter);
+  v1.use('/blocks', blocksRouter);
+  v1.use('/reports', reportsRouter);
   app.use('/api/v1', v1);
 
   app.use(notFoundHandler);

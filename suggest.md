@@ -193,3 +193,41 @@ Ostatnio pobrane spacery/czaty dostępne bez sieci, kolejka wysyłki wiadomości
   slice'ów Redux i CI uruchamiające `tsc` + testy serwera + testy mobile przy każdym PR.
 - **SQLite** — wystarcza na start; przy produkcji z wieloma instancjami serwera potrzebny Postgres (+ adapter
   Redis dla Socket.io, żeby powiadomienia docierały między instancjami).
+
+## 5. Wdrożenie P0 przez kolejną sesję (2026-09-26)
+
+Na podstawie listy z sekcji 3 zaimplementowano (backend w całości, gotowe do użycia przez API; mobile UI jeszcze
+nie zbudowane — patrz niżej):
+
+**Blokowanie i zgłaszanie użytkowników (3.2 z pierwotnej listy braków, patrz P0 wyżej)**
+- Nowe modele Prisma `Block` i `Report` (migracja `20260926001214_add_blocks_and_reports`).
+- `PUT/DELETE/GET /blocks/:userId` — blokowanie, odblokowanie, lista zablokowanych.
+- `POST /reports` — zgłoszenie użytkownika/psa/spaceru/wydarzenia/wiadomości; trafia do kolejki moderacji
+  (`GET/PATCH /admin/reports`) w panelu admina.
+- Egzekwowanie blokady wpięte w: talię Discover (osoby i psy schroniska), swipe, listę i wysyłanie wiadomości w
+  dopasowaniach, polubienie/wiadomości/listę próśb o spacer z psem schroniska, listę spacerów (`GET /walks`).
+  **Nie** jest jeszcze wpięte w czat grupowy spaceru (`chat/service.ts`) ani w listowanie/dołączanie do wydarzeń
+  (`events/service.ts`) — zablokowana osoba nadal może dołączyć do wydarzenia/spaceru, którego nie widzi na liście,
+  jeśli zna jego identyfikator z innego źródła (np. link).
+- Testy: `server/src/modules/blocks/blocks.test.ts`, `server/src/modules/reports/reports.test.ts`.
+
+**Usuwanie konta (wymóg App Store/Play Store, brakowało całkowicie)**
+- `DELETE /users/me` — usuwa konto z zachowaniem integralności danych: wiadomości nadawcy są przepisywane na
+  wspólne konto-sentinel „Deleted user” (żeby historia czatu grupowego nie miała dziur), prowadzone spacery/wydarzenia
+  są przekazywane innemu uczestnikowi jeśli taki istnieje (w przeciwnym razie kasowane razem z całym wątkiem),
+  a `Match`/`Swipe` (które nie mają relacji Prisma do `User` i inaczej zostałyby osierocone) są czyszczone ręcznie.
+- Panel admina (`DELETE /admin/users/:id`) używa teraz tej samej funkcji — wcześniej robił gołe `prisma.user.delete()`,
+  co zostawiało osierocone wiersze `Match`/`Swipe` i niszczyło spacery/wydarzenia innych uczestników. Poprawka
+  przy okazji.
+- Testy: `server/src/modules/users/accountDeletion.test.ts`.
+
+**Rate limiting (ochrona przed nadużyciami API, brakowało całkowicie)**
+- `express-rate-limit` na całym `/api/v1` (600/15 min), ostrzejszy na `/auth` (20/15 min) i `/storage` (30/godz.).
+  Wyłączony w środowisku testowym (`env.isTest`), żeby nie kolidował z 79+ testami odpalanymi w pętli.
+
+**Wciąż do zrobienia (nie zaczęte w tej sesji)**
+- Mobile UI: przycisk „Zgłoś”/„Zablokuj” w `PersonProfileScreen`, menu wątku czatu i menu profilu; ekran „Zablokowani
+  użytkownicy”; przepływ „Usuń konto” w Profil → Prywatność i bezpieczeństwo z potwierdzeniem.
+- Klient API (`mobile/src/services/api`) dla powyższych endpointów.
+- Tłumaczenia i18n (en/pl/es/de) dla nowych ekranów/komunikatów.
+- Rozważenie, czy blokada powinna też obejmować czat grupowy spaceru i wydarzenia (patrz wyżej).
